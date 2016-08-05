@@ -24,8 +24,7 @@ reportSetup <- function(reportName) {
   base.dir <- system.file(paste0('reports/', reportName), package='soilReports')
   
   # all reports use the same setup file
-  setup.file <- list.files(base.dir, recursive = FALSE, pattern='setup.R')
-  setup.file <- paste0(base.dir, '/', setup.file)
+  setup.file <- paste0(base.dir, '/', 'setup.R')
   
   # source file into temp environment
   env <- new.env()

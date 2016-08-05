@@ -15,6 +15,9 @@ listReports()
 
 # install required packages for a named report
 reportSetup('region2/mu-comparison')
+
+# copy default configuration file to working directory
+reportConfig('region2/mu-comparison')
 ```
 
 ## Related Packages
