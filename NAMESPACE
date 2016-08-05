@@ -1,0 +1,4 @@
+# R 3.0 compatibility:
+
+
+exportPattern("^[^\\.]")

@@ -1,0 +1,547 @@
+---
+title: null
+output:
+  html_document:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
+---
+
+```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+## version number
+.report.version <- 1.0
+
+## short description
+.report.description <- 'summarize raster data for a large collection of map unit polygons'
+```
+
+```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(knitr, quietly=TRUE)
+
+# package options
+opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
+
+# chunk options
+opts_chunk$set(message=FALSE, warning=FALSE, background='#F7F7F7', fig.align='center', fig.retina=2, dev='png', antialias='cleartype', tidy=FALSE)
+
+# R session options
+options(width=100, stringsAsFactors=FALSE)
+
+
+## custom functions
+# http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
+kdeContours <- function(i, prob) {
+  this.id <- unique(i$.id)
+  this.col <- cols[match(this.id, mu.set)]
+  dens <- kde2d(i$x, i$y, n=200); ## estimate the z counts
+
+  dx <- diff(dens$x[1:2])
+  dy <- diff(dens$y[1:2])
+  sz <- sort(dens$z)
+  c1 <- cumsum(sz) * dx * dy
+  levels <- sapply(prob, function(x) {
+    approx(c1, sz, xout = 1 - x)$y
+  })
+  
+  # add contours
+  contour(dens, levels=levels, drawlabels=FALSE, add=TRUE, col=this.col, lwd=2)
+  
+  # add bivariate medians
+  points(median(i$x), median(i$y), pch=3, lwd=2, col=this.col)
+}
+
+
+# masking function applied to a "wide" data.frame of sampled raster data
+# function is applied column-wise
+mask.fun <- function(i) {
+  res <- i > quantile(i, prob=0.05, na.rm=TRUE) & i < quantile(i, prob=0.95, na.rm=TRUE)
+  return(res)
+}
+
+## TODO: ID columns are hard-coded
+# cut down to reasonable size: using cLHS
+f.subset <- function(i, n) {
+	# if there are more than n records, then sub-sample
+	if(nrow(i) > n) {
+	  # all columns except the first 2: IDs
+		idx <- clhs(i[, -c(1:2)], size=n, progress=FALSE, simple=TRUE, iter=1000)
+		i.sub <- i[idx, ]
+	}
+	#	otherwise use what we have
+	else
+		i.sub <- i
+	
+	return(i.sub)
+}
+
+
+# set multi-row figure based on number of groups and fixed number of columns
+dynamicPar <- function(n, max.cols=3) {
+  # simplest case, fewer than max number of allowed columns
+  if(n <= max.cols) {
+    n.rows <- 1
+    n.cols <- n
+  } else {
+    
+    # simplest case, a square
+    if(n %% max.cols == 0) {
+      n.rows <- n / max.cols
+      n.cols <- max.cols
+    } else {
+      # ragged
+      n.rows <- round(n / max.cols) + 1
+      n.cols <- max.cols
+    }
+  }
+  
+  par(mar=c(0,0,0,0), mfrow=c(n.rows, n.cols))
+  # invisibly return geometry
+  invisible(c(n.rows, n.cols))
+}
+
+# stat summary function
+f.summary <- function(i, p) {
+  
+  # remove NA
+  v <- na.omit(i$value)
+  
+  # compute quantiles
+  q <- quantile(v, probs=p)
+  res <- data.frame(t(q))
+  
+  ## TODO: implement better MADM processing and explanation  
+  if(nrow(res) > 0) {
+#     # MADM: MAD / median
+#     # take the natural log of absolute values of MADM
+#     res$log_abs_madm <- log(abs(mad(v) / median(v)))
+#     # 0's become -Inf: convert to 0
+#     res$log_abs_madm[which(is.infinite(res$log_abs_madm))] <- 0
+    
+    # assign reasonable names (quantiles)
+    names(res) <- c(paste0('Q', p * 100))
+    
+    return(res)
+  }
+  else
+    return(NULL)
+}
+
+
+# custom stats for box-whisker plot: 5th-25th-50th-75th-95th percentiles
+custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
+  stats <- quantile(x, p=c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE)
+  n <- length(na.omit(x))
+  out.low <- x[which(x < stats[1])]
+  out.high <- x[which(x > stats[5])]
+  return(list(stats=stats, n=n, conf=NA, out=c(out.low, out.high)))
+}
+
+## TODO: trim this down
+# load required packages
+library(rgdal, quietly=TRUE)
+library(raster, quietly=TRUE)
+library(plyr, quietly=TRUE)
+library(reshape2, quietly=TRUE)
+library(sharpshootR, quietly=TRUE)
+library(latticeExtra, quietly=TRUE)
+library(cluster, quietly=TRUE)
+library(MASS, quietly=TRUE)
+library(clhs, quietly=TRUE)
+
+# load configuration
+source('config.R')
+
+# load cached samples
+load('filtered-samples.Rda')
+
+# terrible hack: rename filtered data
+d.mu <- d.mu.filtered
+mu.area <- mu.area.filtered
+
+
+# find special variables and split
+# gracefully handle missing rasters
+
+# aspect
+circ.vars <- names(raster.list)[grep('aspect', names(raster.list), ignore.case = TRUE)]
+if(length(circ.vars) > 0) {
+  do.aspect <- TRUE
+  d.circ <- subset(d.mu, subset=variable %in% circ.vars)
+} else do.aspect <- FALSE
+
+# geomorphons
+geomorphons.vars <- names(raster.list)[grep('geomorphon', names(raster.list), ignore.case = TRUE)]
+if(length(geomorphons.vars) > 0) {
+  do.geomorphons <- TRUE
+  d.geomorphons <- subset(d.mu, subset=variable == geomorphons.vars)
+} else do.geomorphons <- FALSE
+
+# curvature classes
+curvature.classes <- names(raster.list)[grep('curvature', names(raster.list), ignore.case = TRUE)]
+if(length(curvature.classes) > 0) {
+  do.curvature.classes <- TRUE
+  d.curvature.classes <- subset(d.mu, subset=variable == curvature.classes)
+} else do.curvature.classes <- FALSE
+
+
+# everything else
+d.mu <- subset(d.mu, subset=! variable %in% c(circ.vars, geomorphons.vars, curvature.classes))
+```
+
+
+
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;"><span style="font-size: 200%; font-weight: bold;">Map units (`r mu.col`): `r paste(mu.set, collapse = ", ")`</span>
+<br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d")`</div>
+
+<br>
+This report is designed to provide statistical summaries of the environmental properties of one or more map units. Summaries are based on raster data extracted from fixed-density sampling (`r print(pts.per.acre)` samples / acre) of map unit polygons. Please see the document titled R-Based Map Unit Summary Report Introduction and Description for background and more information.
+
+
+
+### Map Unit Polygon Data Source
+```{r, echo=FALSE}
+fd <- data.frame(`MU Polygons`=mu.dsn, `File or Feature`=mu.layer)
+kable(fd, row.names = FALSE)
+```
+
+### Raster Data Sources
+```{r, echo=FALSE}
+fd <- sapply(raster.list, '[')
+fd <- gsub('\\\\', '/', fd)
+fd <- data.frame(Variable=names(fd), File=fd)
+kable(fd, row.names = FALSE)
+```
+
+### Area Summaries
+Consider increasing the sampling density (<b>`r pts.per.acre` points/ac.</b>) in `config.R` if there are unsampled polygons.
+```{r, echo=FALSE}
+kable(mu.area, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(mu.area)[-1]))
+```
+
+### Modified Box and Whisker Plots
+Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile.
+
+```{r, echo=FALSE, fig.width=8, fig.height=15}
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+
+bwplot(.id ~ value | variable, data=d.mu, stats=custom.bwplot, scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', layout=c(1, length(unique(d.mu$variable))), strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, 
+panel=function(...) {
+  panel.grid(h=0, v=-1, col='grey', lty=3)
+  panel.abline(h=1:length(unique(d.mu$.id)), col='grey', lty=3)
+  panel.bwplot(...)
+})
+```
+
+
+### Density Plots
+These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned"" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks coorrospond to values that are most frequent within a dataset.
+
+
+```{r, echo=FALSE, fig.width=8, fig.height=15}
+tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
+
+densityplot(~ value | variable, groups=.id, data=d.mu, xlab='', ylab='', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(d.mu$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=1), par.settings=tps, type=c('l','g'))
+```
+
+### Tabular Summaries
+Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable.
+
+```{r, echo=FALSE, results='asis'}
+# summarize raster data for tabular output
+mu.stats <- ddply(d.mu, c('variable', '.id'), f.summary, p=p.quantiles)
+
+# print medians
+dg <- c(0, rep(2, times=length(unique(mu.stats$variable))))
+mu.stats.wide <- dcast(mu.stats, .id ~ variable, value.var = 'Q50')
+kable(mu.stats.wide, row.names=FALSE, caption = 'Median Values', align = 'r', digits=dg, col.names=c(mu.col, names(mu.stats.wide)[-1]))
+```
+
+```{r, echo=FALSE, results='asis'}
+# iterate over variables and print smaller tables
+# note: https://github.com/yihui/knitr/issues/886
+l_ply(split(mu.stats, mu.stats$variable), function(i) {
+  # remove variable column
+  var.name <- unique(i$variable)
+  i$variable <- NULL
+  dg <- c(0, rep(2, times=length(p.quantiles)), 3)
+  print(kable(i, caption = var.name, row.names=FALSE, align = 'r', digits=dg, col.names=c(mu.col, names(i)[-1])))
+})
+
+```
+
+
+### Slope Aspect
+A graphical summary of slope aspect values using density and percentile estimation methods adapated to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality.
+
+```{r, echo=FALSE, results='hide', eval=do.aspect}
+## circular stats, by map unit
+d.circ.list <- split(d.circ, d.circ$.id)
+
+# this has to be called 2x, as we are adjusting the device settings on the fly
+fig.geom <- dynamicPar(1)
+
+# update default device output size
+opts_chunk$set(fig.height=fig.geom[1] * 5) # rows
+opts_chunk$set(fig.width=fig.geom[2] * 5) # cols
+```
+
+
+```{r, echo=FALSE, results='asis', eval=do.aspect}
+# reset multi-figure plotting parameters
+dynamicPar(1)
+
+res <- ldply(d.circ.list, function(i) {
+  mu <- unique(i$.id)
+  circ.stats <- aspect.plot(i$value, q=c(0.1, 0.5, 0.9), plot.title=mu, pch=NA, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'), stack=FALSE, p.bw=90)
+  
+  return(round(circ.stats))
+})
+
+# tabular summary
+kable(res, align = 'r', col.names=c(mu.col, names(res)[-1]))
+```
+
+
+### Slope Shape (Curvature) Summary
+The classes were generated using a 5x5 moving window, from a regional 30m DEM. The precision may be limited, use with caution. See instructions for using your own (higher resolution) curvature classification raster.
+```{r, echo=FALSE, fig.width=12, fig.height=6, eval=do.curvature.classes}
+# set names: from Field Guide for description of soils
+## source data: opposite convention
+# 1's place: profile curvature
+# 10's place: plan curvature
+#
+## adapted from above
+## data are reported down/across slope
+# L/L | L/V | L/C         22 | 32 | 12  
+# V/L | V/V | V/C   ----> 23 | 33 | 13
+# C/L | C/V | C/C         21 | 31 | 11
+#
+# order according to approximate "shedding"" -> "accumulating" gradient:
+# 'V/V', 'L/V', 'V/L', 'C/V', 'LL', 'C/L', 'V/C', 'L/C', 'C/C'
+#
+d.curvature.classes$value <- factor(d.curvature.classes$value, 
+                                    levels=c(33, 32, 23, 31, 22, 21, 13, 12, 11), 
+                                    labels = c('V/V', 'L/V', 'V/L', 'C/V', 'LL', 'C/L', 'V/C', 'L/C', 'C/C'))
+
+# tabulate and convert to proportions
+x <- xtabs(~ .id + value, data=d.curvature.classes)
+x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 2)
+
+# print
+kable(x)
+
+# convert to long format for plotting
+x.long <- melt(x)
+# fix names: second column contains curvature class labels
+names(x.long)[2] <- 'curvature.class'
+
+# make some colors, and set style
+cols.curvature.classes <- brewer.pal(9, 'Spectral')
+tps <- list(superpose.polygon=list(col=cols.curvature.classes, lwd=2, lend=2))
+
+# no re-ordering of musym
+trellis.par.set(tps)
+barchart(as.character(.id) ~ value, groups=curvature.class, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$curvature.class), rectangles = TRUE, points=FALSE))
+```
+
+
+
+
+### Geomorphon Landform Classification
+Proportion of samples within each map unit that corrospond to 1 of 10 possible landform positions, as generated via [geomporphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm.
+
+```{r, echo=FALSE, eval=do.geomorphons}
+## TODO: convert proportions into signature
+## geomorphons:
+# set names
+# https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html
+d.geomorphons$value <- factor(d.geomorphons$value, levels=1:10, labels = c('flat', 'summit', 'ridge', 'shoulder', 'spur', 'slope', 'hollow', 'footslope', 'valley', 'depression'))
+
+## TODO: why would some of these not sum to 1?
+# tabulate and convert to proportions
+x <- xtabs(~ .id + value, data=d.geomorphons)
+x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 2)
+
+# print
+kable(x)
+```
+
+```{r, echo=FALSE, eval=do.geomorphons, fig.width=12, fig.height=6}
+# convert to long format for plotting
+x.long <- melt(x)
+# fix names: second column contains geomorphon labels
+names(x.long)[2] <- 'geomorphon'
+
+# make some colors, and set style
+cols.geomorphons <- c('grey', brewer.pal(9, 'Spectral'))
+tps <- list(superpose.polygon=list(col=cols.geomorphons, lwd=2, lend=2))
+
+# clustering of proportions only works with >1 group
+if(length(unique(x.long$.id)) > 1) {
+  # cluster proportions
+  x.d <- as.hclust(diana(daisy(x)))
+  # re-order MU labels levels based on clustering
+  x.long$.id <- factor(x.long$.id, levels=x.long$.id[x.d$order])
+  
+  # musym are re-ordered according to clustering
+  trellis.par.set(tps)
+  barchart(.id ~ value, groups=geomorphon, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=5, text=levels(x.long$geomorphon), rectangles = TRUE, points=FALSE), legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10))))
+} else {
+  # re-order MU labels levels based on clustering
+  x.long$.id <- factor(x.long$.id)
+  
+  trellis.par.set(tps)
+  barchart(.id ~ value, groups=geomorphon, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=5, text=levels(x.long$geomorphon), rectangles = TRUE, points=FALSE))
+}
+
+```
+
+
+
+
+### Multivariate Summary (TODO: is this useful?)
+
+This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 50% of the points (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)) in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space.
+
+
+```{r, eval=FALSE, echo=FALSE, results='hide', fig.width=8, fig.height=8}
+## notes:
+# 1. tried other MDS methods:
+#  * MASS::sammon() fails when there are duplicates in the initial configuration
+#  * vegan::monoMDS() gives similar results as MASS::isoMDS()
+#  * MASS::isoMDS() is the fastest, most stable algorithm I have tried
+# 2. tried `tsne` algorithm (https://lvdmaaten.github.io/tsne/), slow and runs out of memory with large datasets
+# 
+# TODO: combine with supervised classification for more informative eval of env. data / overlap
+
+# cast to wide format
+d.mu.wide <- dcast(d.mu, sid + .id ~ variable, value.var = 'value')
+
+# mask values outside of 5-95 percentile range
+# ommit first two columns,
+mask <- apply(d.mu.wide[, -c(1:2)], 2, mask.fun)
+row.idx <- which(apply(mask, 1, all))
+d.mu.wide <- d.mu.wide[row.idx, ]
+
+## TODO: what is a reasonable sample size?
+# sub-sample via LHS: this takes time
+d.sub <- ddply(d.mu.wide, '.id', f.subset, n=50)
+
+# remove NA
+d.sub <- na.omit(d.sub)
+
+# eval numerical distance, removing 'sid' and '.id' columns
+d.dist <- daisy(d.sub[, -c(1:2)], stand=TRUE)
+
+# map distance matrix to 2D space via MDS
+# there may be very tiny distances, add some noise
+fuzz <- 0.0001
+if(min(d.dist) < fuzz) {
+  d.dist <- as.matrix(d.dist)
+  d.dist[d.dist <= fuzz] <- fuzz
+  d.dist <- as.dist(d.dist)
+}
+
+
+# ordination via Kruskal's Non-metric Multidimensional Scaling
+set.seed(10101001)
+d.MDS <- isoMDS(d.dist)
+
+## TODO: there might be a better way to do this, ask Jay
+# contour density estimates
+# add contours for fixed pct of data density using KDE
+# other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
+s <- data.frame(x=d.MDS$points[, 1], y=d.MDS$points[, 2], .id=d.sub$.id)
+s <- split(s, s$.id)
+
+# plot
+par(mar=c(1,1,3,1))
+plot(d.MDS$points, type='n', axes=FALSE, asp=1)
+abline(h=0, v=0, lty=2, col='grey')
+
+# add contours of prob density
+res <- lapply(s, kdeContours, prob=c(0.5))
+
+points(d.MDS$points, cex=0.45, col=cols[match(d.sub$.id, mu.set)], pch=16)
+title('Ordination of Raster Samples (cLHS Subset) with 50% Density Contour')
+box()
+legend('topleft', legend=mu.set, lwd=NA, pch=16, col=cols[1:length(mu.set)], bty='n', cex=1.25)
+```
+
+
+
+### Save Results Locally (TODO: is this useful?)
+Results are saved in a folder called "output" in the working directory.
+```{r echo=FALSE, eval=FALSE}
+# make an output dir if it doesn't exist
+if(!dir.exists('output')) dir.create('./output')
+
+# save SHP with any un-sampled polygons
+if(length(unsampled.idx) > 0) {
+  shp.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
+  writeOGR(mu[unsampled.idx, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+}
+
+# compute summaries
+poly.stats <- ddply(d.mu, c('pID', 'variable'), f.summary, p=p.quantiles)
+
+# convert to wide format, keeping median value
+poly.stats.wide.1 <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
+# # convert to wide format, keeping log_abs_madm
+# poly.stats.wide.2 <- dcast(poly.stats, pID ~ variable, value.var = 'log_abs_madm')
+
+# add a suffix to variable names so that we can combine
+names(poly.stats.wide.1)[-1] <- paste0(names(poly.stats.wide.1)[-1], '_med')
+# names(poly.stats.wide.2)[-1] <- paste0(names(poly.stats.wide.2)[-1], '_var')
+
+## TODO: pending further review
+# join median + MADM stats for each polygon
+# poly.stats.wide <- join(poly.stats.wide.1, poly.stats.wide.2, by='pID')
+poly.stats.wide <- poly.stats.wide.1
+
+
+# save
+poly.stats.fname <- paste0('output/poly-stats-', paste(mu.set, collapse='_'), '.csv')
+write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE)
+
+## prep variable names for SHP column names
+# cannot contain reserved characters
+# 10 char limit
+names(poly.stats.wide)[-1] <- sapply(names(poly.stats.wide[, -1]), function(i) {
+  # remove '.' and get prefix
+  prfx <- gsub('.', '', substr(i, 1, nchar(i)-4), fixed=TRUE)
+  # abbreviate after filtering other bad chars
+  abbr <- abbreviate(gsub('%|/|\\(|\\)', '', prfx), minlength = 6)
+  # extract suffix
+  suffix <- substr(i, nchar(i)-3, nchar(i))
+  # re-combine
+  res <- paste0(abbr, suffix)
+  return(res)
+  })
+
+# join stats to map unit polygon attribute table
+mu@data <- join(mu@data, poly.stats.wide, by='pID', type='left')
+# save to file
+shp.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
+writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+
+
+## TODO: how do you trap warnings within a .Rmd knitting session?
+# save warnings to log file
+# cat(warnings(), file = 'output/warning-log.txt')
+```
+
+
+
+
+----------------------------
+This document is based on `sharpshootR` version `r utils::packageDescription("sharpshootR", field="Version")`.
+<br>
+Report [configuration and source code are hosted on GitHub](https://github.com/dylanbeaudette/reports/tree/master/mu-gis-stats).
+
+
