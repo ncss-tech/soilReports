@@ -31,19 +31,24 @@ reportSetup <- function(reportName) {
   sys.source(setup.file, envir = env)
   
   # install any missing packages from CRAN
+  if(exists('.packages.to.get', envir = env)) {
   p <- get('.packages.to.get', envir = env)
-  if(!is.null(p))
     .ipkCRAN(p)
+  }
   
   # install any missing packages from GH
+  if(exists('.gh.packages.to.get', envir = env)) {
   p <- get('.gh.packages.to.get', envir = env)
-  if(!is.null(p))
     .ipkGH(p)
+  }
   
   # perform any manual fixes specified in the setup.R
   # this is a list, each item is a command
-  f <- get('.fixes', envir = env)
-  sapply(f, function(i) eval(parse(text=i)))
+  if(exists('.fixes', envir = env)) {
+    f <- get('.fixes', envir = env)
+    sapply(f, function(i) eval(parse(text=i)))
+  }
+  
   
   # let user know that we are ready to go
   message('required packages are installed') 
