@@ -141,6 +141,7 @@ custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
 
 # load required packages
 library(rgdal, quietly=TRUE)
+library(rgeos, quietly=TRUE)
 library(raster, quietly=TRUE)
 library(plyr, quietly=TRUE)
 library(reshape2, quietly=TRUE)
