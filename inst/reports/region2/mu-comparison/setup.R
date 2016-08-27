@@ -4,7 +4,7 @@
 
 
 ## packages + deps from CRAN
-.packages.to.get <- c('rgdal', 'raster', 'plyr', 'reshape2', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools')
+.packages.to.get <- c('rgdal', 'raster', 'plyr', 'reshape2', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos')
 
 ## packages from GH, no deps
 # .gh.packages.to.get <- c()
