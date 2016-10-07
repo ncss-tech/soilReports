@@ -13,6 +13,9 @@ library(soilReports)
 # list reports in the package
 listReports()
 
+# install a .Rprofile file, critical for NRCS users
+installRprofile()
+
 # install required packages for a named report
 reportSetup('region2/mu-comparison')
 
