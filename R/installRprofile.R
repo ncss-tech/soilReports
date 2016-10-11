@@ -7,7 +7,7 @@ installRprofile <- function(overwrite=FALSE) {
   
   # check for existing
   if(file.exists(rp) & ! overwrite)
-    stop(paste0('set `overwrite=TRUE` argument to replace existing .Rprofile file:\n', rp))
+    stop(paste0('set `overwrite=TRUE` argument to replace existing .Rprofile file:\n', rp), call. = FALSE)
   
   # new /HOME/.Rprofile that should direct packages to C:/
   Rprofile.contents <- "

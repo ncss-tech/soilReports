@@ -17,10 +17,13 @@ listReports()
 installRprofile()
 
 # install required packages for a named report
-reportSetup('region2/mu-comparison')
+reportSetup(reportName='region2/mu-comparison')
 
-# copy default configuration file to working directory
-reportConfig('region2/mu-comparison')
+# copy default configuration file and report to named folder 
+# in the current working directory
+reportInit(reportName='region2/mu-comparison', outputDir='project-name-MU-comparison')
+
+# edit config.R and run report in RStudio
 ```
 
 ## Related Packages
