@@ -2,8 +2,18 @@
 R package container and convenience functions for soil data summary, comparison, and evaluation reports used mainly by NRCS staff.
 
 
-Install the development version from Github:
+## Personal Library Work-Around (probably NRCS-specific)
+If your `$HOME` directory points to a network share (e.g. "H:") then you will need to redirect package installation to a local disk. This is accomplished by installing a `.Rprofile` file in your `$HOME` directory. 
 
+If you have no `.Rprofile` file, then the following will add one.
+```r
+source('https://raw.githubusercontent.com/ncss-tech/soilReports/master/R/installRprofile.R')
+installRprofile()
+```
+
+
+## Installation
+There is no version of `soilReports` on CRAN, for now install from GitHub. You will also need the `devtools` package.
 ```r
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)

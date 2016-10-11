@@ -2,6 +2,11 @@
 ## ideas from here: https://cran.r-project.org/bin/windows/base/rw-FAQ.html#What-are-HOME-and-working-directories_003f
 
 installRprofile <- function(overwrite=FALSE) {
+  
+  # information
+  message(paste('HOME directory:', path.expand('~'), collapse = ''))
+  message(paste('Current R library paths:', paste('\n ', .libPaths(), collapse='')))
+  
   # location
   rp <- file.path(path.expand('~'), '.Rprofile')
   
@@ -46,3 +51,4 @@ installRprofile <- function(overwrite=FALSE) {
   source(rp, echo = FALSE)
 
 }
+
