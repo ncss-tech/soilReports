@@ -4,7 +4,13 @@ R package container and convenience functions for soil data summary, comparison,
 
 Install the development version from Github:
 
-`devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)`
+```r
+# need devtools to install packages from GitHub
+install.packages('devtools', dep=TRUE)
+
+# get the latest version of the `soilReports` package
+devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+```
 
 ## Examples
 ```r

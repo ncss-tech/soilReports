@@ -4,10 +4,11 @@
 
 
 ## packages + deps from CRAN
-.packages.to.get <- c('rgdal', 'raster', 'plyr', 'reshape2', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos')
+.packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'raster', 'plyr', 'reshape2', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos')
+
 
 ## packages from GH, no deps
-# .gh.packages.to.get <- c()
+.gh.packages.to.get <- c('ncss-tech/soilDB')
 
 
 ## fixes, usually due to an older version of R
