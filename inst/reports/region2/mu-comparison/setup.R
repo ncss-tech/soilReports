@@ -8,7 +8,7 @@
 
 
 ## packages from GH, no deps
-.gh.packages.to.get <- c('ncss-tech/soilDB')
+.gh.packages.to.get <- c('ncss-tech/sharpshootR')
 
 
 ## fixes, usually due to an older version of R
