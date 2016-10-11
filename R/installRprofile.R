@@ -39,7 +39,10 @@ installRprofile <- function(overwrite=FALSE) {
   message(paste('R library paths:', paste('\n ', .libPaths(), collapse='')))
   "
 
-# overwrite existing .Rprofile in user's HOME directory
-cat(Rprofile.contents, file = rp)
+  # overwrite existing .Rprofile in user's HOME directory
+  cat(Rprofile.contents, file = rp)
+  
+  # source the file, so that we can install immediately
+  source(rp, echo = FALSE)
 
 }
