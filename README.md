@@ -5,15 +5,14 @@ R package container and convenience functions for soil data summary, comparison,
 ## Personal Library Work-Around (probably NRCS-specific)
 If your `$HOME` directory points to a network share (e.g. "H:") then you will need to redirect package installation to a local disk. This is accomplished by installing a `.Rprofile` file in your `$HOME` directory. 
 
-If you have no `.Rprofile` file, then the following will add one.
+If you have no `.Rprofile` file, then the following will add one. Note the library paths listed before and after running.
 ```r
 source('https://raw.githubusercontent.com/ncss-tech/soilReports/master/R/installRprofile.R')
 installRprofile()
 ```
 
-
 ## Installation
-There is no version of `soilReports` on CRAN, for now install from GitHub. You will also need the `devtools` package.
+There is no version of `soilReports` on CRAN, for now install from GitHub.
 ```r
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)
@@ -28,9 +27,6 @@ library(soilReports)
 
 # list reports in the package
 listReports()
-
-# install a .Rprofile file, critical for NRCS users
-installRprofile()
 
 # install required packages for a named report
 reportSetup(reportName='region2/mu-comparison')
