@@ -31,11 +31,10 @@ listReports()
 # install required packages for a named report
 reportSetup(reportName='region2/mu-comparison')
 
-# copy default configuration file and report to named folder 
-# in the current working directory
-reportInit(reportName='region2/mu-comparison', outputDir='project-name-MU-comparison')
+# copy default configuration file and report to 'MU-comparison' in current working directory
+reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 
-# edit config.R and run report in RStudio
+# edit config.R and 'knit' report.Rmd via RStudio
 ```
 
 ## Available Reports
