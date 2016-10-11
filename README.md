@@ -32,6 +32,33 @@ reportInit(reportName='region2/mu-comparison', outputDir='project-name-MU-compar
 # edit config.R and run report in RStudio
 ```
 
+## Available Reports
+
+### Map Unit Comparison/Summary Report
+
+This report was designed to assist with comparisons between map unit concepts via sampling of various raster data sources within map unit polygons. Configuration of data sources is done within `config.R`. Example output [here](http://dylanbeaudette.github.io/static/GIS-summary-by-MU.html). Contact Dylan Beaudette (dylan.beaudette at ca.usda.gov) for questions or comments.
+
+
+## Troubleshooting
+1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
+2. Make sure that the map unit polygon data source is an [OGR-compatible format](http://www.gdal.org/ogr_formats.html): ESRI SHP, ESRI FGDB, etc.
+
+## TODO: 
+  1. estimate effective DF from spatial data: 
+    1. http://www.inside-r.org/packages/cran/SpatialPack/docs/modified.ttest
+  2. test for "separation" between map units based on supervised classification results
+  3. better tests for bugs related to small sample sizes and low variability, currently using SD < 1e-5 as threshold
+    + clhs() breaks when sd == 0
+    + masking 5-95 pctile interval results in not enough data for MDS
+    + figure out reasonable heuristic (multi-variate CV?)
+  4. drop some quantiles from tab. summaries and add mean, SD, CV
+  5. test for raster extents smaller than MU extent
+  
+## Report Distribtuion and Maintenance (ASAP)
+See ticket #173.
+
+
+
 ## Related Packages
  * [aqp](https://github.com/ncss-tech/aqp)
  * [soilDB](https://github.com/ncss-tech/soilDB)
