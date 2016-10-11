@@ -8,4 +8,4 @@ Author: USDA-NRCS Soil Survey Staff
 Maintainer: Dylan Beaudette <dylan.beaudette@ca.usda.gov>
 License: GPL (>= 2)
 URL: https://github.com/ncss-tech/soilReports
-Suggests: rmarkdown, knitr
+Suggests: rmarkdown, knitr, devtools

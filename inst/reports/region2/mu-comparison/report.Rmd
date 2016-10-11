@@ -10,13 +10,14 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.4.2'
+.report.version <- '1.5.1'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 ```
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+# setup
 library(knitr, quietly=TRUE)
 
 # package options
@@ -190,83 +191,14 @@ if(length(mu.set <= 7)) {
 # add a unique polygon ID
 mu$pID <- seq(from=1, to=length(mu))
 
-# load pointers to raster data
-raster.list <- lapply(raster.list, function(i) {
-  i <- try(raster(i))
-  if(class(i) == 'try-error')
-    stop(paste0('Cannot find raster file: ', i), call. = FALSE)
-  else
-    return(i)
-})
 
-# iterate over rasters and read into memory if possible
-nm <- names(raster.list)
-for(i in 1:length(nm)) {
-  
-  # attempt reading into memory, starting with smallest rasters first
-  r <- try(readAll(raster.list[[i]]), silent = TRUE)
-  # if successful, move into list
-  if(class(r) == 'RasterLayer' )
-    raster.list[[i]] <- r
-}
-
-# iterate over map units and sample
-l.mu <- list() # samples
-l.unsampled <- list() # un-sampled polygon IDs
-a.mu <- list() # area stats
-for(mu.i in mu.set) {
-  # get current polygons
-  mu.i.sp <- mu[which(mu[[mu.col]] == mu.i), ]
-  
-  # sample each polygon at a constant density, 1 point per acre
-  s <- constantDensitySampling(mu.i.sp, n.pts.per.ac=pts.per.acre, min.samples=1, polygon.id='pID', iterations=20)
-  
-  # keep track of un-sampled polygons
-  l.unsampled[[mu.i]] <- setdiff(mu.i.sp$pID, unique(s$pID))
-  
-  # make a unique sample ID, need this for conversion: long -> wide
-  s$sid <- 1:nrow(s)
-  
-  # iterate over raster data
-  l <- list()
-  for(i in seq_along(raster.list)) {
-    i.name <- names(raster.list)[i]
-    l[[i.name]] <- data.frame(value=extract(raster.list[[i]], s), pID=s$pID, sid=s$sid)
-  }
-  
-  # convert to DF and fix default naming of raster column
-  d <- ldply(l)
-  names(d)[1] <- 'variable'
-  
-  # extract polygon areas as acres
-  a <- sapply(slot(mu.i.sp, 'polygons'), slot, 'area') * 2.47e-4
-  
-  # compute additional summaries
-  .quantiles <- quantile(a, probs=c(0, 0.05, 0.25, 0.5, 0.75, 0.95, 1))
-  .total.area <- sum(a)
-  .samples <- nrow(s)
-  .mean.sample.density <- round(.samples / .total.area, 2)
-  .polygons <- length(a)
-  .unsampled.polygons <- length(l.unsampled[[mu.i]])
-  
-  # compile into single row
-  a.stats <- c(round(c(.quantiles, .total.area, .samples, .polygons, .unsampled.polygons)), .mean.sample.density)
-  
-  # fix name
-  names(a.stats) <- c('Min', 'Q5', 'Q25', 'Median', 'Q75', 'Q95', 'Max', 'Total Area', 'Samples', 'Polygons', 'Polygons Not Sampled', 'Mean Sample Dens.')
-  
-  # save and continue
-  a.mu[[mu.i]] <- a.stats
-  l.mu[[mu.i]] <- d
-}
-
-# assemble into DF
-d.mu <- ldply(l.mu)
-unsampled.idx <- unlist(l.unsampled)
-mu.area <- ldply(a.mu)
+## 2016-08-27: abstracted sampling / extraction into single function
+# iterate over map units and sample rasters
+# result is a list
+sampling.res <- sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre)
 
 # remove missing values: these will cause densityplot() to fail
-d.mu <- na.omit(d.mu)
+sampling.res$raster.samples <- na.omit(sampling.res$raster.samples)
 
 # find special variables and split
 # gracefully handle missing rasters
@@ -275,26 +207,26 @@ d.mu <- na.omit(d.mu)
 circ.vars <- names(raster.list)[grep('aspect', names(raster.list), ignore.case = TRUE)]
 if(length(circ.vars) > 0) {
   do.aspect <- TRUE
-  d.circ <- subset(d.mu, subset=variable %in% circ.vars)
+  d.circ <- subset(sampling.res$raster.samples, subset=variable %in% circ.vars)
 } else do.aspect <- FALSE
   
 # geomorphons
 geomorphons.vars <- names(raster.list)[grep('geomorphon', names(raster.list), ignore.case = TRUE)]
 if(length(geomorphons.vars) > 0) {
   do.geomorphons <- TRUE
-  d.geomorphons <- subset(d.mu, subset=variable == geomorphons.vars)
+  d.geomorphons <- subset(sampling.res$raster.samples, subset=variable == geomorphons.vars)
 } else do.geomorphons <- FALSE
 
 # curvature classes
 curvature.classes <- names(raster.list)[grep('curvature', names(raster.list), ignore.case = TRUE)]
 if(length(curvature.classes) > 0) {
   do.curvature.classes <- TRUE
-  d.curvature.classes <- subset(d.mu, subset=variable == curvature.classes)
+  d.curvature.classes <- subset(sampling.res$raster.samples, subset=variable == curvature.classes)
 } else do.curvature.classes <- FALSE
   
 
 # everything else
-d.mu <- subset(d.mu, subset=! variable %in% c(circ.vars, geomorphons.vars, curvature.classes))
+sampling.res$raster.samples <- subset(sampling.res$raster.samples, subset=! variable %in% c(circ.vars, geomorphons.vars, curvature.classes))
 ```
 
 <br>
@@ -317,16 +249,13 @@ kable(fd, row.names = FALSE)
 
 ### Raster Data Sources
 ```{r, echo=FALSE}
-fd <- sapply(raster.list, filename)
-fd <- gsub('\\\\', '/', fd)
-fd <- data.frame(Variable=names(fd), File=fd, inMemory=as.character(sapply(raster.list, inMemory)))
-kable(fd, row.names = FALSE)
+kable(sampling.res$raster.summary, row.names = FALSE)
 ```
 
 ### Area Summaries
 Consider increasing the sampling density (<b>`r pts.per.acre` points/ac.</b>) in `config.R` if there are unsampled polygons.
 ```{r, echo=FALSE}
-kable(mu.area, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(mu.area)[-1]))
+kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(sampling.res$area.stats)[-1]))
 ```
 
 ### Modified Box and Whisker Plots
@@ -335,10 +264,10 @@ Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki
 ```{r, echo=FALSE, fig.width=8, fig.height=15}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
-bwplot(.id ~ value | variable, data=d.mu, stats=custom.bwplot, scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', layout=c(1, length(unique(d.mu$variable))), strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, 
+bwplot(.id ~ value | variable, data=sampling.res$raster.samples, stats=custom.bwplot, scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', layout=c(1, length(unique(sampling.res$raster.samples$variable))), strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, 
 panel=function(...) {
   panel.grid(h=0, v=-1, col='grey', lty=3)
-  panel.abline(h=1:length(unique(d.mu$.id)), col='grey', lty=3)
+  panel.abline(h=1:length(unique(sampling.res$raster.samples$.id)), col='grey', lty=3)
   panel.bwplot(...)
 })
 ```
@@ -354,7 +283,7 @@ tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 # dynamic setting of columns in legend
 n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 
-densityplot(~ value | variable, groups=.id, data=d.mu, xlab='', ylab='', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(d.mu$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+densityplot(~ value | variable, groups=.id, data=sampling.res$raster.samples, xlab='', ylab='', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(sampling.res$raster.samples$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
 ```
 
 ### Tabular Summaries
@@ -362,7 +291,7 @@ Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by vari
 
 ```{r, echo=FALSE, results='asis'}
 # summarize raster data for tabular output
-mu.stats <- ddply(d.mu, c('variable', '.id'), f.summary, p=p.quantiles)
+mu.stats <- ddply(sampling.res$raster.samples, c('variable', '.id'), f.summary, p=p.quantiles)
 
 # print medians
 dg <- c(0, rep(2, times=length(unique(mu.stats$variable))))
@@ -529,7 +458,7 @@ This plot displays the similarity of the map units across the set of environment
 # TODO: combine with supervised classification for more informative eval of env. data / overlap
 
 # cast to wide format
-d.mu.wide <- dcast(d.mu, sid + .id ~ variable, value.var = 'value')
+d.mu.wide <- dcast(sampling.res$raster.samples, sid + .id ~ variable, value.var = 'value')
 
 # check SD of each column, by group
 sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, -c(1:2)], sd, na.rm=TRUE)})
@@ -613,13 +542,13 @@ Results are saved in a folder called "output" in the working directory.
 if(!dir.exists('output')) dir.create('./output')
 
 # save SHP with any un-sampled polygons
-if(length(unsampled.idx) > 0) {
+if(length(sampling.res$unsampled.ids) > 0) {
   shp.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
-  writeOGR(mu[unsampled.idx, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+  writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
 }
 
 # compute summaries
-poly.stats <- ddply(d.mu, c('pID', 'variable'), f.summary, p=p.quantiles)
+poly.stats <- ddply(sampling.res$raster.samples, c('pID', 'variable'), f.summary, p=p.quantiles)
 
 # convert to wide format, keeping median value
 poly.stats.wide.1 <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
@@ -674,5 +603,4 @@ writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_l
 This document is based on `sharpshootR` version `r utils::packageDescription("sharpshootR", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/dylanbeaudette/reports/tree/master/mu-gis-stats).
-
 
