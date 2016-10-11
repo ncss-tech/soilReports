@@ -4,7 +4,7 @@
 installRprofile <- function(overwrite=FALSE) {
   
   # information
-  message(paste('HOME directory:', path.expand('~'), collapse = ''))
+  message(paste('HOME directory:\n ', path.expand('~'), collapse = ''))
   message(paste('Current R library paths:', paste('\n ', .libPaths(), collapse='')))
   
   # location
@@ -12,7 +12,7 @@ installRprofile <- function(overwrite=FALSE) {
   
   # check for existing
   if(file.exists(rp) & ! overwrite)
-    stop(paste0('set `overwrite=TRUE` argument to replace existing .Rprofile file:\n', rp), call. = FALSE)
+    stop(paste0('set `overwrite=TRUE` argument to replace existing .Rprofile file:\n  ', rp), call. = FALSE)
   
   # new /HOME/.Rprofile that should direct packages to C:/
   Rprofile.contents <- "
