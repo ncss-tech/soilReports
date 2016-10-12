@@ -55,6 +55,8 @@ This report was designed to assist with comparisons between map unit concepts vi
 ## Troubleshooting
 1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
 2. Make sure that the map unit polygon data source is an [OGR-compatible format](http://www.gdal.org/ogr_formats.html): ESRI SHP, ESRI FGDB, etc.
+3. Make sure that the extent of raster data includes the full extent of map unit polygon data.
+4. If there is a problem installing packages with `reportSetup()`, consider running `update.packages(ask=FALSE, checkBuilt = TRUE)`.
 
 ## TODO: 
   1. estimate effective DF from spatial data: 
@@ -66,6 +68,7 @@ This report was designed to assist with comparisons between map unit concepts vi
     + figure out reasonable heuristic (multi-variate CV?)
   4. drop some quantiles from tab. summaries and add mean, SD, CV
   5. test for raster extents smaller than MU extent
+  6. extentPlot() <- graphical display of extents
   
 ## Report Distribtuion and Maintenance (ASAP)
 See ticket #173.
