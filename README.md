@@ -26,7 +26,7 @@ install.packages('devtools', dep=TRUE)
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 ```
 
-## Examples
+## Example Usage
 The `soilReports` package contains reports and associated configuration files. The following steps illustrate an example session that performs all required setup for the **region2/mu-comparison** report, then copies the configuration and report files to a named folder in the working directory.
 
 ```r
