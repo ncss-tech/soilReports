@@ -1,11 +1,18 @@
 
+## TODO: this should update existing packages, possibly with an argument
 # helper fuction for installing required packages from CRAN
 # a simple check is done to see if each is already installed
-.ipkCRAN <- function(p){
-  new.pkg <- p[! (p %in% installed.packages()[, "Package"])]
-  if (length(new.pkg) > 0) {
-    message('installing packages from CRAN...')
+# p: vector of package names
+# up: logical- upgrade installed packages?
+.ipkCRAN <- function(p, up){
+  if(up) {
     install.packages(new.pkg, dependencies = TRUE)
+  } else {
+    new.pkg <- p[! (p %in% installed.packages()[, "Package"])]
+    if (length(new.pkg) > 0) {
+      message('installing packages from CRAN...')
+      install.packages(new.pkg, dependencies = TRUE)
+    }
   }
 }
 
@@ -18,7 +25,7 @@
 }
 
 # install packages / work-arounds needed for a named report
-reportSetup <- function(reportName) {
+reportSetup <- function(reportName, upgrade=FALSE) {
   
   # get base directory where reports are stored within package
   base.dir <- system.file(paste0('reports/', reportName), package='soilReports')
@@ -33,7 +40,7 @@ reportSetup <- function(reportName) {
   # install any missing packages from CRAN
   if(exists('.packages.to.get', envir = env)) {
   p <- get('.packages.to.get', envir = env)
-    .ipkCRAN(p)
+    .ipkCRAN(p, up=upgrade)
   }
   
   # install any missing packages from GH
