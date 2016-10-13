@@ -31,6 +31,26 @@ options(width=100, stringsAsFactors=FALSE)
 
 
 ## custom functions
+
+# return DF with polygon IDs for those polygons that have p.crit % of samples outside of 5-95th pctiles
+flagPolygons <- function(i, p.crit=0.15) {
+  
+   # convert to values -> quantiles
+  e.i <- ecdf(i$value)
+  q.i <- e.i(i$value)
+  # locate those samples outside of our 5th-95th range
+  out.idx <- which(q.i < 0.05 | q.i > 0.95)
+  
+  ## TODO: may need to protect against no matching rows?
+  tab <- sort(prop.table(table(i$pID[out.idx])), decreasing = TRUE)
+  df <- data.frame(pID=names(tab), prop.outside.range=round(as.vector(tab), 2))
+  # keep only those with > 15% of samples outside of range
+  df <- df[which(df$prop.outside.range > p.crit), ] 
+
+  return(df)
+}
+
+
 # http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
 kdeContours <- function(i, prob) {
   this.id <- unique(i$.id)
@@ -481,6 +501,7 @@ if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
   # only sub-sample if there are "a lot" of samples
   if(nrow(d.mu.wide) > 1000) {
     # sub-sample via LHS: this takes time
+    # n: this is the number of sub-samples / map unit
     d.sub <- ddply(d.mu.wide, '.id', f.subset, n=50)
   } else {
     d.sub <- d.mu.wide
@@ -535,6 +556,19 @@ if(MDS.summary == FALSE)
 
 
 
+### Flagged Polygons
+These polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range.
+```{r, echo=FALSE}
+# apply across raster values, to all polygons
+polygons.to.check <- ddply(sampling.res$raster.samples, c('.id', 'variable'), flagPolygons)
+
+# print table
+kable(polygons.to.check, row.names = FALSE)
+```
+
+
+
+
 ### Save Results Locally
 Results are saved in a folder called "output" in the working directory.
 ```{r echo=FALSE}
@@ -586,6 +620,13 @@ names(poly.stats.wide)[-1] <- sapply(names(poly.stats.wide[, -1]), function(i) {
 
 # join stats to map unit polygon attribute table
 mu@data <- join(mu@data, poly.stats.wide, by='pID', type='left')
+
+## flag polygons with n% outside of 5-95 pctiles
+mu[['toCheck']] <- 0
+flagged.pIDs <- unique(polygons.to.check$pID)
+mu$toCheck[which(mu$pID %in% flagged.pIDs)] <- 1
+
+
 # save to file
 shp.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
 writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)

@@ -27,7 +27,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 ```
 
 ## Example Usage
-The `soilReports` package contains reports and associated configuration files. The following steps illustrate an example session that performs all required setup for the **region2/mu-comparison** report, then copies the configuration and report files to a named folder in the working directory.
+The `soilReports` package contains reports and associated configuration files. The following steps illustrate an example session that performs all required setup for the **region2/mu-comparison** report, then copies the configuration and report files to a named folder in the working directory. Edit the `config.R` file (or copy an existing configuration file) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.R` and clicking on the "Knit HTML" button.
 
 ```r
 # load this library
@@ -41,8 +41,6 @@ reportSetup(reportName='region2/mu-comparison')
 
 # copy default configuration file and report to 'MU-comparison' in current working directory
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
-
-# edit config.R and 'knit' report.Rmd via RStudio
 ```
 
 ## Available Reports
@@ -65,15 +63,10 @@ This report was designed to assist with comparisons between map unit concepts vi
   3. better tests for bugs related to small sample sizes and low variability, currently using SD < 1e-5 as threshold
     + clhs() breaks when sd == 0
     + masking 5-95 pctile interval results in not enough data for MDS
-    + figure out reasonable heuristic (multi-variate CV?)
+    + figure out reasonable heuristic (multivariate CV?)
   4. drop some quantiles from tab. summaries and add mean, SD, CV
-  5. test for raster extents smaller than MU extent
   6. extentPlot() <- graphical display of extents
   
-## Report Distribtuion and Maintenance (ASAP)
-See ticket #173.
-
-
 
 ## Related Packages
  * [aqp](https://github.com/ncss-tech/aqp)
