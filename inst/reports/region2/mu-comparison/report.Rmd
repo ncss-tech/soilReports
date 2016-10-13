@@ -555,6 +555,13 @@ if(MDS.summary == FALSE)
 ```
 
 
+### Raster Data Correlation
+```{r, echo=FALSE, fig.width=10, fig.height=8}
+par(mar=c(2,5,2,2))
+plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:2)])))
+```
+
+
 
 ### Flagged Polygons
 These polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range.
