@@ -579,7 +579,7 @@ pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
 })
 
 ## TODO
-# compute Brier scores and fix names
+# compute Shannon Entropy at each sid and fix names
 
 ## TODO: join with output SHP via sid
 ```
