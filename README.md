@@ -56,16 +56,9 @@ This report was designed to assist with comparisons between map unit concepts vi
 3. Make sure that the extent of raster data includes the full extent of map unit polygon data.
 4. If there is a problem installing packages with `reportSetup()`, consider adding the `upgrade=TRUE` argument.
 
-## TODO: 
-  1. estimate effective DF from spatial data: 
-    1. http://www.inside-r.org/packages/cran/SpatialPack/docs/modified.ttest
-  2. test for "separation" between map units based on supervised classification results
-  3. better tests for bugs related to small sample sizes and low variability, currently using SD < 1e-5 as threshold
-    + clhs() breaks when sd == 0
-    + masking 5-95 pctile interval results in not enough data for MDS
-    + figure out reasonable heuristic (multivariate CV?)
-  4. drop some quantiles from tab. summaries and add mean, SD, CV
-  6. extentPlot() <- graphical display of extents
+## TODO
+See [issue tracker](https://github.com/ncss-tech/soilReports/issues) for TODO items.
+
   
 
 ## Related Packages
