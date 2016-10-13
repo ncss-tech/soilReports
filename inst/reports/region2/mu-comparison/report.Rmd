@@ -562,6 +562,9 @@ These polygons, identified by `pID` in the output data, are associated with 15% 
 # apply across raster values, to all polygons
 polygons.to.check <- ddply(sampling.res$raster.samples, c('.id', 'variable'), flagPolygons)
 
+# fix names for printing
+names(polygons.to.check)[1] <- mu.col
+
 # print table
 kable(polygons.to.check, row.names = FALSE)
 ```
@@ -623,8 +626,15 @@ mu@data <- join(mu@data, poly.stats.wide, by='pID', type='left')
 
 ## flag polygons with n% outside of 5-95 pctiles
 mu[['toCheck']] <- 0
-flagged.pIDs <- unique(polygons.to.check$pID)
-mu$toCheck[which(mu$pID %in% flagged.pIDs)] <- 1
+
+# score and rank flagged data
+# sum of proportion outside of 5-95 range, over each variable
+ranked.polygons.to.check <- rank(tapply(polygons.to.check$prop.outside.range, polygons.to.check$pID, sum))
+# sort out which pIDs are flagged
+flagged.pIDs <- names(ranked.polygons.to.check)
+flagged.idx <- which(mu$pID %in% flagged.pIDs)
+# save ranked flags
+mu$toCheck[flagged.idx] <- ranked.polygons.to.check[match(mu$pID[flagged.idx], names(ranked.polygons.to.check))]
 
 
 # save to file
