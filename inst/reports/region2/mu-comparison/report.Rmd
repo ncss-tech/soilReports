@@ -558,6 +558,7 @@ if(MDS.summary == FALSE)
 ### Raster Data Correlation
 ```{r, echo=FALSE, fig.width=10, fig.height=8}
 par(mar=c(2,5,2,2))
+## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
 plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:2)])))
 ```
 
