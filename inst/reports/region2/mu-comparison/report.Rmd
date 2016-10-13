@@ -471,6 +471,7 @@ This plot displays the similarity of the map units across the set of environment
 ```{r, results='hide', echo=FALSE, fig.width=8, fig.height=8}
 ## issues: 
 # 1. possible methods: https://github.com/ncss-tech/soilReports/issues/18
+# 2. add geomorphons, curvature classses, and possibly NLCD (factors)
 
 # cast to wide format
 d.mu.wide <- dcast(sampling.res$raster.samples, sid + .id ~ variable, value.var = 'value')
@@ -550,10 +551,37 @@ par(mar=c(2,5,2,2))
 plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:2)])))
 ```
 
-```{r, echo=FALSE}
+
+### Raster Data Importance
+
+```{r, echo=FALSE, fig.width=6, fig.height=6}
+# use supervised classification to empirically determine the relative importance of each raster layer
+# TODO: include geomorphons and curvature classes
+# TODO: consider using party::cforest() for conditional variable importance-- varimp
 m <- randomForest(x=d.sub[, -c(1:2)], y=factor(d.sub$.id), importance = TRUE)
 
-kable(importance(m), digits = 3)
+# variable importance
+# TODO: how to interpret raw output from importance:
+# http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
+varImpPlot(m, scale=FALSE, type=2, main='')
+# kable(importance(m, scale=FALSE, type=2), digits = 3)
+
+## this adds several seconds to processing time
+# predict using samples from each polygon, to get proportions of each MU
+d.mu.wide <- na.omit(d.mu.wide)
+d.mu.wide$.predMU <- as.character(predict(m, d.mu.wide))
+
+## TODO: add number of samples / sid
+# compute proportion of each class by sid
+pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
+  # explicit setting of levels results in exact output each iteration
+  prop.table(table(factor(i$.predMU, levels=mu.set)))
+})
+
+## TODO
+# compute Brier scores and fix names
+
+## TODO: join with output SHP via sid
 ```
 
 
@@ -589,18 +617,18 @@ if(length(sampling.res$unsampled.ids) > 0) {
 poly.stats <- ddply(sampling.res$raster.samples, c('pID', 'variable'), f.summary, p=p.quantiles)
 
 # convert to wide format, keeping median value
-poly.stats.wide.1 <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
+poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
 # # convert to wide format, keeping log_abs_madm
 # poly.stats.wide.2 <- dcast(poly.stats, pID ~ variable, value.var = 'log_abs_madm')
 
 # add a suffix to variable names so that we can combine
-names(poly.stats.wide.1)[-1] <- paste0(names(poly.stats.wide.1)[-1], '_med')
+# names(poly.stats.wide.1)[-1] <- paste0(names(poly.stats.wide.1)[-1], '_med')
 # names(poly.stats.wide.2)[-1] <- paste0(names(poly.stats.wide.2)[-1], '_var')
 
 ## TODO: pending further review
 # join median + MADM stats for each polygon
 # poly.stats.wide <- join(poly.stats.wide.1, poly.stats.wide.2, by='pID')
-poly.stats.wide <- poly.stats.wide.1
+# poly.stats.wide <- poly.stats.wide.1
 
 
 # save
@@ -623,7 +651,7 @@ names(poly.stats.wide)[-1] <- sapply(names(poly.stats.wide[, -1]), function(i) {
   })
 
 # join stats to map unit polygon attribute table
-mu@data <- join(mu@data, poly.stats.wide, by='pID', type='left')
+mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
 
 ## flag polygons with n% outside of 5-95 pctiles
 mu[['toCheck']] <- 0
