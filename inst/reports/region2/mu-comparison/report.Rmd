@@ -556,6 +556,7 @@ if(MDS.summary == FALSE)
 
 
 ### Raster Data Correlation
+The following figure highlights shared information among raster data sources based on [Spearman's Ranked Correlation coefficient](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient). Branch height is associated with the degree of shared information between raster data.
 ```{r, echo=FALSE, fig.width=10, fig.height=8}
 par(mar=c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
@@ -565,7 +566,7 @@ plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:2)])))
 
 
 ### Flagged Polygons
-These polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range.
+These polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range. Flagged polygons are ranked in the output SHP file.
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
 polygons.to.check <- ddply(sampling.res$raster.samples, c('.id', 'variable'), flagPolygons)
