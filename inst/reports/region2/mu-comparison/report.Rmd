@@ -171,6 +171,7 @@ library(latticeExtra, quietly=TRUE)
 library(cluster, quietly=TRUE)
 library(MASS, quietly=TRUE)
 library(clhs, quietly=TRUE)
+library(randomForest, quietly=TRUE)
 
 
 ## load local configuration
@@ -468,14 +469,8 @@ This plot displays the similarity of the map units across the set of environment
 
 
 ```{r, results='hide', echo=FALSE, fig.width=8, fig.height=8}
-## notes:
-# 1. tried other MDS methods:
-#  * MASS::sammon() fails when there are duplicates in the initial configuration
-#  * vegan::monoMDS() gives similar results as MASS::isoMDS()
-#  * MASS::isoMDS() is the fastest, most stable algorithm I have tried
-# 2. tried `tsne` algorithm (https://lvdmaaten.github.io/tsne/), slow and runs out of memory with large datasets
-# 
-# TODO: combine with supervised classification for more informative eval of env. data / overlap
+## issues: 
+# 1. possible methods: https://github.com/ncss-tech/soilReports/issues/18
 
 # cast to wide format
 d.mu.wide <- dcast(sampling.res$raster.samples, sid + .id ~ variable, value.var = 'value')
@@ -490,13 +485,6 @@ if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
   
   MDS.summary <- TRUE
   
-  ## TODO: this causes a lot of bugs, worth keeping?
-  # # mask values outside of 5-95 percentile range
-  # # ommit first two columns,
-  # mask <- apply(d.mu.wide[, -c(1:2)], 2, mask.fun)
-  # row.idx <- which(apply(mask, 1, all))
-  # d.mu.wide <- d.mu.wide[row.idx, ]
-  
   ## TODO: what is a reasonable sample size?
   # only sub-sample if there are "a lot" of samples
   if(nrow(d.mu.wide) > 1000) {
@@ -506,7 +494,6 @@ if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
   } else {
     d.sub <- d.mu.wide
   }
-  
   
   ## NOTE: data with very low variability will cause warnings
   # eval numerical distance, removing 'sid' and '.id' columns
@@ -563,6 +550,11 @@ par(mar=c(2,5,2,2))
 plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:2)])))
 ```
 
+```{r, echo=FALSE}
+m <- randomForest(x=d.sub[, -c(1:2)], y=factor(d.sub$.id), importance = TRUE)
+
+kable(importance(m), digits = 3)
+```
 
 
 ### Flagged Polygons
