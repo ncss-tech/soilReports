@@ -1,5 +1,5 @@
 
-## TODO: this should update existing packages, possibly with an argument
+
 # helper fuction for installing required packages from CRAN
 # a simple check is done to see if each is already installed
 # p: vector of package names
