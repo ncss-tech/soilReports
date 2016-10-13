@@ -6,7 +6,7 @@
 # up: logical- upgrade installed packages?
 .ipkCRAN <- function(p, up){
   if(up) {
-    install.packages(new.pkg, dependencies = TRUE)
+    install.packages(p, dependencies = TRUE)
   } else {
     new.pkg <- p[! (p %in% installed.packages()[, "Package"])]
     if (length(new.pkg) > 0) {
