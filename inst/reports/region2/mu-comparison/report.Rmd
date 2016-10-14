@@ -566,17 +566,17 @@ m <- randomForest(x=d.sub[, -c(1:2)], y=factor(d.sub$.id), importance = TRUE)
 varImpPlot(m, scale=FALSE, type=2, main='')
 # kable(importance(m, scale=FALSE, type=2), digits = 3)
 
-## this adds several seconds to processing time
-# predict using samples from each polygon, to get proportions of each MU
-d.mu.wide <- na.omit(d.mu.wide)
-d.mu.wide$.predMU <- as.character(predict(m, d.mu.wide))
-
-## TODO: add number of samples / sid
-# compute proportion of each class by sid
-pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
-  # explicit setting of levels results in exact output each iteration
-  prop.table(table(factor(i$.predMU, levels=mu.set)))
-})
+# ## this adds several seconds to processing time
+# # predict using samples from each polygon, to get proportions of each MU
+# d.mu.wide <- na.omit(d.mu.wide)
+# d.mu.wide$.predMU <- as.character(predict(m, d.mu.wide))
+# 
+# ## TODO: add number of samples / sid
+# # compute proportion of each class by sid
+# pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
+#   # explicit setting of levels results in exact output each iteration
+#   prop.table(table(factor(i$.predMU, levels=mu.set)))
+# })
 
 ## TODO
 # compute Shannon Entropy at each sid and fix names (useful?)
