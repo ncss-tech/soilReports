@@ -554,7 +554,7 @@ plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:2)])))
 
 ### Raster Data Importance
 
-```{r, echo=FALSE, fig.width=6, fig.height=6}
+```{r, echo=FALSE, fig.width=8, fig.height=6}
 # use supervised classification to empirically determine the relative importance of each raster layer
 # TODO: include geomorphons and curvature classes
 # TODO: consider using party::cforest() for conditional variable importance-- varimp
@@ -579,7 +579,7 @@ pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
 })
 
 ## TODO
-# compute Shannon Entropy at each sid and fix names
+# compute Shannon Entropy at each sid and fix names (useful?)
 
 ## TODO: join with output SHP via sid
 ```
