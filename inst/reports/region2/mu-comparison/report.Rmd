@@ -534,15 +534,25 @@ d.mu.wide.vars <- which(! names(d.mu.wide) %in% c('.id', 'sid', 'pID'))
 
 # check SD of each column, by group
 sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, d.mu.wide.vars], sd, na.rm=TRUE)})
+sd.by.id$res <- apply(sd.by.id[, -1], 1, function(i) any(i < 1e-5))
 
-## TODO: perform checking by .id first, filter out low-varance MU
 
-# if the SD of any column, within any group is < 1e5 then stop
-if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
+# if the SD is low in any column from all MU then stop
+if(all(sd.by.id$res)) {
   multivariate.summary <- FALSE
 } else {
-  
+  # OK to run MV summaries
   multivariate.summary <- TRUE
+  
+  # filter out low-variance MU
+  if(any(sd.by.id$res)) {
+    ids.to.keep <- sd.by.id$.id[which(!sd.by.id$res)]
+    d.mu.wide <- d.mu.wide[which(d.mu.wide$.id %in% ids.to.keep), ]
+    
+    # reset mu.set accordingly
+    idx.to.keep <- which(! mu.set %in% setdiff(mu.set, ids.to.keep))
+    mu.set <- mu.set[idx.to.keep]
+  }
   
   ## TODO: what is a reasonable sample size?
   # only sub-sample if there are "a lot" of samples
