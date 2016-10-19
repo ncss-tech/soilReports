@@ -82,13 +82,13 @@ mask.fun <- function(i) {
   return(res)
 }
 
-## TODO: ID columns are hard-coded
+
 # cut down to reasonable size: using cLHS
-f.subset <- function(i, n) {
+f.subset <- function(i, n, non.id.vars) {
 	# if there are more than n records, then sub-sample
 	if(nrow(i) > n) {
-	  # all columns except the first 2: IDs
-		idx <- clhs(i[, -c(1:2)], size=n, progress=FALSE, simple=TRUE, iter=1000)
+	  # columns with IDs have been pre-filtered
+		idx <- clhs(i[, non.id.vars], size=n, progress=FALSE, simple=TRUE, iter=1000)
 		i.sub <- i[idx, ]
 	}
 	#	otherwise use what we have
@@ -423,7 +423,7 @@ barchart(as.character(.id) ~ value, groups=curvature.class, data=x.long, horiz=T
 ### Geomorphon Landform Classification
 Proportion of samples within each map unit that corrospond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm.
 
-```{r, echo=FALSE, eval=do.geomorphons}
+```{r, echo=FALSE, eval=do.geomorphons, fig.width=12, fig.height=6}
 ## geomorphons:
 # set names
 # https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html
@@ -452,12 +452,6 @@ x.sig <- apply(x, 1, function(i) {
 x.sig <- as.data.frame(x.sig)
 names(x.sig) <- 'signature'
 
-# print and truncate to 2 decimal places
-kable(x, digits = 2)
-
-kable(x.sig, caption = 'Top 75% fraction of landform classes, decreasing order.')
-
-
 # get a geomorphon signature for each polygon
 geomorphon.spatial.summary <- ddply(d.geomorphons, c('pID', '.id'), function(i) {
   # tabulate and convert to proportions
@@ -470,20 +464,17 @@ geomorphon.spatial.summary <- ddply(d.geomorphons, c('pID', '.id'), function(i) 
 # r <- randomForest(factor(.id) ~ ., data=geomorphon.spatial.summary[, -1])
 # geomorphon.spatial.summary$pred.id <- predict(r, geomorphon.spatial.summary)
 
-
-
-## TODO: finish this
+## most likely landform
 most.likely.landform.idx <- apply(geomorphon.spatial.summary[, -c(1:2)], 1, which.max)
 geomorphon.spatial.summary$ml_landform <- levels(d.geomorphons$value)[most.likely.landform.idx]
 
-## TODO: compute distance from MU centroid by polygon, save to attr table
+## shannon H by polygon
+geomorphon.spatial.summary$shannon_h <- apply(geomorphon.spatial.summary[, 3:10], 1, function(i) {
+  -sum(i * log(i, base=10), na.rm=TRUE)
+})
 
-## TODO: add this to polygon output
 
-```
-
-```{r, echo=FALSE, eval=do.geomorphons, fig.width=12, fig.height=6}
-# convert to long format for plotting
+## convert proportions to long format for plotting
 x.long <- melt(x)
 # fix names: second column contains geomorphon labels
 names(x.long)[2] <- 'geomorphon'
@@ -509,9 +500,17 @@ if(length(unique(x.long$.id)) > 1) {
   trellis.par.set(tps)
   barchart(.id ~ value, groups=geomorphon, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=5, text=levels(x.long$geomorphon), rectangles = TRUE, points=FALSE))
 }
-
 ```
 
+```{r, echo=FALSE, eval=do.geomorphons}
+# print and truncate to 2 decimal places
+kable(x, digits = 2, caption = '')
+```
+
+
+```{r, echo=FALSE, eval=do.geomorphons}
+kable(x.sig, caption = 'Top 75% fraction of landform classes in decreasing order.')
+```
 
 
 
@@ -526,10 +525,15 @@ This plot displays the similarity of the map units across the set of environment
 # 2. add geomorphons, curvature classses, and possibly NLCD (factors)
 
 # cast to wide format
-d.mu.wide <- dcast(sampling.res$raster.samples, sid + .id ~ variable, value.var = 'value')
+d.mu.wide <- dcast(sampling.res$raster.samples, sid + pID + .id ~ variable, value.var = 'value')
+
+# locate "non-id" vars
+d.mu.wide.vars <- which(! names(d.mu.wide) %in% c('.id', 'sid', 'pID'))
 
 # check SD of each column, by group
-sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, -c(1:2)], sd, na.rm=TRUE)})
+sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, d.mu.wide.vars], sd, na.rm=TRUE)})
+
+## TODO: perform checking by .id first, filter out low-varance MU
 
 # if the SD of any column, within any group is < 1e5 then stop
 if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
@@ -542,17 +546,30 @@ if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
   # only sub-sample if there are "a lot" of samples
   if(nrow(d.mu.wide) > 1000) {
     # sub-sample via LHS: this takes time
+    # first three columns are IDs
     # n: this is the number of sub-samples / map unit
-    d.sub <- ddply(d.mu.wide, '.id', f.subset, n=50)
+    # non.id.vars: this is an index to non-ID columns
+    d.sub <- ddply(d.mu.wide, '.id', f.subset, n=50, non.id.vars=d.mu.wide.vars)
   } else {
     d.sub <- d.mu.wide
   }
   
   ## NOTE: data with very low variability will cause warnings
   # eval numerical distance, removing 'sid' and '.id' columns
-  d.dist <- daisy(d.sub[, -c(1:2)], stand=TRUE)
+  d.dist <- daisy(d.sub[, d.mu.wide.vars], stand=TRUE)
   
-  # map distance matrix to 2D space via MDS
+  ###
+  ### TODO: vegan functions may be more useful here
+  dd <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
+  vegan:::plot.betadisper(dd, ellipse = TRUE, hull = FALSE, col=cols, conf=0.5, segments=FALSE)
+  
+  ###
+  ###
+  
+  
+  
+  ## map distance matrix to 2D space via MDS
+  
   # there may be very tiny distances, add some noise
   fuzz <- 0.0001
   if(min(d.dist) < fuzz) {
@@ -597,16 +614,16 @@ if(MDS.summary == FALSE)
 
 ### Raster Data Correlation
 The following figure highlights shared information among raster data sources based on [Spearman's Ranked Correlation coefficient](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient). Branch height is associated with the degree of shared information between raster data.
-```{r, echo=FALSE, fig.width=10, fig.height=8}
+```{r, echo=FALSE, fig.width=10, fig.height=8, eval=MDS.summary}
 par(mar=c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
-plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:2)])))
+plot(Hmisc::varclus(as.matrix(d.sub[, -c(1:3)])))
 ```
 
 
 ### Raster Data Importance
 
-```{r, echo=FALSE, fig.width=8, fig.height=6}
+```{r, echo=FALSE, fig.width=8, fig.height=6, eval=MDS.summary}
 # use supervised classification to empirically determine the relative importance of each raster layer
 # TODO: include geomorphons and curvature classes
 # TODO: consider using party::cforest() for conditional variable importance-- varimp
@@ -702,8 +719,11 @@ names(poly.stats.wide)[-1] <- sapply(names(poly.stats.wide[, -1]), function(i) {
   return(res)
   })
 
-# join stats to map unit polygon attribute table
+## join stats to map unit polygon attribute table
 mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
+
+## join geomorphon class stats to attribute table
+mu <- merge(mu, geomorphon.spatial.summary, by='pID', all.x=TRUE)
 
 ## flag polygons with n% outside of 5-95 pctiles
 mu[['toCheck']] <- 0
