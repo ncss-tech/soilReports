@@ -69,8 +69,8 @@ kdeContours <- function(i, prob) {
   if(!is.na(levels))
     contour(dens, levels=levels, drawlabels=FALSE, add=TRUE, col=this.col, lwd=2)
   
-  # add bivariate medians
-  points(median(i$x), median(i$y), pch=3, lwd=2, col=this.col)
+  # # add bivariate medians
+  # points(median(i$x), median(i$y), pch=3, lwd=2, col=this.col)
 }
 
 
@@ -169,7 +169,6 @@ library(reshape2, quietly=TRUE)
 library(sharpshootR, quietly=TRUE)
 library(latticeExtra, quietly=TRUE)
 library(cluster, quietly=TRUE)
-library(MASS, quietly=TRUE)
 library(clhs, quietly=TRUE)
 library(randomForest, quietly=TRUE)
 
@@ -540,10 +539,10 @@ sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, d.mu.wide.vars], sd,
 
 # if the SD of any column, within any group is < 1e5 then stop
 if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
-  MDS.summary <- FALSE
+  multivariate.summary <- FALSE
 } else {
   
-  MDS.summary <- TRUE
+  multivariate.summary <- TRUE
   
   ## TODO: what is a reasonable sample size?
   # only sub-sample if there are "a lot" of samples
@@ -564,63 +563,61 @@ if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
   ## convert .id to factor for correct color matching
   d.sub$.id <- factor(d.sub$.id, levels=mu.set)
   
-  ###
-  ### TODO: vegan functions may be more useful here
-  dd <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
-  vegan:::plot.betadisper(dd, ellipse = TRUE, hull = FALSE, col=cols[1:length(mu.set)], conf=0.5, segments=FALSE)
+  ## map distance matrix to 2D space via principal coordinates
+  d.betadisper <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
+  d.scores <- vegan::scores(d.betadisper)
   
-  ###
-  ###
-  
-  
-  
-  ## map distance matrix to 2D space via MDS
-  
-  # there may be very tiny distances, add some noise
-  fuzz <- 0.0001
-  if(min(d.dist) < fuzz) {
-    d.dist <- as.matrix(d.dist)
-    d.dist[d.dist <= fuzz] <- fuzz
-    d.dist <- as.dist(d.dist)
-  }
-  
-  
-  # ordination via Kruskal's Non-metric Multidimensional Scaling
-  set.seed(10101001)
-  d.MDS <- isoMDS(d.dist)
+  ## TODO: remove this 
+  # # there may be very tiny distances, add some noise
+  # fuzz <- 0.0001
+  # if(min(d.dist) < fuzz) {
+  #   d.dist <- as.matrix(d.dist)
+  #   d.dist[d.dist <= fuzz] <- fuzz
+  #   d.dist <- as.dist(d.dist)
+  # }
+  # 
+  # 
+  # # ordination via Kruskal's Non-metric Multidimensional Scaling
+  # set.seed(10101001)
+  # d.MDS <- isoMDS(d.dist)
   
   ## TODO: there might be a better way to do this, ask Jay
   # contour density estimates
   # add contours for fixed pct of data density using KDE
   # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
-  s <- data.frame(x=d.MDS$points[, 1], y=d.MDS$points[, 2], .id=d.sub$.id)
+  s <- data.frame(x=d.scores$sites[, 1], y=d.scores$sites[, 2], .id=d.sub$.id)
   s <- split(s, s$.id)
+  
+  
+  # default plot is OK, but density-based contours are more useful
+  # vegan:::plot.betadisper(d.betadisper, ellipse = TRUE, hull = FALSE, col=cols[1:length(mu.set)], conf=0.5, segments=FALSE, xlab='', ylab='', main='', sub='', las=1)
   
   # plot
   par(mar=c(1,1,3,1))
-  plot(d.MDS$points, type='n', axes=FALSE, asp=1)
+  plot(d.scores$sites, type='n', axes=FALSE)
   abline(h=0, v=0, lty=2, col='grey')
   
   # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
   # add contours of prob density
   res <- lapply(s, kdeContours, prob=c(0.5))
   
-  points(d.MDS$points, cex=0.45, col=cols[match(d.sub$.id, mu.set)], pch=16)
+  points(d.scores$sites, cex=0.45, col=cols[match(d.sub$.id, mu.set)], pch=16)
+  vegan::ordilabel(d.betadisper, display='centroids', col=cols)
   title('Ordination of Raster Samples (cLHS Subset) with 50% Density Contour')
   box()
-  legend('topleft', legend=mu.set, lwd=NA, pch=16, col=cols[1:length(mu.set)], bty='n', cex=1.25)
+  # legend('topleft', legend=mu.set, lwd=NA, pch=16, col=cols[1:length(mu.set)], bty='n', cex=1.25)
 }
 ```
 
 ```{r, echo=FALSE}
-if(MDS.summary == FALSE)
-  print('Cannot create MDS plot: not enough variance within each map unit.')
+if(multivariate.summary == FALSE)
+  print('Cannot create ordination plot: not enough variance within each map unit.')
 ```
 
 
 ### Raster Data Correlation
 The following figure highlights shared information among raster data sources based on [Spearman's Ranked Correlation coefficient](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient). Branch height is associated with the degree of shared information between raster data.
-```{r, echo=FALSE, fig.width=10, fig.height=8, eval=MDS.summary}
+```{r, echo=FALSE, fig.width=10, fig.height=8, eval=multivariate.summary}
 par(mar=c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
 plot(Hmisc::varclus(as.matrix(d.sub[, d.mu.wide.vars])))
@@ -629,7 +626,7 @@ plot(Hmisc::varclus(as.matrix(d.sub[, d.mu.wide.vars])))
 
 ### Raster Data Importance
 
-```{r, echo=FALSE, fig.width=8, fig.height=6, eval=MDS.summary}
+```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
 # use supervised classification to empirically determine the relative importance of each raster layer
 # TODO: include geomorphons and curvature classes
 # TODO: consider using party::cforest() for conditional variable importance-- varimp
