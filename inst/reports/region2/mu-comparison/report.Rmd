@@ -161,6 +161,7 @@ custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
 }
 
 # load required packages
+library(MASS, quietly=TRUE)
 library(rgdal, quietly=TRUE)
 library(rgeos, quietly=TRUE)
 library(raster, quietly=TRUE)
@@ -522,9 +523,8 @@ This plot displays the similarity of the map units across the set of environment
 
 
 ```{r, results='hide', echo=FALSE, fig.width=8, fig.height=8}
-## issues: 
-# 1. possible methods: https://github.com/ncss-tech/soilReports/issues/18
-# 2. add geomorphons, curvature classses, and possibly NLCD (factors)
+## TODO: 
+# 1. add geomorphons, curvature classses, and possibly NLCD (factors)
 
 # cast to wide format
 d.mu.wide <- dcast(sampling.res$raster.samples, sid + pID + .id ~ variable, value.var = 'value')
@@ -566,20 +566,6 @@ if(any(unlist(sd.by.id[, -1]) < 1e-5)) {
   ## map distance matrix to 2D space via principal coordinates
   d.betadisper <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
   d.scores <- vegan::scores(d.betadisper)
-  
-  ## TODO: remove this 
-  # # there may be very tiny distances, add some noise
-  # fuzz <- 0.0001
-  # if(min(d.dist) < fuzz) {
-  #   d.dist <- as.matrix(d.dist)
-  #   d.dist[d.dist <= fuzz] <- fuzz
-  #   d.dist <- as.dist(d.dist)
-  # }
-  # 
-  # 
-  # # ordination via Kruskal's Non-metric Multidimensional Scaling
-  # set.seed(10101001)
-  # d.MDS <- isoMDS(d.dist)
   
   ## TODO: there might be a better way to do this, ask Jay
   # contour density estimates
