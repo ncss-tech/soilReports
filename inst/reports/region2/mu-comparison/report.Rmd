@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.6'
+.report.version <- '1.6-1'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -212,17 +212,26 @@ if(length(mu.set <= 7)) {
 # add a unique polygon ID
 mu$pID <- seq(from=1, to=length(mu))
 
+# check for cached data
+if(file.exists('cached-samples.Rda')) {
+  load('cached-samples.Rda')
+} else {
+  ## 2016-08-27: abstracted sampling / extraction into single function
+  # iterate over map units and sample rasters
+  # result is a list
+  sampling.res <- sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre)
 
-## 2016-08-27: abstracted sampling / extraction into single function
-# iterate over map units and sample rasters
-# result is a list
-sampling.res <- sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre)
+  # remove missing values: these will cause densityplot() to fail
+  sampling.res$raster.samples <- na.omit(sampling.res$raster.samples)
 
-# remove missing values: these will cause densityplot() to fail
-sampling.res$raster.samples <- na.omit(sampling.res$raster.samples)
+  # cache for later
+  if(cache.samples)
+    save(sampling.res, file='cached-samples.Rda')
+}
 
-# find special variables and split
-# gracefully handle missing rasters
+
+## find special variables and split
+## gracefully handle missing rasters
 
 # aspect
 circ.vars <- names(raster.list)[grep('aspect', names(raster.list), ignore.case = TRUE)]
@@ -415,19 +424,62 @@ barchart(as.character(.id) ~ value, groups=curvature.class, data=x.long, horiz=T
 Proportion of samples within each map unit that corrospond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm.
 
 ```{r, echo=FALSE, eval=do.geomorphons}
-## TODO: convert proportions into signature
 ## geomorphons:
 # set names
 # https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html
 d.geomorphons$value <- factor(d.geomorphons$value, levels=1:10, labels = c('flat', 'summit', 'ridge', 'shoulder', 'spur', 'slope', 'hollow', 'footslope', 'valley', 'depression'))
 
-## TODO: why would some of these not sum to 1?
 # tabulate and convert to proportions
 x <- xtabs(~ .id + value, data=d.geomorphons)
-x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 2)
+x <- sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/')
 
-# print
-kable(x)
+# create a signature of the most frequent classes that sum to 75% or
+x.sig <- apply(x, 1, function(i) {
+  # order the proportions of each row
+  o <- order(i, decreasing = TRUE)
+  # determine a cut point for cumulative proportion >= threshold value
+  thresh.n <- which(cumsum(i[o]) >= 0.75)[1]
+  # if there is only a single class that dominates, then offset index as we subtract 1 next
+  if(thresh.n == 1)
+    thresh.n <- 2
+  # get the top classes
+  top.classes <- i[o][1:(thresh.n-1)]
+  # format for adding to a table
+  paste(names(top.classes), collapse = '/')
+}
+)
+# prepare for printing HTML table
+x.sig <- as.data.frame(x.sig)
+names(x.sig) <- 'signature'
+
+# print and truncate to 2 decimal places
+kable(x, digits = 2)
+
+kable(x.sig, caption = 'Top 75% fraction of landform classes, decreasing order.')
+
+
+# get a geomorphon signature for each polygon
+geomorphon.spatial.summary <- ddply(d.geomorphons, c('pID', '.id'), function(i) {
+  # tabulate and convert to proportions
+  x <- xtabs(~ .id + value, data=i)
+  x <- sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/')
+  return(x)
+})
+
+## consider supervised classification for QC at this stage:
+# r <- randomForest(factor(.id) ~ ., data=geomorphon.spatial.summary[, -1])
+# geomorphon.spatial.summary$pred.id <- predict(r, geomorphon.spatial.summary)
+
+
+
+## TODO: finish this
+most.likely.landform.idx <- apply(geomorphon.spatial.summary[, -c(1:2)], 1, which.max)
+geomorphon.spatial.summary$ml_landform <- levels(d.geomorphons$value)[most.likely.landform.idx]
+
+## TODO: compute distance from MU centroid by polygon, save to attr table
+
+## TODO: add this to polygon output
+
 ```
 
 ```{r, echo=FALSE, eval=do.geomorphons, fig.width=12, fig.height=6}
