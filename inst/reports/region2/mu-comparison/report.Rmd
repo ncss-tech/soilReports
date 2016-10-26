@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.6-1'
+.report.version <- '1.6-2'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -616,7 +616,11 @@ The following figure highlights shared information among raster data sources bas
 ```{r, echo=FALSE, fig.width=10, fig.height=8, eval=multivariate.summary}
 par(mar=c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
-plot(Hmisc::varclus(as.matrix(d.sub[, d.mu.wide.vars])))
+## This requires 3 or more variables
+if(ncol(d.sub[, d.mu.wide.vars]) > 3) {
+  try(plot(Hmisc::varclus(as.matrix(d.sub[, d.mu.wide.vars]))), silent=TRUE)
+} else
+  print('This plot requires three or more raster variables, apart from aspect, curvature class, and geomorphons.')
 ```
 
 
