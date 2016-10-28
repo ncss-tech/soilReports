@@ -70,7 +70,7 @@ mu.col <- 'MUSYM'
 
 # values less < 1 (coarse sampling density) will result in variation between runs, and un-sampled polygons
 # values > 10 will result in longer report run times
-pts.per.acre <- 2
+pts.per.acre <- 0.5
 
 
 

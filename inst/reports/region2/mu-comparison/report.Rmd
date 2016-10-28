@@ -295,6 +295,15 @@ Consider increasing the sampling density (<b>`r pts.per.acre` points/ac.</b>) in
 kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(sampling.res$area.stats)[-1]))
 ```
 
+
+```{r, echo=FALSE, eval=correct.sample.size}
+spatial.stats.summary <- ddply(sampling.res$spatial.stats, c('.id', 'variable'), summarize, I=median(Moran_I, na.rm = TRUE), n_eff=sum(n_eff, na.rm = TRUE))
+
+# kable(dcast(spatial.stats.summary, variable ~ .id, value.var = 'I'), row.names = FALSE, caption = "Median Moran's I")
+kable(spatial.stats.summary, row.names = FALSE, caption = "Spatial Statistics")
+```
+
+
 ### Modified Box and Whisker Plots
 Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile.
 
