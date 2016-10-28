@@ -150,6 +150,8 @@ f.summary <- function(i, p) {
     return(NULL)
 }
 
+## TODO: figure out how to parameterize with _effective_ sampling size
+##       computed via Moran's I
 
 # custom stats for box-whisker plot: 5th-25th-50th-75th-95th percentiles
 custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
