@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.6-2'
+.report.version <- '1.7'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -301,8 +301,8 @@ kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r
 ```{r, echo=FALSE, eval=correct.sample.size}
 spatial.stats.summary <- ddply(sampling.res$spatial.stats, c('.id', 'variable'), summarize, I=median(Moran_I, na.rm = TRUE), n_eff=sum(n_eff, na.rm = TRUE))
 
-# kable(dcast(spatial.stats.summary, variable ~ .id, value.var = 'I'), row.names = FALSE, caption = "Median Moran's I")
 kable(spatial.stats.summary, row.names = FALSE, caption = "Spatial Statistics")
+kable(dcast(spatial.stats.summary, variable ~ .id, value.var = 'I'), row.names = FALSE, caption = "Median Moran's I")
 ```
 
 
