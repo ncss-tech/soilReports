@@ -229,9 +229,13 @@ if(length(mu.set <= 7)) {
 mu$pID <- seq(from=1, to=length(mu))
 
 # check for cached data
-if(file.exists('cached-samples.Rda')) {
-  load('cached-samples.Rda')
+if(cache.samples) {
+  if(file.exists('cached-samples.Rda')) {
+    message('Using cached raster samples...')
+    load('cached-samples.Rda')
+  }
 } else {
+  ## 2016-11-02: total re-write of ESS via Moran's I: based on pre-sampling of cropped rasters, much faster... useful?
   ## 2016-10-28: added support for estimating effective sample size via Moran's I -- currently very slow for large n: 
   ## 2016-08-27: abstracted sampling / extraction into single function
   # iterate over map units and sample rasters
