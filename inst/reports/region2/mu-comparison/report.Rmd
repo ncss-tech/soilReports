@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.7'
+.report.version <- '1.7-1'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -150,21 +150,28 @@ f.summary <- function(i, p) {
     return(NULL)
 }
 
-## TODO: figure out how to parameterize with _effective_ sampling size
-##       computed via Moran's I
-
 # custom stats for box-whisker plot: 5th-25th-50th-75th-95th percentiles
+# NOTE: we are re-purposing the coef argument!
+# x: vector of values to summarize
+# coef: Moran's I associated with the current raster
 custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
+  # custom quantiles for bwplot
   stats <- quantile(x, p=c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE)
+  # number of samples
   n <- length(na.omit(x))
-  # this requires spatial data to compute...
-  # n_eff <- effective_n()
   
+  # truncate rho to {0,1}
+  rho <- ifelse(coef > 0, coef, 0)
+  # compute effective sample size
+  n_eff <- EFF_by_Moran_I(n, rho)
+  
+  # confidence "notch" is based on ESS
   iqr <- stats[4] - stats[2]
-  conf <- stats[3] + c(-1.58, 1.58) * iqr/sqrt(n)
+  conf <- stats[3] + c(-1.58, 1.58) * iqr/sqrt(n_eff)
   
   out.low <- x[which(x < stats[1])]
   out.high <- x[which(x > stats[5])]
+  
   return(list(stats=stats, n=n, conf=conf, out=c(out.low, out.high)))
 }
 
@@ -180,6 +187,7 @@ library(latticeExtra, quietly=TRUE)
 library(cluster, quietly=TRUE)
 library(clhs, quietly=TRUE)
 library(randomForest, quietly=TRUE)
+library(spdep, quietly=TRUE)
 
 
 ## load local configuration
@@ -288,7 +296,7 @@ kable(fd, row.names = FALSE)
 
 ### Raster Data Sources
 ```{r, echo=FALSE}
-kable(sampling.res$raster.summary, row.names = FALSE)
+kable(sampling.res$raster.summary, row.names = FALSE, digits = 3)
 ```
 
 ### Area Summaries
@@ -298,12 +306,6 @@ kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r
 ```
 
 
-```{r, echo=FALSE, eval=correct.sample.size}
-spatial.stats.summary <- ddply(sampling.res$spatial.stats, c('.id', 'variable'), summarize, I=median(Moran_I, na.rm = TRUE), n_eff=sum(n_eff, na.rm = TRUE))
-
-kable(spatial.stats.summary, row.names = FALSE, caption = "Spatial Statistics")
-kable(dcast(spatial.stats.summary, variable ~ .id, value.var = 'I'), row.names = FALSE, caption = "Median Moran's I")
-```
 
 
 ### Modified Box and Whisker Plots
@@ -312,12 +314,31 @@ Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki
 ```{r, echo=FALSE, fig.width=8, fig.height=15}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
-bwplot(.id ~ value | variable, data=sampling.res$raster.samples, stats=custom.bwplot, scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', layout=c(1, length(unique(sampling.res$raster.samples$variable))), strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, 
-panel=function(...) {
-  panel.grid(h=0, v=-1, col='grey', lty=3)
-  panel.abline(h=1:length(unique(sampling.res$raster.samples$.id)), col='grey', lty=3)
-  panel.bwplot(...)
-})
+# NOTE: notches rely on effective sampling size
+bwplot(.id ~ value | variable, data=sampling.res$raster.samples, 
+       scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
+       strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, subscripts=TRUE, 
+       layout=c(1, length(unique(sampling.res$raster.samples$variable))),
+       panel=function(x, subscripts=subscripts, ...) {
+         
+         # extract the current raster name
+         this.raster <- as.character(unique(sampling.res$raster.samples$variable[subscripts]))
+         
+         # get associated Moran's I
+         idx <- which(sampling.res$Moran_I$raster.file == this.raster)
+         this.Moran.I <- sampling.res$Moran_I$Moran.I[idx]
+         
+         # make a grid
+         panel.grid(h=0, v=-1, col='grey', lty=3)
+         panel.abline(h=1:length(unique(sampling.res$raster.samples$.id)), col='grey', lty=3)
+         
+         # boxplots with custom sampling size:
+         # coef: Moran's I associated with this raster
+         panel.bwplot(x, stats=custom.bwplot, notch=correct.sample.size, coef=this.Moran.I, ...)
+
+       })
+
+
 ```
 
 

@@ -44,7 +44,7 @@ mu.dsn <- 'L:/CA630/FG_CA630_OFFICIAL.gdb'
 # name of featureclass
 mu.layer <- 'ca630_a'
 # map unit symbols / keys to extract
-mu.set <- c('7011', '7085', '7086')
+mu.set <- c('7011', '5012', '5201')
 
 
 
@@ -83,7 +83,7 @@ p.quantiles <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
 ########################################################
 ### correct sample size for spatial autocorrelation? ###
 ########################################################
-correct.sample.size <- TRUE
+correct.sample.size <- FALSE
 
 
 ###########################################
