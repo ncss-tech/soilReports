@@ -161,6 +161,7 @@ custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
   n <- length(na.omit(x))
   
   # compute effective sample size
+  rho <- coef
   n_eff <- ESS_by_Moran_I(n, rho)
   
   # confidence "notch" is based on ESS
