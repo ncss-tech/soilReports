@@ -229,11 +229,9 @@ if(length(mu.set <= 7)) {
 mu$pID <- seq(from=1, to=length(mu))
 
 # check for cached data
-if(cache.samples) {
-  if(file.exists('cached-samples.Rda')) {
-    message('Using cached raster samples...')
-    load('cached-samples.Rda')
-  }
+if(cache.samples & file.exists('cached-samples.Rda')) {
+  message('Using cached raster samples...')
+  load('cached-samples.Rda')
 } else {
   
   # iterate over map units and sample rasters
