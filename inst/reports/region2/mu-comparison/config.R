@@ -89,5 +89,5 @@ correct.sample.size <- FALSE
 ###########################################
 ### save samples after report has run ? ###
 ###########################################
-cache.samples <- TRUE
+cache.samples <- FALSE
 
