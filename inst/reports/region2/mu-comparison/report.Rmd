@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.7-1'
+.report.version <- '1.7-2'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -665,33 +665,42 @@ if(ncol(d.sub[, d.mu.wide.vars]) > 3) {
 ### Raster Data Importance
 
 ```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
-# use supervised classification to empirically determine the relative importance of each raster layer
-# TODO: include geomorphons and curvature classes
-# TODO: consider using party::cforest() for conditional variable importance-- varimp
-m <- randomForest(x=d.sub[, d.mu.wide.vars], y=d.sub$.id, importance = TRUE)
+# this will only work with >= 2 map units
+if(length(table(d.sub$.id)) >= 2) {
+ # use supervised classification to empirically determine the relative importance of each raster layer
+  # TODO: include geomorphons and curvature classes
+  # TODO: consider using party::cforest() for conditional variable importance-- varimp
+  m <- randomForest(x=d.sub[, d.mu.wide.vars], y=d.sub$.id, importance = TRUE)
+  
+  # variable importance
+  # TODO: how to interpret raw output from importance:
+  # http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
+  varImpPlot(m, scale=FALSE, type=2, main='')
+  # kable(importance(m, scale=FALSE, type=2), digits = 3)
+  
+  # ## this adds several seconds to processing time
+  # # predict using samples from each polygon, to get proportions of each MU
+  # d.mu.wide <- na.omit(d.mu.wide)
+  # d.mu.wide$.predMU <- as.character(predict(m, d.mu.wide))
+  # 
+  # ## TODO: add number of samples / sid
+  # # compute proportion of each class by sid
+  # pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
+  #   # explicit setting of levels results in exact output each iteration
+  #   prop.table(table(factor(i$.predMU, levels=mu.set)))
+  # })
+  
+  ## TODO
+  # compute Shannon Entropy at each sid and fix names (useful?)
+  
+  ## TODO: join with output SHP via sid 
+} else {
+  # print message about not enough map unit s
+  print('This plot requires two or more map units.')
+}
 
-# variable importance
-# TODO: how to interpret raw output from importance:
-# http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
-varImpPlot(m, scale=FALSE, type=2, main='')
-# kable(importance(m, scale=FALSE, type=2), digits = 3)
 
-# ## this adds several seconds to processing time
-# # predict using samples from each polygon, to get proportions of each MU
-# d.mu.wide <- na.omit(d.mu.wide)
-# d.mu.wide$.predMU <- as.character(predict(m, d.mu.wide))
-# 
-# ## TODO: add number of samples / sid
-# # compute proportion of each class by sid
-# pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
-#   # explicit setting of levels results in exact output each iteration
-#   prop.table(table(factor(i$.predMU, levels=mu.set)))
-# })
 
-## TODO
-# compute Shannon Entropy at each sid and fix names (useful?)
-
-## TODO: join with output SHP via sid
 ```
 
 
