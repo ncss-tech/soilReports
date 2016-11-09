@@ -1,4 +1,8 @@
 # R 3.0 compatibility:
 
-
 exportPattern("^[^\\.]")
+
+importFrom("utils", "install.packages", "installed.packages")
+
+importFrom("devtools", "install_github")
+
