@@ -773,7 +773,8 @@ names(poly.stats.wide)[-1] <- sapply(names(poly.stats.wide[, -1]), function(i) {
 mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
 
 ## join geomorphon class stats to attribute table
-mu <- merge(mu, geomorphon.spatial.summary, by='pID', all.x=TRUE)
+if(do.geomorphons)
+  mu <- merge(mu, geomorphon.spatial.summary, by='pID', all.x=TRUE)
 
 ## flag polygons with n% outside of 5-95 pctiles
 mu[['toCheck']] <- 0
