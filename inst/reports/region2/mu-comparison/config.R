@@ -24,9 +24,10 @@ raster.list <- list(`Mean Annual Air Temperature (degrees C)`='E:/gis_data/prism
                     `Slope Aspect (degrees)`='E:/gis_data/region-2-mu-analysis/aspect_30.tif',
                     `Geomorphon Landforms`='L:/Geodata/DEM_derived/forms10.tif',
                     `Curvature Classes`='E:/gis_data/ca630/curvature_classes_15.tif',
-                    `Compound Topographic Index`='E:/gis_data/ca630/tci30.tif',
-                    `MRVBF`='E:/gis_data/ca630/mrvbf_10.tif',
-                    `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
+                    `NLCD 2011`='E:gis_data/NLCD/nlcd_2011_landcover_2011_edition_2014_03_31.img'
+                    # `Compound Topographic Index`='E:/gis_data/ca630/tci30.tif',
+                    # `MRVBF`='E:/gis_data/ca630/mrvbf_10.tif',
+                    # `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
 )
 
 
@@ -44,7 +45,7 @@ mu.dsn <- 'L:/CA630/FG_CA630_OFFICIAL.gdb'
 # name of featureclass
 mu.layer <- 'ca630_a'
 # map unit symbols / keys to extract
-mu.set <- c('7011', '5012', '5201')
+mu.set <- c('7011', '5012', '7085')
 
 
 

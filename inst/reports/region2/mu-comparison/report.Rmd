@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.7-2'
+.report.version <- '1.8'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -269,7 +269,14 @@ if(length(curvature.classes) > 0) {
   do.curvature.classes <- TRUE
   d.curvature.classes <- subset(sampling.res$raster.samples, subset=variable == curvature.classes)
 } else do.curvature.classes <- FALSE
-  
+
+# 2011 NLCD
+nlcd.classes <- names(raster.list)[grep('nlcd', names(raster.list), ignore.case = TRUE)]
+if(length(nlcd.classes) > 0) {
+  do.nlcd.classes <- TRUE
+  d.nlcd.classes <- subset(sampling.res$raster.samples, subset=variable == nlcd.classes)
+} else do.curvature.classes <- FALSE
+
 
 # everything else
 sampling.res$raster.samples <- subset(sampling.res$raster.samples, subset=! variable %in% c(circ.vars, geomorphons.vars, curvature.classes))
@@ -436,7 +443,7 @@ d.curvature.classes$value <- factor(d.curvature.classes$value,
 
 # tabulate and convert to proportions
 x <- xtabs(~ .id + value, data=d.curvature.classes)
-x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 2)
+x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 3)
 
 # print
 kable(x)
@@ -551,6 +558,57 @@ kable(x, digits = 2, caption = '')
 
 ```{r, echo=FALSE, eval=do.geomorphons}
 kable(x.sig, caption = 'Top 75% fraction of landform classes in decreasing order.')
+```
+
+
+### Landcover Summary (2011 NLCD)
+
+```{r, echo=FALSE, fig.width=12, fig.height=10, eval=do.nlcd.classes}
+# These are from the NLCD 2011 metadata
+nlcd.leg <- structure(list(ID = c(0L, 11L, 12L, 21L, 22L, 23L, 24L, 31L, 
+41L, 42L, 43L, 51L, 52L, 71L, 72L, 73L, 74L, 81L, 82L, 90L, 95L
+), name = c("nodata", "Open Water", "Perennial Ice/Snow", "Developed, Open Space", 
+"Developed, Low Intensity", "Developed, Medium Intensity", "Developed, High Intensity", 
+"Barren Land (Rock/Sand/Clay)", "Deciduous Forest", "Evergreen Forest", 
+"Mixed Forest", "Dwarf Scrub", "Shrub/Scrub", "Grassland/Herbaceous", 
+"Sedge/Herbaceous", "Lichens", "Moss", "Pasture/Hay", "Cultivated Crops", 
+"Woody Wetlands", "Emergent Herbaceous Wetlands"), col = c("#000000", 
+"#476BA0", "#D1DDF9", "#DDC9C9", "#D89382", "#ED0000", "#AA0000", 
+"#B2ADA3", "#68AA63", "#1C6330", "#B5C98E", "#A58C30", "#CCBA7C", 
+"#E2E2C1", "#C9C977", "#99C147", "#77AD93", "#DBD83D", "#AA7028", 
+"#BAD8EA", "#70A3BA")), .Names = c("ID", "name", "col"), row.names = c(NA, 
+-21L), class = "data.frame")
+
+# set factor levels
+d.nlcd.classes$value <- factor(d.nlcd.classes$value, 
+                                    levels = nlcd.leg$ID, 
+                                    labels = nlcd.leg$name)
+
+# tabulate and convert to proportions
+x <- xtabs(~ .id + value, data=d.nlcd.classes)
+x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 3)
+
+# remove 0's
+idx <- which(apply(x, 2, function(i) all(i != 0)))
+x <- x[, idx]
+
+# print
+kable(x)
+
+# convert to long format for plotting
+x.long <- melt(x)
+# fix names: second column contains NLCD class labels
+names(x.long)[2] <- 'nlcd.class'
+
+
+# These are from the NLCD 2011 metadata
+# get colors for only those classes in this data
+cols.nlcd.classes <- nlcd.leg$col[match(levels(x.long$nlcd.class), nlcd.leg$name)]
+tps <- list(superpose.polygon=list(col=cols.nlcd.classes, lwd=2, lend=2))
+
+# no re-ordering of musym
+trellis.par.set(tps)
+barchart(as.character(.id) ~ value, groups=nlcd.class, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$nlcd.class), rectangles = TRUE, points=FALSE))
 ```
 
 
