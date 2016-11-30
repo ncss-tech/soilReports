@@ -279,7 +279,7 @@ if(length(nlcd.classes) > 0) {
 
 
 # everything else
-sampling.res$raster.samples <- subset(sampling.res$raster.samples, subset=! variable %in% c(circ.vars, geomorphons.vars, curvature.classes))
+sampling.res$raster.samples <- subset(sampling.res$raster.samples, subset=! variable %in% c(circ.vars, geomorphons.vars, curvature.classes, nlcd.classes))
 ```
 
 <br>
