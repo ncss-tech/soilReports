@@ -275,7 +275,7 @@ nlcd.classes <- names(raster.list)[grep('nlcd', names(raster.list), ignore.case 
 if(length(nlcd.classes) > 0) {
   do.nlcd.classes <- TRUE
   d.nlcd.classes <- subset(sampling.res$raster.samples, subset=variable == nlcd.classes)
-} else do.curvature.classes <- FALSE
+} else do.nlcd.classes <- FALSE
 
 
 # everything else
