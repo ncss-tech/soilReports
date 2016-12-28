@@ -290,7 +290,7 @@ report version `r .report.version`
 `r format(Sys.time(), "%Y-%m-%d")`</div>
 
 <br>
-This report is designed to provide statistical summaries of the environmental properties of one or more map units. Summaries are based on raster data extracted from fixed-density sampling (`r print(pts.per.acre)` samples / acre) of map unit polygons. Please see the document titled R-Based Map Unit Summary Report Introduction and Description for background and more information.
+This report is designed to provide statistical summaries of the environmental properties of one or more map units. Summaries are based on raster data extracted from [fixed-density sampling (`r print(pts.per.acre)` samples / acre) of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). Please see the document titled R-Based Map Unit Summary Report Introduction and Description for background and more information.
 
 
 

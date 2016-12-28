@@ -1,5 +1,5 @@
 ### MU GIS Summary Report
-### 2016-04-07
+### 2016-12-27
 ### D.E. Beaudette and J. Wood
 ###
 ### configuration file, edit as needed
@@ -10,7 +10,7 @@
 #########################
 
 ## 
-## raster data used for CA630, adjust as needed
+## raster data, adjust paths and file names, add or remove sources as needed
 ##
 raster.list <- list(`Mean Annual Air Temperature (degrees C)`='E:/gis_data/prism/final_MAAT_800m.tif', 
                     `Mean Annual Precipitation (mm)`='E:/gis_data/prism/final_MAP_mm_800m.tif',
@@ -22,12 +22,9 @@ raster.list <- list(`Mean Annual Air Temperature (degrees C)`='E:/gis_data/prism
                     `Annual Beam Radiance (MJ/sq.m)`='E:/gis_data/ca630/beam_rad_sum_mj_30m.tif',
                     `(Estimated) MAST (degrees C)`='E:/gis_data/ca630/mast-model.tif',
                     `Slope Aspect (degrees)`='E:/gis_data/region-2-mu-analysis/aspect_30.tif',
-                    `Geomorphon Landforms`='L:/Geodata/DEM_derived/forms10.tif',
-                    `Curvature Classes`='E:/gis_data/ca630/curvature_classes_15.tif',
-                    `NLCD 2011`='E:gis_data/NLCD/nlcd_2011_landcover_2011_edition_2014_03_31.img'
-                    # `Compound Topographic Index`='E:/gis_data/ca630/tci30.tif',
-                    # `MRVBF`='E:/gis_data/ca630/mrvbf_10.tif',
-                    # `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
+                    `Geomorphon Landforms`='E:/gis_data/region-2-mu-analysis/forms30_region2.tif',
+                    `Curvature Classes`='E:/gis_data/region-2-mu-analysis/curvature_classes_30_class_region2.tif',
+                    `NLCD 2011`='E:/gis_data/region-2-mu-analysis/nlcd_2011_cropped.tif'
 )
 
 
@@ -71,6 +68,7 @@ mu.col <- 'MUSYM'
 
 # values less < 1 (coarse sampling density) will result in variation between runs, and un-sampled polygons
 # values > 10 will result in longer report run times
+# details here: http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html
 pts.per.acre <- 1
 
 
