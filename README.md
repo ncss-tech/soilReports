@@ -19,7 +19,7 @@ The current version of `soilReports` is available on GitHub:
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)
 
-# get the latest version of the `soilReports` package
+# get the latest version of the 'soilReports' package
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 ```
 
