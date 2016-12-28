@@ -51,11 +51,11 @@ This report was designed to assist with comparisons between map unit concepts vi
 
 
 ## Troubleshooting
-1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
-2. Make sure that the map unit polygon data source is an [OGR-compatible format](http://www.gdal.org/ogr_formats.html): ESRI SHP, ESRI FGDB, etc.
-3. Make sure that the extent of raster data includes the full extent of map unit polygon data.
-4. If there is a problem installing packages with `reportSetup()`, consider adding the `upgrade=TRUE` argument.
-5. If you are encountering errors with "Knit HTML" in RStudio, try: `update.packages(ask=FALSE, checkBuilt=TRUE)`.
+ 1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
+ 2. Make sure that the map unit polygon data source is an [OGR-compatible format](http://www.gdal.org/ogr_formats.html): ESRI SHP, ESRI FGDB, etc.
+ 3. Make sure that the extent of raster data includes the full extent of map unit polygon data.
+ 4. If there is a problem installing packages with `reportSetup()`, consider adding the `upgrade=TRUE` argument.
+ 5. If you are encountering errors with "Knit HTML" in RStudio, try: `update.packages(ask=FALSE, checkBuilt=TRUE)`.
 
 ## TODO
 See [issue tracker](https://github.com/ncss-tech/soilReports/issues) for TODO items.
