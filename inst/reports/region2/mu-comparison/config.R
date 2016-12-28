@@ -12,19 +12,17 @@
 ## 
 ## raster data, adjust paths and file names, add or remove sources as needed
 ##
-raster.list <- list(`Mean Annual Air Temperature (degrees C)`='E:/gis_data/prism/final_MAAT_800m.tif', 
-                    `Mean Annual Precipitation (mm)`='E:/gis_data/prism/final_MAP_mm_800m.tif',
-                    `Effective Precipitation (mm)`='E:/gis_data/prism/effective_precipitation_800m.tif',
-                    `Frost-Free Days`='E:/gis_data/prism/ffd_mean_800m.tif',
-                    `Growing Degree Days (degrees C)`='E:/gis_data/prism/gdd_mean_800m.tif',
-                    `Elevation (m)`='E:/gis_data/region-2-mu-analysis/elev_30.tif',
-                    `Slope Gradient (%)`='E:/gis_data/region-2-mu-analysis/slope_30.tif',
-                    `Annual Beam Radiance (MJ/sq.m)`='E:/gis_data/ca630/beam_rad_sum_mj_30m.tif',
-                    `(Estimated) MAST (degrees C)`='E:/gis_data/ca630/mast-model.tif',
-                    `Slope Aspect (degrees)`='E:/gis_data/region-2-mu-analysis/aspect_30.tif',
-                    `Geomorphon Landforms`='E:/gis_data/region-2-mu-analysis/forms30_region2.tif',
-                    `Curvature Classes`='E:/gis_data/region-2-mu-analysis/curvature_classes_30_class_region2.tif',
-                    `NLCD 2011`='E:/gis_data/region-2-mu-analysis/nlcd_2011_cropped.tif'
+raster.list <- list(`Mean Annual Air Temperature (degrees C)`='climate/PRISM/final_MAAT_800m.tif', 
+                    `Mean Annual Precipitation (mm)`='climate/PRISM/final_MAP_mm_800m.tif',
+                    `Effective Precipitation (mm)`='climate/PRISM/effective_precipitation_800m.tif',
+                    `Frost-Free Days`='climate/PRISM/ffd_mean_800m.tif',
+                    `Growing Degree Days (degrees C)`='climate/PRISM/gdd_mean_800m.tif',
+                    `Elevation (m)`='MUSum_30m_SSR2/elev_30.tif',
+                    `Slope Gradient (%)`='MUSum_30m_SSR2/slope_30.tif',
+                    `Slope Aspect (degrees)`='MUSum_30m_SSR2/aspect_30.tif',
+                    `Geomorphon Landforms`='elevation/derivatives/forms30_region2.tif',
+                    `Curvature Classes`='elevation/derivatives/curvature_classes_30_class_region2.tif',
+                    `NLCD 2011`='land_use_land_cover/nlcd_2011_cropped.tif'
 )
 
 
