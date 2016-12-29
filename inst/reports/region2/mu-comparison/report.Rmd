@@ -52,9 +52,9 @@ flagPolygons <- function(i, p.crit=0.15) {
 
 
 # http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
-kdeContours <- function(i, prob) {
+kdeContours <- function(i, prob, cols, m) {
   this.id <- unique(i$.id)
-  this.col <- cols[match(this.id, mu.set)]
+  this.col <- cols[match(this.id, m)]
   dens <- kde2d(i$x, i$y, n=200); ## estimate the z counts
 
   dx <- diff(dens$x[1:2])
@@ -242,6 +242,8 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
     save(sampling.res, file='cached-samples.Rda')
 }
 
+## convert MU id into factor, using originally specified levels
+sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels=mu.set)
 
 ## split raster data into types: continuous, categorical, circular
 d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
@@ -251,41 +253,39 @@ d.circ <- subset(sampling.res$raster.samples, variable.type == 'circular')
 
 d.continuous <- subset(sampling.res$raster.samples, variable.type == 'continuous')
 
+## http://adv-r.had.co.nz/memory.html#memory
 # free-up some memory
 sampling.res$raster.samples <- NULL
-gc()
 
 
-# aspect
+
+## TODO: eventually there should be a function / template for any categorical data
+
+# subset and enable aspect summary
 if(length(d.circ) > 0) {
   do.aspect <- TRUE
 } else do.aspect <- FALSE
 
-
-### TODO: this is a temporary hack for testing...
-
-
-# geomorphons
-geomorphons.vars <- unique(d.cat$variable)[grep('geomorphon', unique(d.cat$variable), ignore.case = TRUE)]
-if(length(geomorphons.vars) > 0) {
-  do.geomorphons <- TRUE
-  d.geomorphons <- subset(d.cat, subset=variable == geomorphons.vars)
-} else do.geomorphons <- FALSE
-
-# curvature classes
+# subset and enable curvature classes
 curvature.classes <- unique(d.cat$variable)[grep('curvature', unique(d.cat$variable), ignore.case = TRUE)]
 if(length(curvature.classes) > 0) {
   do.curvature.classes <- TRUE
   d.curvature.classes <- subset(d.cat, subset=variable == curvature.classes)
 } else do.curvature.classes <- FALSE
 
-# 2011 NLCD
+# subset and enable geomorphons
+geomorphons.vars <- unique(d.cat$variable)[grep('geomorphon', unique(d.cat$variable), ignore.case = TRUE)]
+if(length(geomorphons.vars) > 0) {
+  do.geomorphons <- TRUE
+  d.geomorphons <- subset(d.cat, subset=variable == geomorphons.vars)
+} else do.geomorphons <- FALSE
+
+# subset and enable 2011 NLCD
 nlcd.classes <- unique(d.cat$variable)[grep('nlcd',unique(d.cat$variable), ignore.case = TRUE)]
 if(length(nlcd.classes) > 0) {
   do.nlcd.classes <- TRUE
   d.nlcd.classes <- subset(d.cat, subset=variable == nlcd.classes)
 } else do.nlcd.classes <- FALSE
-
 
 ```
 
@@ -673,9 +673,6 @@ if(all(sd.by.id$res)) {
   # eval numerical distance, removing 'sid' and '.id' columns
   d.dist <- daisy(d.sub[, d.mu.wide.vars], stand=TRUE)
   
-  ## convert .id to factor for correct color matching
-  d.sub$.id <- factor(d.sub$.id, levels=mu.set)
-  
   ## map distance matrix to 2D space via principal coordinates
   d.betadisper <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
   d.scores <- vegan::scores(d.betadisper)
@@ -698,13 +695,12 @@ if(all(sd.by.id$res)) {
   
   # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
   # add contours of prob density
-  res <- lapply(s, kdeContours, prob=c(0.5))
+  res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$.id))
   
-  points(d.scores$sites, cex=0.45, col=cols[match(d.sub$.id, mu.set)], pch=16)
+  points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$.id)], pch=16)
   vegan::ordilabel(d.betadisper, display='centroids', col=cols)
   title('Ordination of Raster Samples (cLHS Subset) with 50% Density Contour')
   box()
-  # legend('topleft', legend=mu.set, lwd=NA, pch=16, col=cols[1:length(mu.set)], bty='n', cex=1.25)
 }
 ```
 
