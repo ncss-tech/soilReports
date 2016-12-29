@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.8'
+.report.version <- '1.9'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -237,49 +237,56 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   # result is a list
   sampling.res <- sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre, estimateEffectiveSampleSize = correct.sample.size)
 
-  # remove missing values: these will cause densityplot() to fail
-  sampling.res$raster.samples <- na.omit(sampling.res$raster.samples)
-
   # cache for later
   if(cache.samples)
     save(sampling.res, file='cached-samples.Rda')
 }
 
 
-## find special variables and split
-## gracefully handle missing rasters
+## split raster data into types: continuous, categorical, circular
+d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
+
+## TODO: could there ever be more than one type of circular variable?
+d.circ <- subset(sampling.res$raster.samples, variable.type == 'circular')
+
+d.continuous <- subset(sampling.res$raster.samples, variable.type == 'continuous')
+
+# free-up some memory
+sampling.res$raster.samples <- NULL
+gc()
+
 
 # aspect
-circ.vars <- names(raster.list)[grep('aspect', names(raster.list), ignore.case = TRUE)]
-if(length(circ.vars) > 0) {
+if(length(d.circ) > 0) {
   do.aspect <- TRUE
-  d.circ <- subset(sampling.res$raster.samples, subset=variable %in% circ.vars)
 } else do.aspect <- FALSE
-  
+
+
+### TODO: this is a temporary hack for testing...
+
+
 # geomorphons
-geomorphons.vars <- names(raster.list)[grep('geomorphon', names(raster.list), ignore.case = TRUE)]
+geomorphons.vars <- unique(d.cat$variable)[grep('geomorphon', unique(d.cat$variable), ignore.case = TRUE)]
 if(length(geomorphons.vars) > 0) {
   do.geomorphons <- TRUE
-  d.geomorphons <- subset(sampling.res$raster.samples, subset=variable == geomorphons.vars)
+  d.geomorphons <- subset(d.cat, subset=variable == geomorphons.vars)
 } else do.geomorphons <- FALSE
 
 # curvature classes
-curvature.classes <- names(raster.list)[grep('curvature', names(raster.list), ignore.case = TRUE)]
+curvature.classes <- unique(d.cat$variable)[grep('curvature', unique(d.cat$variable), ignore.case = TRUE)]
 if(length(curvature.classes) > 0) {
   do.curvature.classes <- TRUE
-  d.curvature.classes <- subset(sampling.res$raster.samples, subset=variable == curvature.classes)
+  d.curvature.classes <- subset(d.cat, subset=variable == curvature.classes)
 } else do.curvature.classes <- FALSE
 
 # 2011 NLCD
-nlcd.classes <- names(raster.list)[grep('nlcd', names(raster.list), ignore.case = TRUE)]
+nlcd.classes <- unique(d.cat$variable)[grep('nlcd',unique(d.cat$variable), ignore.case = TRUE)]
 if(length(nlcd.classes) > 0) {
   do.nlcd.classes <- TRUE
-  d.nlcd.classes <- subset(sampling.res$raster.samples, subset=variable == nlcd.classes)
+  d.nlcd.classes <- subset(d.cat, subset=variable == nlcd.classes)
 } else do.nlcd.classes <- FALSE
 
 
-# everything else
-sampling.res$raster.samples <- subset(sampling.res$raster.samples, subset=! variable %in% c(circ.vars, geomorphons.vars, curvature.classes, nlcd.classes))
 ```
 
 <br>
@@ -321,22 +328,22 @@ Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
 # NOTE: notches rely on effective sampling size
-bwplot(.id ~ value | variable, data=sampling.res$raster.samples, 
+bwplot(.id ~ value | variable, data=d.continuous, 
        scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
        strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, subscripts=TRUE, 
-       layout=c(1, length(unique(sampling.res$raster.samples$variable))),
+       layout=c(1, length(unique(d.continuous$variable))),
        panel=function(x, subscripts=subscripts, ...) {
          
          # extract the current raster name
-         this.raster <- as.character(unique(sampling.res$raster.samples$variable[subscripts]))
+         this.raster <- as.character(unique(d.continuous$variable[subscripts]))
          
          # get associated Moran's I
-         idx <- which(sampling.res$Moran_I$raster.file == this.raster)
+         idx <- which(sampling.res$Moran_I$Variable == this.raster)
          this.Moran.I <- sampling.res$Moran_I$Moran.I[idx]
          
          # make a grid
          panel.grid(h=0, v=-1, col='grey', lty=3)
-         panel.abline(h=1:length(unique(sampling.res$raster.samples$.id)), col='grey', lty=3)
+         panel.abline(h=1:length(unique(d.continuous$.id)), col='grey', lty=3)
          
          # boxplots with custom sampling size:
          # coef: Moran's I associated with this raster
@@ -358,7 +365,7 @@ tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 # dynamic setting of columns in legend
 n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 
-densityplot(~ value | variable, groups=.id, data=sampling.res$raster.samples, xlab='', ylab='', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(sampling.res$raster.samples$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+densityplot(~ value | variable, groups=.id, data=d.continuous, xlab='', ylab='', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
 ```
 
 ### Tabular Summaries
@@ -366,7 +373,7 @@ Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by vari
 
 ```{r, echo=FALSE, results='asis'}
 # summarize raster data for tabular output
-mu.stats <- ddply(sampling.res$raster.samples, c('variable', '.id'), f.summary, p=p.quantiles)
+mu.stats <- ddply(d.continuous, c('variable', '.id'), f.summary, p=p.quantiles)
 
 # print medians
 dg <- c(0, rep(2, times=length(unique(mu.stats$variable))))
@@ -623,7 +630,7 @@ This plot displays the similarity of the map units across the set of environment
 # 1. add geomorphons, curvature classses, and possibly NLCD (factors)
 
 # cast to wide format
-d.mu.wide <- dcast(sampling.res$raster.samples, sid + pID + .id ~ variable, value.var = 'value')
+d.mu.wide <- dcast(d.continuous, sid + pID + .id ~ variable, value.var = 'value')
 
 # locate "non-id" vars
 d.mu.wide.vars <- which(! names(d.mu.wide) %in% c('.id', 'sid', 'pID'))
@@ -766,7 +773,7 @@ if(length(table(d.sub$.id)) >= 2) {
 These polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range. Flagged polygons are ranked in the output SHP file.
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
-polygons.to.check <- ddply(sampling.res$raster.samples, c('.id', 'variable'), flagPolygons)
+polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons)
 
 # fix names for printing
 names(polygons.to.check)[1] <- mu.col
@@ -791,7 +798,7 @@ if(length(sampling.res$unsampled.ids) > 0) {
 }
 
 # compute summaries
-poly.stats <- ddply(sampling.res$raster.samples, c('pID', 'variable'), f.summary, p=p.quantiles)
+poly.stats <- ddply(d.continuous, c('pID', 'variable'), f.summary, p=p.quantiles)
 
 # convert to wide format, keeping median value
 poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
