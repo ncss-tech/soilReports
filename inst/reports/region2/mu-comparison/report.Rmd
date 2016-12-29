@@ -505,9 +505,12 @@ x.sig <- as.data.frame(x.sig)
 names(x.sig) <- 'signature'
 
 # get a geomorphon signature for each polygon
-geomorphon.spatial.summary <- ddply(d.geomorphons, c('pID', '.id'), function(i) {
+geomorphon.spatial.summary <- ddply(d.geomorphons, c('pID', '.id'), .fun=function(i) {
+  # drop unused map unit .id levels: we are only interested in the _current_ MU
+  i$.id <- factor(i$.id)
   # tabulate and convert to proportions
-  x <- xtabs(~ .id + value, data=i)
+  # retain all geomorphon code levels
+  x <- xtabs(~ .id + value, data=i, drop.unused.levels = FALSE)
   x <- sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/')
   return(x)
 })
@@ -526,7 +529,7 @@ geomorphon.spatial.summary$shannon_h <- apply(geomorphon.spatial.summary[, 3:10]
 })
 
 ## TODO: is this of any use?
-# bwplot(.id ~ shannon_h, data=geomorphon.spatial.summary, xlab='Shannon Entropy')
+# bwplot(.id ~ shannon_h, data=geomorphon.spatial.summary, xlab='Shannon Entropy', varwidth=TRUE, notch=TRUE)
 
 
 ## convert proportions to long format for plotting
