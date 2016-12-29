@@ -730,7 +730,7 @@ if(ncol(d.sub[, d.mu.wide.vars]) > 3) {
 
 ```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
 # this will only work with >= 2 map units
-if(length(table(d.sub$.id)) >= 2) {
+if(length(levels(d.sub$.id)) >= 2) {
  # use supervised classification to empirically determine the relative importance of each raster layer
   # TODO: include geomorphons and curvature classes
   # TODO: consider using party::cforest() for conditional variable importance-- varimp
@@ -822,15 +822,11 @@ write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE)
 # cannot contain reserved characters
 # 10 char limit
 names(poly.stats.wide)[-1] <- sapply(names(poly.stats.wide[, -1]), function(i) {
-  # remove '.' and get prefix
-  prfx <- gsub('.', '', substr(i, 1, nchar(i)-4), fixed=TRUE)
+  # filter out illegal chars
+  i <- gsub('%|/|\\(|\\)', '', i)
   # abbreviate after filtering other bad chars
-  abbr <- abbreviate(gsub('%|/|\\(|\\)', '', prfx), minlength = 6)
-  # extract suffix
-  suffix <- substr(i, nchar(i)-3, nchar(i))
-  # re-combine
-  res <- paste0(abbr, suffix)
-  return(res)
+  abbr <- abbreviate(i, minlength = 10)
+  return(abbr)
   })
 
 ## join stats to map unit polygon attribute table
