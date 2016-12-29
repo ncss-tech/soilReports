@@ -215,7 +215,7 @@ if(exists('mu.set')) {
 
 # nice colors
 # 7 or fewer classes, use high-constrast colors
-if(length(mu.set <= 7)) {
+if(length(mu.set) <= 7) {
   cols <- brewer.pal(9, 'Set1') 
   # remove light colors
   cols <- cols[c(1:5,7,9)]
@@ -235,7 +235,10 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   
   # iterate over map units and sample rasters
   # result is a list
+  .timer.start <- Sys.time()
   sampling.res <- sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre, estimateEffectiveSampleSize = correct.sample.size)
+  .timer.stop <- Sys.time()
+  .sampling.time <- format(difftime(.timer.stop, .timer.start, units='secs'))
 
   # cache for later
   if(cache.samples)
@@ -866,4 +869,6 @@ writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_l
 This document is based on `sharpshootR` version `r utils::packageDescription("sharpshootR", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+<br>
+Sampling time: `r .sampling.time`
 
