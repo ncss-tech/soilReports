@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.9-1'
+.report.version <- '1.9-2'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -300,7 +300,7 @@ report version `r .report.version`
 `r format(Sys.time(), "%Y-%m-%d")`</div>
 
 <br>
-This report is designed to provide statistical summaries of the environmental properties of one or more map units. Summaries are based on raster data extracted from [fixed-density sampling (`r print(pts.per.acre)` samples / acre) of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). Please see the document titled R-Based Map Unit Summary Report Introduction and Description for background and more information.
+This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
 
 
 
@@ -316,7 +316,7 @@ kable(sampling.res$raster.summary, row.names = FALSE, digits = 3)
 ```
 
 ### Area Summaries
-Consider increasing the sampling density (<b>`r pts.per.acre` points/ac.</b>) in `config.R` if there are unsampled polygons.
+Consider increasing the sampling density (<b>`r pts.per.acre` points/ac.</b>) in `config.R` if there are unsampled polygons. Note that the actual sampling density will always be slightly lower than the target sampling density defined in `config.R`.
 ```{r, echo=FALSE}
 kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(sampling.res$area.stats)[-1]))
 ```
@@ -359,7 +359,7 @@ bwplot(.id ~ value | variable, data=d.continuous,
 
 
 ### Density Plots
-These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks coorrospond to values that are most frequent within a dataset.
+These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set.
 
 
 ```{r, echo=FALSE, fig.width=8, fig.height=15}
@@ -399,7 +399,7 @@ l_ply(split(mu.stats, mu.stats$variable), function(i) {
 
 
 ### Slope Aspect
-A graphical summary of slope aspect values using density and percentile estimation methods adapated to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality.
+A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality.
 
 ```{r, echo=FALSE, results='hide', eval=do.aspect}
 ## circular stats, by map unit
@@ -476,7 +476,7 @@ barchart(as.character(.id) ~ value, groups=curvature.class, data=x.long, horiz=T
 
 
 ### Geomorphon Landform Classification
-Proportion of samples within each map unit that corrospond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm.
+Proportion of samples within each map unit that correspond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm.
 
 ```{r, echo=FALSE, eval=do.geomorphons, fig.width=12, fig.height=6}
 ## geomorphons:
@@ -570,7 +570,7 @@ kable(x, digits = 2, caption = '')
 
 
 ```{r, echo=FALSE, eval=do.geomorphons}
-kable(x.sig, caption = 'Top 75% fraction of landform classes in decreasing order.')
+kable(x.sig, caption = 'Landform "signatures": these are created from the top 75% fraction of (sampled) landform classes, in decreasing order.')
 ```
 
 
@@ -628,7 +628,7 @@ barchart(as.character(.id) ~ value, groups=nlcd.class, data=x.long, horiz=TRUE, 
 
 ### Multivariate Summary
 
-This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 50% of the points (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)) in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. In these cases it may not be possible to generate a 50%-data contour. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance.
+This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 50% of the points (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)) in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. In these cases it may not be possible to generate a 50%-data contour. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
 
 
 ```{r, results='hide', echo=FALSE, fig.width=8, fig.height=8}
@@ -730,6 +730,7 @@ if(ncol(d.sub[, d.mu.wide.vars]) > 3) {
 
 
 ### Raster Data Importance
+The following figure ranks raster data sources in terms of how accurately each can be used to discriminate between map unit concepts. This is still a work in progress, expect some more details on interpretation soon. 
 
 ```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
 # this will only work with >= 2 map units
