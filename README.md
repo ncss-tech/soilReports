@@ -24,7 +24,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 ```
 
 ## Example Usage
-The `soilReports` package contains reports and associated configuration files. The following steps illustrate an example session that performs all required setup for the **region2/mu-comparison** report, then copies the configuration and report files to a named folder in the working directory. Edit the `config.R` file (or copy an existing configuration file) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.R` and clicking on the "Knit HTML" button.
+The `soilReports` package contains reports and associated configuration files. The following steps illustrate an example session that performs all required setup for the **region2/mu-comparison** report, then copies the configuration and report files to a named folder in the working directory. Edit the `config.R` file (or copy an existing configuration file) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button.
 
 ```r
 # load this library
