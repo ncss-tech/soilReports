@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.9-3'
+.report.version <- '2.0'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -834,10 +834,32 @@ if(length(levels(d.sub$.id)) >= 2) {
 ```
 
 
-### Flagged Polygons
-Results are saved in a folder called "output" in the working directory. The following polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range. 
+## Additional Output
+A shapefile is generated each time a report is run ("polygons-with-stats-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains several useful summaries, computed by polygon. Polygons are uniquely identified by the `pID` column. Median raster values are given, with data source names are abbreviated to conform to the limitations of DBF files:
 
+| pID|MUSYM |  EsMASTC|  AnBRMJ_|   EffctvP| Elevtnm| Frst.FD| GrwnDDC|  MnAnATC| MnAnnlP| SlpGrdn|
+|---:|:-----|--------:|--------:|---------:|-------:|-------:|-------:|--------:|-------:|-------:|
+|   1|7011  | 17.75580| 67283.23| -413.7235|   139.0|     319|    2656| 16.57974|     443|     5.0|
+|   2|7011  | 16.65182| 67132.02| -231.0755|   299.0|     293|    2583| 16.19599|     612|     2.0|
+|   3|7011  | 17.03782| 66935.46| -270.8600|   242.5|     306|    2629| 16.40726|     588|     2.0|
+
+
+There are several columns containing the proportions of each landform element (geomorphons algorithm), the most likely ("ml_lndf") landform element, and the [Shannon entropy](https://en.wiktionary.org/wiki/Shannon_entropy) associated with landform proportions. The Shannon entropy value can be used to judge the relative "landform purity" of a delineation: smaller values are associated with more homogeneous delineations. Equal proportions of all landform elements (within a polygon) would result in a Shannon entropy value of 1.
+
+| pID|MUSYM | flat| summit| ridge| shouldr| spur| slope| hollow| footslp| valley| deprssn|ml_lndf | shnnn_h|
+|---:|:-----|----:|------:|-----:|-------:|----:|-----:|------:|-------:|------:|-------:|:-------|-------:|
+|   1|7011  | 0.00|   0.01|  0.03|    0.00| 0.05|  0.12|   0.17|    0.05|   0.52|    0.04|valley  |    0.45|
+|   2|7011  | 0.32|   0.00|  0.02|    0.02| 0.07|  0.15|   0.03|    0.19|   0.21|    0.00|flat    |    0.61|
+|   3|7011  | 0.00|   0.00|  0.00|    0.00| 0.00|  0.00|   0.05|    0.08|   0.87|    0.00|valley  |    0.15|
+
+
+In the case of un-sampled polygons (very small delineations or too low sampling density), an additional shapefile will be saved in the output folder with a prefix of "un-sampled-". This file contains those polygons that were not allocated any sampling points and thus not included in the report summaries.
+
+### Flagged Polygons
 Flagged polygons are ranked according to the proportion of samples that fall outside of the 5th-95th percentile range and adjusted for the number of times this occurs (e.g. number of raster data sources). See the "toCheck" field in the output shapefile; larger values suggest a higher proportion of outlying samples.
+
+The following polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range. 
+
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
 polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons)
