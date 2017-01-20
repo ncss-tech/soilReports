@@ -1,17 +1,18 @@
 ### MU GIS Summary Report
-### 2016-12-28
+### 2017-01-19
 ### D.E. Beaudette and J. Wood
 ###
 ### configuration file, edit as needed
+###
 
 
 #########################
 ### Raster Data Sources #
 #########################
 
-## 
-## raster data sources: split by data type
-##
+# data sources can be "commented-out" using the "#" character
+# be sure that there is no trailing "," after the last item in each list
+
 raster.list <- list(
   continuous=list(
     `Mean Annual Air Temperature (degrees C)`='E:/gis_data/prism/final_MAAT_800m.tif', 
@@ -28,8 +29,8 @@ raster.list <- list(
     # `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
   ),
   categorical=list(
-    `Geomorphon Landforms`='L:/Geodata/DEM_derived/forms10.tif',
-    `Curvature Classes`='E:/gis_data/ca630/curvature_classes_15.tif',
+    `Geomorphon Landforms`='E:/gis_data/region-2-mu-analysis/forms10_region2.tif',
+    `Curvature Classes`='E:/gis_data/region-2-mu-analysis/curvature_classes_10_class_region2.tif',
     `NLCD 2011`='E:/gis_data/region-2-mu-analysis/nlcd_2011_cropped.tif'
   ),
   circular=list(
@@ -45,18 +46,20 @@ raster.list <- list(
 ##
 ## Data are in a large geodatabase with many map units, explicit subsetting
 ##
+
 # geodatabase path
 mu.dsn <- 'E:/gis_data/ca630/FG_CA630_OFFICIAL.gdb'
 # name of featureclass
 mu.layer <- 'ca630_a'
 # map unit symbols / keys to extract
-mu.set <- c('7011', '5012', '7085')
+mu.set <- c('7011', '5012', '7089')
 
 
 
 # ##
 # ## Typical SDJR style data: SHP with multiple map units
 # ##
+
 # # path to SHP
 # mu.dsn <- 'testing'
 # # SHP name, without file extension
@@ -67,6 +70,8 @@ mu.set <- c('7011', '5012', '7085')
 ############################################
 ### column with map unit ID / key / symbol #
 ############################################
+
+# could be 'MUKEY', 'MUSYM', or any valid column name
 mu.col <- 'MUSYM'
 
 
@@ -74,8 +79,8 @@ mu.col <- 'MUSYM'
 ### polygon sampling density (samples / acre / polygon) #
 #########################################################
 
-# values less < 1 (coarse sampling density) will result in variation between runs, and un-sampled polygons
-# values > 10 will result in longer report run times
+# values less < 1 (coarse sampling density) will result in high variation between runs, and un-sampled polygons
+# values > 10 will result in much longer report run times
 pts.per.acre <- 1
 
 
@@ -83,17 +88,30 @@ pts.per.acre <- 1
 ###########################
 ### quantiles of interest #
 ###########################
+
+# the most important quantiles (percentiles / 100) are: 0.1, 0.5 (median), and 0.9
+# optionally reduce the number of quantiles for narrower tables
 p.quantiles <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
 
 
 ########################################################
 ### correct sample size for spatial autocorrelation? ###
 ########################################################
+
+# enabling this feature will add "notches" to box and whisker plots
+# that are close approximations to a confidence interval around the median
+# adjusted for spatial autocorrelation
+#
+# enabling this feature will double the run time
 correct.sample.size <- FALSE
 
 
 ###########################################
 ### save samples after report has run ? ###
 ###########################################
+
+# used for tinkering with a report Rmd and debugging
+# this will save samples to a file and subsequent report runs will use the saved samples
+# not recommended for routine operation
 cache.samples <- FALSE
 

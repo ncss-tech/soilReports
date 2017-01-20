@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '1.9-2'
+.report.version <- '1.9-3'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -230,15 +230,17 @@ mu$pID <- seq(from=1, to=length(mu))
 # check for cached data
 if(cache.samples & file.exists('cached-samples.Rda')) {
   message('Using cached raster samples...')
+  .sampling.time <- 'using cached samples'
   load('cached-samples.Rda')
 } else {
   
+  # suppressing warnings: these have to do with conversion of CRS of points
   # iterate over map units and sample rasters
   # result is a list
   .timer.start <- Sys.time()
-  sampling.res <- sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre, estimateEffectiveSampleSize = correct.sample.size)
+  sampling.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre, estimateEffectiveSampleSize = correct.sample.size))
   .timer.stop <- Sys.time()
-  .sampling.time <- format(difftime(.timer.stop, .timer.start, units='secs'))
+  .sampling.time <- format(difftime(.timer.stop, .timer.start, units='mins'), digits=2)
 
   # cache for later
   if(cache.samples)
@@ -325,7 +327,13 @@ kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r
 
 
 ### Modified Box and Whisker Plots
-Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile.
+Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
+
+**Suggested usage:**
+
+ * Gauge overlap between map units in terms of boxes (25th-75th percentiles) and whiskers (5th-95th percentiles).
+ * Non-overlapping boxes are a strong indication that the central tendencies (of select raster data) differ.
+ * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
 
 ```{r, echo=FALSE, fig.width=8, fig.height=15}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
@@ -354,13 +362,19 @@ bwplot(.id ~ value | variable, data=d.continuous,
 
        })
 
-
 ```
 
 
 ### Density Plots
 These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set.
 
+**Suggested usage:**
+
+ * Density plots depict a more detailed summary of distribution shape.
+ * When making comparisons, be sure to look for:
+   + multiple peaks
+   + narrow peaks vs. wide "mounds"
+   + short vs. long "tails"
 
 ```{r, echo=FALSE, fig.width=8, fig.height=15}
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
@@ -372,7 +386,7 @@ densityplot(~ value | variable, groups=.id, data=d.continuous, xlab='', ylab='',
 ```
 
 ### Tabular Summaries
-Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable.
+Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable. In these tables, headings like "Q5" can be interpreted as the the "5th percentile"; 5% of the data are less than this value. The 50th percentile ("Q50") is the median.
 
 ```{r, echo=FALSE, results='asis'}
 # summarize raster data for tabular output
@@ -399,7 +413,13 @@ l_ply(split(mu.stats, mu.stats$variable), function(i) {
 
 
 ### Slope Aspect
-A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality.
+A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality.
+
+**Suggested usage:**
+
+ * Check circular density estimates for peaks: this suggests directionality.
+ * These summaries are meaningless when slope values are less than approximately 3%.
+ * These summaries are (mostly) meaningless when arrow lengths are short; e.g. low directionality.
 
 ```{r, echo=FALSE, results='hide', eval=do.aspect}
 ## circular stats, by map unit
@@ -431,7 +451,15 @@ kable(res, align = 'r', col.names=c(mu.col, names(res)[-1]))
 
 
 ### Slope Shape (Curvature) Summary
-The classes were generated using a 5x5 moving window, from a regional 30m DEM. The precision may be limited, use with caution. See instructions for using your own (higher resolution) curvature classification raster.
+The classes were generated using a 5x5 moving window, from a regional 30m or 10m, integer DEM. The precision may be limited, use with caution. See instructions for using your own (higher resolution) curvature classification raster.
+
+**Suggested usage:**
+
+ * Use the graphical summary to identify patterns, then consult the tabular representation for specifics.
+ * The conventions used here are "C" = concave, "L" = linear, and "V" = convex; "down slope" / "across slope".
+ * Window size has a significant impact on reported curvature classes; larger windows = more generalization.
+ * Curvature class and colors are aligned with an idealized *shedding* &rarr; *accumulating* hydrologic gradient.
+
 ```{r, echo=FALSE, fig.width=12, fig.height=6, eval=do.curvature.classes}
 # set names: from Field Guide for description of soils
 ## source data: opposite convention
@@ -444,7 +472,7 @@ The classes were generated using a 5x5 moving window, from a regional 30m DEM. T
 # V/L | V/V | V/C   ----> 23 | 33 | 13
 # C/L | C/V | C/C         21 | 31 | 11
 #
-# order according to approximate "shedding"" -> "accumulating" gradient:
+# order according to approximate "shedding" -> "accumulating" gradient:
 # 'V/V', 'L/V', 'V/L', 'C/V', 'LL', 'C/L', 'V/C', 'L/C', 'C/C'
 #
 d.curvature.classes$value <- factor(d.curvature.classes$value, 
@@ -453,10 +481,7 @@ d.curvature.classes$value <- factor(d.curvature.classes$value,
 
 # tabulate and convert to proportions
 x <- xtabs(~ .id + value, data=d.curvature.classes)
-x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 3)
-
-# print
-kable(x)
+x <- sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/')
 
 # convert to long format for plotting
 x.long <- melt(x)
@@ -472,11 +497,24 @@ trellis.par.set(tps)
 barchart(as.character(.id) ~ value, groups=curvature.class, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$curvature.class), rectangles = TRUE, points=FALSE))
 ```
 
+```{r, echo=FALSE, eval=do.curvature.classes}
+# print and truncate to 2 decimal places
+kable(x, digits = 2, caption = '')
+```
 
 
 
 ### Geomorphon Landform Classification
-Proportion of samples within each map unit that correspond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm.
+Proportion of samples within each map unit that correspond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm. Landform classification by [this method](http://dx.doi.org/10.1016/j.geomorph.2012.11.005) is scale-invariant and is therefore not affected by computational window size selection.
+
+
+**Suggested usage:**
+
+  * Use the graphical summary to identify patterns, then consult the tabular representation for specifics.
+  * "Flat" is based on a 3% slope threshold.
+  * Map units are organized (in the figure) according to the similarity, computed from proportions of each landform position.
+  * The [dendrogram](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html) on the right side of the figure describes relative similarity. "Lower branch height" (e.g. closer to the right-hand side of the figure) denotes more similar landform positions.
+  * Landform class labels and colors are aligned with an idealized *shedding* &rarr; *accumulating* hydrologic gradient.
 
 ```{r, echo=FALSE, eval=do.geomorphons, fig.width=12, fig.height=6}
 ## geomorphons:
@@ -505,7 +543,7 @@ x.sig <- apply(x, 1, function(i) {
 )
 # prepare for printing HTML table
 x.sig <- as.data.frame(x.sig)
-names(x.sig) <- 'signature'
+names(x.sig) <- 'landform signature'
 
 # get a geomorphon signature for each polygon
 geomorphon.spatial.summary <- ddply(d.geomorphons, c('pID', '.id'), .fun=function(i) {
@@ -574,9 +612,11 @@ kable(x.sig, caption = 'Landform "signatures": these are created from the top 75
 ```
 
 
-### Landcover Summary (2011 NLCD)
+### Landcover Summary
 
-```{r, echo=FALSE, fig.width=12, fig.height=10, eval=do.nlcd.classes}
+These values are from the [2011 NLCD](https://www.mrlc.gov/nlcd2011.php) (30m) database.
+
+```{r, echo=FALSE, fig.width=12, fig.height=6, eval=do.nlcd.classes}
 # These are from the NLCD 2011 metadata
 nlcd.leg <- structure(list(ID = c(0L, 11L, 12L, 21L, 22L, 23L, 24L, 31L, 
 41L, 42L, 43L, 51L, 52L, 71L, 72L, 73L, 74L, 81L, 82L, 90L, 95L
@@ -599,14 +639,12 @@ d.nlcd.classes$value <- factor(d.nlcd.classes$value,
 
 # tabulate and convert to proportions
 x <- xtabs(~ .id + value, data=d.nlcd.classes)
+# rounding to remove "tiny" fractions -> simpler legend
 x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 3)
 
 # remove 0's
 idx <- which(apply(x, 2, function(i) all(i != 0)))
 x <- x[, idx]
-
-# print
-kable(x)
 
 # convert to long format for plotting
 x.long <- melt(x)
@@ -624,12 +662,24 @@ trellis.par.set(tps)
 barchart(as.character(.id) ~ value, groups=nlcd.class, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$nlcd.class), rectangles = TRUE, points=FALSE))
 ```
 
+```{r, echo=FALSE, eval=do.nlcd.classes}
+# print and truncate to 2 decimal places
+kable(x, digits = 2, caption = '')
+```
 
 
 ### Multivariate Summary
 
 This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 50% of the points (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)) in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. In these cases it may not be possible to generate a 50%-data contour. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
 
+**Suggested usage:**
+
+ * The relative position of points and contours are meaningful; absolute position will vary each time the report is run.
+ * Colors match those used in the density plots above. Be sure to cross-reference this figure with density plots.
+ * Look for "diffuse" vs. "concentrated" clusters: these suggest relatively broadly vs. narrowly defined map unit concepts.
+ * Multiple, disconnected contours (per map unit) could indicate errors or small map unit separated by large distances. Check for multiple peaks in the associated density plots.
+ * Nesting of clusters (e.g. smaller cluster contained by larger cluster) suggests superset/subset relationships.
+ * Overlap is proportional to similarity.
 
 ```{r, results='hide', echo=FALSE, fig.width=8, fig.height=8}
 ## TODO: 
@@ -718,6 +768,12 @@ if(multivariate.summary == FALSE)
 
 ### Raster Data Correlation
 The following figure highlights shared information among raster data sources based on [Spearman's Ranked Correlation coefficient](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient). Branch height is associated with the degree of shared information between raster data.
+
+**Suggested usage:**
+
+ * Look for clustered sets of raster data: typically PRISM-derived and elevation data are closely correlated.
+ * Highly correlated raster data sources reduce the reliability of the "raster data importance" figure.
+
 ```{r, echo=FALSE, fig.width=10, fig.height=8, eval=multivariate.summary}
 par(mar=c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
@@ -730,7 +786,13 @@ if(ncol(d.sub[, d.mu.wide.vars]) > 3) {
 
 
 ### Raster Data Importance
-The following figure ranks raster data sources in terms of how accurately each can be used to discriminate between map unit concepts. This is still a work in progress, expect some more details on interpretation soon. 
+The following figure ranks raster data sources in terms of how accurately each can be used to discriminate between map unit concepts. 
+
+**Suggested usage:**
+
+ * Map unit concepts are more consistently predicted (by supervised classification) using those raster data sources with relatively larger "Mean Decrease in Accuracy" values.
+ * Highly correlated raster data sources will "compete" for positions in this figure. For example, if *elevation* and *mean annual air temperature* are highly correlated, then their respective "importance" values are interchangeable.
+
 
 ```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
 # this will only work with >= 2 map units
@@ -743,7 +805,7 @@ if(length(levels(d.sub$.id)) >= 2) {
   # variable importance
   # TODO: how to interpret raw output from importance:
   # http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
-  varImpPlot(m, scale=FALSE, type=2, main='')
+  varImpPlot(m, scale=TRUE, type=1, main='Mean Decrease in Accuracy')
   # kable(importance(m, scale=FALSE, type=2), digits = 3)
   
   # ## this adds several seconds to processing time
@@ -773,7 +835,9 @@ if(length(levels(d.sub$.id)) >= 2) {
 
 
 ### Flagged Polygons
-These polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range. Flagged polygons are ranked in the output SHP file.
+Results are saved in a folder called "output" in the working directory. The following polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range. 
+
+Flagged polygons are ranked according to the proportion of samples that fall outside of the 5th-95th percentile range and adjusted for the number of times this occurs (e.g. number of raster data sources). See the "toCheck" field in the output shapefile; larger values suggest a higher proportion of outlying samples.
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
 polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons)
@@ -785,11 +849,6 @@ names(polygons.to.check)[1] <- mu.col
 kable(polygons.to.check, row.names = FALSE)
 ```
 
-
-
-
-### Save Results Locally
-Results are saved in a folder called "output" in the working directory.
 ```{r echo=FALSE}
 # make an output dir if it doesn't exist
 if(!dir.exists('output')) dir.create('./output')
