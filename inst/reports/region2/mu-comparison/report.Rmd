@@ -835,7 +835,7 @@ if(length(levels(d.sub$.id)) >= 2) {
 
 
 ## Additional Output
-A shapefile is generated each time a report is run ("polygons-with-stats-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains several useful summaries, computed by polygon. Polygons are uniquely identified by the `pID` column. Median raster values are given, with data source names are abbreviated to conform to the limitations of DBF files:
+A shapefile is generated each time a report is run ("polygons-with-stats-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains several useful summaries, computed by polygon. Polygons are uniquely identified by the `pID` column. Median raster values are given, with data source names abbreviated to conform to the limitations of DBF files:
 
 | pID|MUSYM |  EsMASTC|  AnBRMJ_|   EffctvP| Elevtnm| Frst.FD| GrwnDDC|  MnAnATC| MnAnnlP| SlpGrdn|
 |---:|:-----|--------:|--------:|---------:|-------:|-------:|-------:|--------:|-------:|-------:|
