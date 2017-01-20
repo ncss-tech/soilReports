@@ -1,20 +1,24 @@
 
-## Installation
 
-### Personal R package library work-around (probably NRCS-specific)
-Check to see if your `$HOME` directory points to a network share:
-```r
-path.expand('~')
-```
+## Pre-Installation (NRCS only)
 
-If the results look something like `H:/Documents`, then you will need to redirect package installation to a local disk. This is accomplished by installing a `.Rprofile` file in your `$HOME` directory. If you have previously created a `.Rprofile` then skip the following step. Otherwise, run:
+On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/First.Last/Documents/R/` for installing R packages. Again, you only have to do this **once**.
 
 ```r
+# run this in the R console
 source('https://raw.githubusercontent.com/ncss-tech/soilReports/master/R/installRprofile.R')
 installRprofile()
 ```
 
-The current version of `soilReports` is available on GitHub:
+The following code can be used to "see" where the `$HOME` directory is:
+```r
+# run this in the R console
+path.expand('~')
+```
+
+## Installation
+
+The current version of `soilReports` is available on GitHub, an can be installed with the following code:
 ```r
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)
