@@ -53,6 +53,11 @@ flagPolygons <- function(i, p.crit=0.15) {
 
 # http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
 kdeContours <- function(i, prob, cols, m) {
+  
+  if(nrow(i) < 2) {
+    return(NULL)
+  }
+  
   this.id <- unique(i$.id)
   this.col <- cols[match(this.id, m)]
   dens <- kde2d(i$x, i$y, n=200); ## estimate the z counts
@@ -754,7 +759,8 @@ if(all(sd.by.id$res)) {
   res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$.id))
   
   points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$.id)], pch=16)
-  vegan::ordilabel(d.betadisper, display='centroids', col=cols)
+  # note special indexing for cases when low-var MU have been removed
+  vegan::ordilabel(d.betadisper, display='centroids', col=cols[match(mu.set, levels(d.sub$.id))])
   title('Ordination of Raster Samples (cLHS Subset) with 50% Density Contour')
   box()
 }
