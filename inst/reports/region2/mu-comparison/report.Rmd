@@ -802,6 +802,10 @@ The following figure ranks raster data sources in terms of how accurately each c
 
 ```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
 # this will only work with >= 2 map units
+
+# reset factor levels so that empty classes are not passed on to randomForest() (will cause error if empty/low-variance MUs are present)
+d.sub$.id <- factor(d.sub$.id)
+
 if(length(levels(d.sub$.id)) >= 2) {
  # use supervised classification to empirically determine the relative importance of each raster layer
   # TODO: include geomorphons and curvature classes
