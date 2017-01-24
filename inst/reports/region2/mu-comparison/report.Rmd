@@ -32,8 +32,18 @@ options(width=100, stringsAsFactors=FALSE)
 
 ## custom functions
 
-# return DF with polygon IDs for those polygons that have p.crit % of samples outside of 5-95th pctiles
-flagPolygons <- function(i, p.crit=0.15) {
+abbreviateNames <- function(spdf) {
+ sapply(names(spdf)[-1], function(i) {
+  # keep only alpha and underscore characters in field names
+  i <- gsub('[^[:alpha:]_]', '', i)
+  # abbreviate after filtering other bad chars
+  abbr <- abbreviate(i, minlength = 10)
+  return(abbr)
+  })
+}
+
+# return DF with proportions outside range for each polygon (by pID)
+flagPolygons <- function(i) {
   
    # convert to values -> quantiles
   e.i <- ecdf(i$value)
@@ -44,9 +54,11 @@ flagPolygons <- function(i, p.crit=0.15) {
   ## TODO: may need to protect against no matching rows?
   tab <- sort(prop.table(table(i$pID[out.idx])), decreasing = TRUE)
   df <- data.frame(pID=names(tab), prop.outside.range=round(as.vector(tab), 2))
+  
   # keep only those with > 15% of samples outside of range
-  df <- df[which(df$prop.outside.range > p.crit), ] 
-
+  #df <- df[which(df$prop.outside.range > p.crit), ]  
+  
+  #all proportions outside now reported in QC shapefile; no need to have a threshold
   return(df)
 }
 
@@ -870,27 +882,50 @@ There are several columns containing the proportions of each landform element (g
 
 In the case of un-sampled polygons (very small delineations or too low sampling density), an additional shapefile will be saved in the output folder with a prefix of "un-sampled-". This file contains those polygons that were not allocated any sampling points and thus not included in the report summaries.
 
-### Flagged Polygons
-Flagged polygons are ranked according to the proportion of samples that fall outside of the 5th-95th percentile range and adjusted for the number of times this occurs (e.g. number of raster data sources). See the "toCheck" field in the output shapefile; larger values suggest a higher proportion of outlying samples.
+### Polygon Quality Control
+A shapefile is generated each time a report is run ("poly-qc-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains the proportion of samples outside the 5-95% percentile range. In the attribute table, there is one column per raster data source and one row per map unit delineation. 
 
-| pID|MUSYM | toCheck|
-|---:|:-----|-------:|
-|   1|7011  |       9|
-|   2|7011  |       0|
-|   3|7089  |       0|
+The 5-95% percentile range for each map unit is derived from the samples across all polygons with the corresponding map unit symbol. Proportions of samples outside the range within individual polygons are given for each (continuous) raster data source. Data source names are abbreviated to conform to the limitations of DBF files. Polygons are uniquely identified by the `pID` column. 
 
+Assuming one has sufficient polygons and samples to characterize the data distribution, and that the data are roughly normally distributed, one would expect that 10% of samples across the extent of a particular map unit will fall outside the 5-95% percentile range. Individual delineations that have more than 10-15% of samples outside the range for one or more raster data sources may need to be investigated to see that they fit the map unit concept. It is expected that some delineations will occur at the margins of the map unit extent and therefore may have higher proportions of sample values outside the range. Expert judgement is required to determine whether action should be taken to resolve any potentially problematic delineations.
 
-The following polygons, identified by `pID` in the output data, are associated with 15% or more samples that are outside of the 5th-95th percentile range. 
+| pID|MUSYM | EffctvPrcp| Elevationm| FrostFrDys| GrwngDgrDC| MnAnnlArTC| MnAnnlPrcp| SlopeGrdnt|
+|---:|:-----|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
+|   1|7089  |       0.00|          0|       0.05|       0.03|       0.05|       0.00|       0.00|
+|   2|7089  |       0.00|          0|       0.01|       0.00|       0.00|       0.00|       0.00|
+|   3|7011  |       0.05|          0|       0.05|       0.01|       0.01|       0.04|       0.03|
 
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
-polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons)
+
+#calculates prop outside range for _all_ polys
+polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons) #, p.crit = 0) 
+
+#this line retains original p.crit behavior for the tabular output in the report
+##display.idx <- which(polygons.to.check$prop.outside.range > 0.15) 
+
+poly.check.wide <- dcast(polygons.to.check, pID ~ variable, value.var = 'prop.outside.range')
+poly.check.wide[is.na(poly.check.wide)] = 0 #replace NAs with zero (no samples outside 5-95% percentile range)
+
+mu.check <- merge(mu, poly.check.wide, by='pID', all.x=TRUE)
+names(mu.check)[-1] <- abbreviateNames(mu.check)
 
 # fix names for printing
 names(polygons.to.check)[1] <- mu.col
 
-# print table
-kable(polygons.to.check, row.names = FALSE)
+# print table (removed from report now that shapefile with proportions outside range is generated)
+#kable(polygons.to.check[display.idx,], row.names = FALSE) #only shows polys with p.crit > 0.15 in report tabular output
+
+#save a SHP file with prop.outside.range for each polygon and raster data source combination
+if(nrow(polygons.to.check) > 0) {
+  shp.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
+  writeOGR(mu.check, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+  write.csv(mu.check,file=shp.fname) 
+}
+
+## generates sample prop.outside.range table for documentation purposes
+#kable(head(mu.check[,c(1,2,14:20)],3), row.names = FALSE, digits = 2)
+
 ```
 
 ```{r echo=FALSE}
@@ -927,37 +962,14 @@ write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE)
 
 ## join stats to map unit polygon attribute table
 mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
+names(mu)[-1] <- abbreviateNames(mu)
 
 ## join geomorphon class stats to attribute table
 if(do.geomorphons)
   mu <- merge(mu, geomorphon.spatial.summary, by='pID', all.x=TRUE)
 
-## flag polygons with n% outside of 5-95 pctiles
-mu[['toCheck']] <- 0
-
-# score and rank flagged data
-# sum of proportion outside of 5-95 range, over each variable
-ranked.polygons.to.check <- rank(tapply(polygons.to.check$prop.outside.range, polygons.to.check$pID, sum))
-# sort out which pIDs are flagged
-flagged.pIDs <- names(ranked.polygons.to.check)
-flagged.idx <- which(mu$pID %in% flagged.pIDs)
-# save ranked flags
-mu$toCheck[flagged.idx] <- ranked.polygons.to.check[match(mu$pID[flagged.idx], names(ranked.polygons.to.check))]
-
 # remove internally-used MU ID
 mu$.id <- NULL
-
-## prep variable names for SHP column names
-# cannot contain reserved characters
-# 10 char limit
-names(mu)[-1] <- sapply(names(mu)[-1], function(i) {
-  # keep only alpha and underscore characters in field names
-  i <- gsub('[^[:alpha:]_]', '', i)
-  # abbreviate after filtering other bad chars
-  abbr <- abbreviate(i, minlength = 10)
-  return(abbr)
-  })
-
 
 
 # save to file
