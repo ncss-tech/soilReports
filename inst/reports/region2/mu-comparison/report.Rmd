@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '2.0-1'
+.report.version <- '2.1'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -859,7 +859,7 @@ if(length(levels(d.sub$.id)) >= 2) {
 ```
 
 
-## Additional Output
+## Polygon Summaries
 A shapefile is generated each time a report is run ("polygons-with-stats-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains several useful summaries, computed by polygon. Polygons are uniquely identified by the `pID` column. Median raster values are given, with data source names abbreviated to conform to the limitations of DBF files:
 
 | pID|MUSYM | EstmtMASTC| AnnlBmRdMJ| EffctvPrcp| Elevationm| FrostFrDys| GrwngDgrDC| MnAnnlArTC| MnAnnlPrcp| SlopeGrdnt|
@@ -872,22 +872,22 @@ A shapefile is generated each time a report is run ("polygons-with-stats-XXX" wh
 
 There are several columns containing the proportions of each landform element (geomorphons algorithm), the most likely ("ml_landfrm") landform element, and the [Shannon entropy](https://en.wiktionary.org/wiki/Shannon_entropy) associated with landform proportions. The Shannon entropy value can be used to judge the relative "landform purity" of a delineation: smaller values are associated with more homogeneous delineations. Equal proportions of all landform elements (within a polygon) would result in a Shannon entropy value of 1.
 
-| pID|MUSYM | flat| summit| ridge| shoulder| spur| slope| hollow| footslope| valley| depression|ml_landfrm | shannon_h| toCheck|
-|---:|:-----|----:|------:|-----:|--------:|----:|-----:|------:|---------:|------:|----------:|:----------|---------:|-------:|
-|   1|7011  | 0.00|   0.01|  0.03|     0.00| 0.05|  0.12|   0.19|      0.04|   0.52|       0.03|valley     |      0.44|       9|
-|   2|7011  | 0.34|   0.00|  0.02|     0.02| 0.05|  0.15|   0.04|      0.20|   0.17|       0.00|flat       |      0.62|       0|
-|   3|7089  | 0.00|   0.04|  0.08|     0.00| 0.32|  0.45|   0.08|      0.00|   0.02|       0.02|slope      |      0.54|       0|
-|   4|7011  | 0.00|   0.00|  0.00|     0.00| 0.00|  0.00|   0.08|      0.08|   0.85|       0.00|valley     |      0.17|       0|
+| pID|MUSYM | flat| summit| ridge| shoulder| spur| slope| hollow| footslope| valley| depression|ml_landfrm | shannon_h|
+|---:|:-----|----:|------:|-----:|--------:|----:|-----:|------:|---------:|------:|----------:|:----------|---------:|
+|   1|7011  | 0.00|   0.01|  0.03|     0.00| 0.05|  0.12|   0.19|      0.04|   0.52|       0.03|valley     |      0.44|
+|   2|7011  | 0.34|   0.00|  0.02|     0.02| 0.05|  0.15|   0.04|      0.20|   0.17|       0.00|flat       |      0.62|
+|   3|7089  | 0.00|   0.04|  0.08|     0.00| 0.32|  0.45|   0.08|      0.00|   0.02|       0.02|slope      |      0.54|
+|   4|7011  | 0.00|   0.00|  0.00|     0.00| 0.00|  0.00|   0.08|      0.08|   0.85|       0.00|valley     |      0.17|
 
 
 In the case of un-sampled polygons (very small delineations or too low sampling density), an additional shapefile will be saved in the output folder with a prefix of "un-sampled-". This file contains those polygons that were not allocated any sampling points and thus not included in the report summaries.
 
 ### Polygon Quality Control
-A shapefile is generated each time a report is run ("poly-qc-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains the proportion of samples outside the 5-95% percentile range. In the attribute table, there is one column per raster data source and one row per map unit delineation. 
+A shapefile is generated each time a report is run ("poly-qc-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains the proportion of samples outside the 5-95% percentile range. In the attribute table there is one column per raster data source and one row per map unit delineation. 
 
 The 5-95% percentile range for each map unit is derived from the samples across all polygons with the corresponding map unit symbol. Proportions of samples outside the range within individual polygons are given for each (continuous) raster data source. Data source names are abbreviated to conform to the limitations of DBF files. Polygons are uniquely identified by the `pID` column. 
 
-Assuming one has sufficient polygons and samples to characterize the data distribution, and that the data are roughly normally distributed, one would expect that 10% of samples across the extent of a particular map unit will fall outside the 5-95% percentile range. Individual delineations that have more than 10-15% of samples outside the range for one or more raster data sources may need to be investigated to see that they fit the map unit concept. It is expected that some delineations will occur at the margins of the map unit extent and therefore may have higher proportions of sample values outside the range. Expert judgement is required to determine whether action should be taken to resolve any potentially problematic delineations.
+Assuming one has sufficient polygons and samples to characterize the data distribution, and that the data are roughly normally distributed, one would expect that 10% of samples across the extent of a particular map unit will fall outside the 5-95% percentile range. Individual delineations that have more than 10-15% of samples outside the range for one or more raster data sources may need to be investigated to see that they fit the map unit concept. It is expected that some delineations will occur at the margins of the map unit extent and therefore may have higher proportions outside the range. Expert judgement is required to determine whether action should be taken to resolve any potentially problematic delineations.
 
 | pID|MUSYM | EffctvPrcp| Elevationm| FrostFrDys| GrwngDgrDC| MnAnnlArTC| MnAnnlPrcp| SlopeGrdnt|
 |---:|:-----|----------:|----------:|----------:|----------:|----------:|----------:|----------:|
@@ -920,7 +920,7 @@ names(polygons.to.check)[1] <- mu.col
 if(nrow(polygons.to.check) > 0) {
   shp.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
   writeOGR(mu.check, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
-  write.csv(mu.check,file=shp.fname) 
+  write.csv(mu.check,file=paste0("output\\",shp.fname,".csv")) 
 }
 
 ## generates sample prop.outside.range table for documentation purposes
@@ -954,7 +954,6 @@ poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
 # join median + MADM stats for each polygon
 # poly.stats.wide <- join(poly.stats.wide.1, poly.stats.wide.2, by='pID')
 # poly.stats.wide <- poly.stats.wide.1
-
 
 # save
 poly.stats.fname <- paste0('output/poly-stats-', paste(mu.set, collapse='_'), '.csv')
