@@ -775,7 +775,7 @@ if(all(sd.by.id$res)) {
   points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$.id)], pch=16)
   # note special indexing for cases when low-var MU have been removed
   vegan::ordilabel(d.betadisper, display='centroids', col=cols[match(mu.set, levels(d.sub$.id))])
-  title('Ordination of Raster Samples (cLHS Subset) with 50% Density Contour')
+  title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
   box()
 }
 ```
