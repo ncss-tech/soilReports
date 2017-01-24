@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '2.1'
+.report.version <- '2.1-1'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -64,7 +64,7 @@ flagPolygons <- function(i) {
 
 
 # http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
-kdeContours <- function(i, prob, cols, m) {
+kdeContours <- function(i, prob, cols, m, ...) {
   
   if(nrow(i) < 2) {
     return(NULL)
@@ -84,7 +84,7 @@ kdeContours <- function(i, prob, cols, m) {
   
   # add contours if possibly
   if(!is.na(levels))
-    contour(dens, levels=levels, drawlabels=FALSE, add=TRUE, col=this.col, lwd=2)
+    contour(dens, levels=levels, drawlabels=FALSE, add=TRUE, col=this.col, ...)
   
   # # add bivariate medians
   # points(median(i$x), median(i$y), pch=3, lwd=2, col=this.col)
@@ -687,7 +687,7 @@ kable(x, digits = 2, caption = '')
 
 ### Multivariate Summary
 
-This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 50% of the points (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)) in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. In these cases it may not be possible to generate a 50%-data contour. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
+This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 75% (dotted line), 50% (dashed line), and 25% (solid line) of the points in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Data from map units with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
 
 **Suggested usage:**
 
@@ -698,7 +698,7 @@ This plot displays the similarity of the map units across the set of environment
  * Nesting of clusters (e.g. smaller cluster contained by larger cluster) suggests superset/subset relationships.
  * Overlap is proportional to similarity.
 
-```{r, results='hide', echo=FALSE, fig.width=8, fig.height=8}
+```{r, results='hide', echo=FALSE, fig.width=9, fig.height=9}
 ## TODO: 
 # 1. add geomorphons, curvature classses, and possibly NLCD (factors)
 
@@ -768,7 +768,9 @@ if(all(sd.by.id$res)) {
   
   # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
   # add contours of prob density
-  res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$.id))
+  res <- lapply(s, kdeContours, prob=c(0.75), cols=cols, m=levels(d.sub$.id), lwd=1, lty=3)
+  res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$.id), lwd=1, lty=2)
+  res <- lapply(s, kdeContours, prob=c(0.25), cols=cols, m=levels(d.sub$.id), lwd=2, lty=1)
   
   points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$.id)], pch=16)
   # note special indexing for cases when low-var MU have been removed
