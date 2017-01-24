@@ -898,6 +898,9 @@ Assuming one has sufficient polygons and samples to characterize the data distri
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
 
+# make an output dir if it doesn't exist
+if(!dir.exists('output')) dir.create('./output')
+
 #calculates prop outside range for _all_ polys
 polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons) #, p.crit = 0) 
 
@@ -929,9 +932,6 @@ if(nrow(polygons.to.check) > 0) {
 ```
 
 ```{r echo=FALSE}
-# make an output dir if it doesn't exist
-if(!dir.exists('output')) dir.create('./output')
-
 # save SHP with any un-sampled polygons
 if(length(sampling.res$unsampled.ids) > 0) {
   shp.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
