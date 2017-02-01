@@ -1,5 +1,5 @@
 
-### soilReports
+# soilReports
 
 soilReports is an R package container and includes convenience functions for soil data summary, comparison, and evaluation reports used mainly by NRCS staff.
 
