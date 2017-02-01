@@ -21,7 +21,7 @@ path.expand('~')
 
 ## Installation of the soilReports package.  Only required for first-time use of soilReports and when a new version of soilReports is released.
 
-The current version of `soilReports` is available on GitHub, an can be installed with the following code:
+The current version of `soilReports` is installed with the following code:
 ```r
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)
@@ -32,7 +32,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 
 ## Loading the soilReports library and downloading the required files.  Only required for first-time use, when a new version of soilReports is released, or when you need an original version of the config.R and report.Rmd files. 
 
-The `soilReports` package contains reports and associated configuration files. The following steps illustrate an example session that performs all required setup for the **region2/mu-comparison** report, then copies the configuration and report files to a named folder in the working directory. Edit the `config.R` file (or copy an existing configuration file) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button.
+The `soilReports` package contains reports and associated configuration files. The following steps perform all required setup for the **region2/mu-comparison** report, then copies the configuration (config.R) and report (report.Rmd) files to a folder that it creates named 'MU-comparison' in the working directory. Edit the `config.R` file (or replace it with an existing config.R in the working directory) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button. The package will put a report.html file in the MU-comparison folder and will create a folder named 'output' for report-generated shapefiles.
 
 ```r
 # load this library
