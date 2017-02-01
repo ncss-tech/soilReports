@@ -1,4 +1,7 @@
 
+## soilReports
+
+R package conatiner and convenience funtions for soil data summary, comparison, and evaluation reports used mainly by NRCS staff.
 
 ## Pre-Installation (NRCS only)
 
