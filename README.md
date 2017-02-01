@@ -13,7 +13,7 @@ source('https://raw.githubusercontent.com/ncss-tech/soilReports/master/R/install
 installRprofile()
 ```
 
-The following code can be used to "see" where the `$HOME` directory is:
+The following code can be used to "see" where the `$HOME` directory is. The result should look like "C:/Users/First.Last/Documents"
 ```r
 # run this in the R console
 path.expand('~')
