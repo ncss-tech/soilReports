@@ -3,7 +3,7 @@
 
 soilReports is an R package container and includes convenience functions for soil data summary, comparison, and evaluation reports used mainly by NRCS staff.
 
-## Pre-Installation (NRCS only)
+## First-time only pre-Installation (NRCS only)
 
 On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/First.Last/Documents/R/` for installing R packages. Again, you only have to do this **once**.
 
@@ -19,7 +19,8 @@ The following code can be used to "see" where the `$HOME` directory is:
 path.expand('~')
 ```
 
-## Installation
+## Installation of the soilReports package
+###Only required for first-time use of soilReports and when a new version of soilReports is released.
 
 The current version of `soilReports` is available on GitHub, an can be installed with the following code:
 ```r
@@ -30,7 +31,9 @@ install.packages('devtools', dep=TRUE)
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 ```
 
-## Example Usage
+## Loading the soilReports library and downloading the requred files to your working directory. 
+###Only required for first-time use, when a new version of soilReports is released, or when an original version of the config.R and report.Rmd files are desired 
+
 The `soilReports` package contains reports and associated configuration files. The following steps illustrate an example session that performs all required setup for the **region2/mu-comparison** report, then copies the configuration and report files to a named folder in the working directory. Edit the `config.R` file (or copy an existing configuration file) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button.
 
 ```r
