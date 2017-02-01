@@ -32,7 +32,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 
 ## Loading the soilReports library and downloading the required files.  Only required for first-time use, when a new version of soilReports is released, or when you need an original version of the config.R and report.Rmd files. 
 
-The `soilReports` package contains reports and associated configuration files. The following steps perform all required setup for the **region2/mu-comparison** report, then copies the configuration (config.R) and report (report.Rmd) files to a folder that it creates named 'MU-comparison' in the working directory. Edit the `config.R` file (or replace it with an existing config.R in the working directory) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button. The package will put a report.html file in the MU-comparison folder and will create a folder named 'output' for report-generated shapefiles.
+The `soilReports` package contains reports and associated configuration files. The following steps perform all required setup for the **region2/mu-comparison** report, then copies the configuration (config.R) and report (report.Rmd) files to a folder that it creates named 'MU-comparison' in the working directory. Edit the `config.R` file (or replace it with an existing config.R in the working directory) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button. The package will put a 'report.html' file in the MU-comparison folder and will create a folder named 'output' for report-generated shapefiles.
 
 ```r
 # load this library
@@ -50,7 +50,7 @@ reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 
 ## Available Reports
 
-### Map Unit Comparison/Summary Report
+### Map Unit Comparison/Summary Report. This is an output file named 'report.html' that is generated in the MU-comparison folder that was created in your working derectory.
 
 This report was designed to assist with comparisons between map unit concepts via sampling of various raster data sources within map unit polygons. Configuration of data sources is done within `config.R`. Contact Dylan Beaudette (dylan.beaudette at ca.usda.gov) for questions or comments.
 
