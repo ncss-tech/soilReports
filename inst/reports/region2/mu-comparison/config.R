@@ -44,7 +44,8 @@ raster.list <- list(
 ###################
 
 ##
-## Data are in a large geodatabase with many map units, explicit subsetting
+## Data are in a geodatabase with many map units, explicit subsetting
+## Note: consider sub-setting to SHP if the geodatabase contains more than 2-3 soil survey areas
 ##
 
 # geodatabase path
@@ -63,7 +64,7 @@ mu.set <- c('7011', '5012', '7089')
 # # path to SHP
 # mu.dsn <- 'testing'
 # # SHP name, without file extension
-# mu.layer <- 'Mus_for_analysis'
+# mu.layer <- 'MUs_for_analysis'
  
 
 
@@ -79,8 +80,10 @@ mu.col <- 'MUSYM'
 ### polygon sampling density (samples / acre / polygon) #
 #########################################################
 
-# values less < 1 (coarse sampling density) will result in high variation between runs, and un-sampled polygons
-# values > 10 will result in much longer report run times
+# consider using a sampling density between 1-2 points / ac.
+# increase if there are un-sampled polygons
+# delineations smaller than 5 ac. may require up to 5 points / ac.
+# values > 6-7 points / ac. will only slow things down
 pts.per.acre <- 1
 
 
@@ -110,7 +113,7 @@ correct.sample.size <- FALSE
 ### save samples after report has run ? ###
 ###########################################
 
-# used for tinkering with a report Rmd and debugging
+# used for tinkering with a report .Rmd and debugging
 # this will save samples to a file and subsequent report runs will use the saved samples
 # not recommended for routine operation
 cache.samples <- FALSE
