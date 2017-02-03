@@ -1,5 +1,5 @@
 ### MU GIS Summary Report
-### 2017-01-19
+### 2017-02-02
 ### D.E. Beaudette and J. Wood
 ###
 ### configuration file, edit as needed
@@ -15,27 +15,25 @@
 
 raster.list <- list(
   continuous=list(
-    `Mean Annual Air Temperature (degrees C)`='E:/gis_data/prism/final_MAAT_800m.tif', 
-    `Mean Annual Precipitation (mm)`='E:/gis_data/prism/final_MAP_mm_800m.tif',
-    `Effective Precipitation (mm)`='E:/gis_data/prism/effective_precipitation_800m.tif',
+    `Mean Annual Air Temperature (degrees C)`='E:/Workspace/geodata/PRISM_800m/final_MAAT_800m.tif', 
+    `Mean Annual Precipitation (mm)`='E:/Workspace/geodata/PRISM_800m/final_MAP_mm_800m.tif',
+    `Effective Precipitation (mm)`='E:/Workspace/geodata/PRISM_800m/effective_precipitation_800m.tif',
     `Frost-Free Days`='E:/gis_data/prism/ffd_mean_800m.tif',
-    `Growing Degree Days (degrees C)`='E:/gis_data/prism/gdd_mean_800m.tif',
-    `Elevation (m)`='E:/gis_data/region-2-mu-analysis/elev_30.tif',
-    `Slope Gradient (%)`='E:/gis_data/region-2-mu-analysis/slope_30.tif',
-    `Annual Beam Radiance (MJ/sq.m)`='E:/gis_data/ca630/beam_rad_sum_mj_30m.tif',
-    `(Estimated) MAST (degrees C)`='E:/gis_data/ca630/mast-model.tif'
+    `Growing Degree Days (degrees C)`='E:/Workspace/geodata/PRISM_800m/gdd_mean_800m.tif',
+    `Elevation (m)`='E:/Workspace/geodata/DEM_KLM_int_AEA.tif',
+    `Slope Gradient (%)`='E:/Workspace/geodata/slope_KLM_int_AEA.tif'
     # `Compound Topographic Index`='E:/gis_data/ca630/tci30.tif',
     # `MRVBF`='E:/gis_data/ca630/mrvbf_10.tif',
     # `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
   ),
   categorical=list(
-    `Geomorphon Landforms`='E:/gis_data/region-2-mu-analysis/forms10_region2.tif',
-    `Curvature Classes`='E:/gis_data/region-2-mu-analysis/curvature_classes_10_class_region2.tif',
-    `NLCD 2011`='E:/gis_data/region-2-mu-analysis/nlcd_2011_cropped.tif'
+    `Geomorphon Landforms`='E:/Workspace/geodata/Geomorphons/forms10_region2.tif',
+    `Curvature Classes`='E:/Workspace/geodata/MU_Curvature/curvature_classes_10_class_region2.tif',
+    `NLCD 2011`='E:/Workspace/geodata/land_use_land_cover/nlcd_2011_cropped.tif'
   ),
   circular=list(
-    `Slope Aspect (degrees)`='E:/gis_data/region-2-mu-analysis/aspect_30.tif'
-    )
+    `Slope Aspect (degrees)`='E:/Workspace/geodata/Aspect_KLM_int_AEA.tif'
+  )
 )
 
 
@@ -49,23 +47,23 @@ raster.list <- list(
 ##
 
 # geodatabase path
-mu.dsn <- 'E:/gis_data/ca630/FG_CA630_OFFICIAL.gdb'
+# mu.dsn <- 'E:/gis_data/ca630/FG_CA630_OFFICIAL.gdb'
 # name of featureclass
-mu.layer <- 'ca630_a'
+# mu.layer <- 'ca630_a'
 # map unit symbols / keys to extract
-mu.set <- c('7011', '5012', '7089')
+# mu.set <- c('7011', '5012', '7089')
 
 
 
-# ##
-# ## Typical SDJR style data: SHP with multiple map units
-# ##
+##
+## Typical SDJR style data: SHP with multiple map units
+##
 
 # # path to SHP
-# mu.dsn <- 'testing'
+mu.dsn <- 'E:/Workspace/Project_Folder/MUSum'
 # # SHP name, without file extension
-# mu.layer <- 'MUs_for_analysis'
- 
+mu.layer <- 'MUs_for_analysis'
+
 
 
 ############################################
