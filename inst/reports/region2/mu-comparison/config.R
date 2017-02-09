@@ -98,14 +98,13 @@ p.quantiles <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
 
 
 ########################################################
-### correct sample size for spatial autocorrelation? ###
+### Add estimate of confidence to box and whisker plots ###
 ########################################################
 
-# enabling this feature will add "notches" to box and whisker plots
+#enabling this feature will double the run time 
+#enabling this feature will add "notches" to box and whisker plots
 # that are close approximations to a confidence interval around the median
 # adjusted for spatial autocorrelation
-#
-# enabling this feature will double the run time
 correct.sample.size <- FALSE
 
 
