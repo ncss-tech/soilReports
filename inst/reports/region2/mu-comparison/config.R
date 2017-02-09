@@ -1,5 +1,5 @@
 ### MU GIS Summary Report
-### 2017-02-02
+### 2017-02-08
 ### D.E. Beaudette and J. Wood
 ###
 ### configuration file, edit as needed
@@ -18,10 +18,12 @@ raster.list <- list(
     `Mean Annual Air Temperature (degrees C)`='E:/Workspace/geodata/PRISM_800m/final_MAAT_800m.tif', 
     `Mean Annual Precipitation (mm)`='E:/Workspace/geodata/PRISM_800m/final_MAP_mm_800m.tif',
     `Effective Precipitation (mm)`='E:/Workspace/geodata/PRISM_800m/effective_precipitation_800m.tif',
-    `Frost-Free Days`='E:/gis_data/prism/ffd_mean_800m.tif',
+    `Frost-Free Days`='E:/Workspace/geodata/PRISM_800m/ffd_mean_800m.tif',
     `Growing Degree Days (degrees C)`='E:/Workspace/geodata/PRISM_800m/gdd_mean_800m.tif',
     `Elevation (m)`='E:/Workspace/geodata/DEM_KLM_int_AEA.tif',
-    `Slope Gradient (%)`='E:/Workspace/geodata/slope_KLM_int_AEA.tif'
+    `Slope Gradient (%)`='E:/Workspace/geodata/Slope_KLM_int_AEA.tif'
+    #`Annual Beam Radiance (MJ/sq.m)`='E:/gis_data/ca630/beam_rad_sum_mj_30m.tif,
+    #`(Estimated) MAST (degrees C)`='E:/gis_data/ca630/mast-model.tif'
     # `Compound Topographic Index`='E:/gis_data/ca630/tci30.tif',
     # `MRVBF`='E:/gis_data/ca630/mrvbf_10.tif',
     # `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
@@ -32,8 +34,8 @@ raster.list <- list(
     `NLCD 2011`='E:/Workspace/geodata/land_use_land_cover/nlcd_2011_cropped.tif'
   ),
   circular=list(
-    `Slope Aspect (degrees)`='E:/Workspace/geodata/Aspect_KLM_int_AEA.tif'
-  )
+    `Slope Aspect (degrees)`='E:/Workspace/geodata/Aspect_KLM_int_AEACopy.tif'
+    )
 )
 
 
@@ -59,11 +61,11 @@ raster.list <- list(
 ## Typical SDJR style data: SHP with multiple map units
 ##
 
-# # path to SHP
+# path to SHP
 mu.dsn <- 'E:/Workspace/Project_Folder/MUSum'
-# # SHP name, without file extension
+# SHP name, without file extension
 mu.layer <- 'MUs_for_analysis'
-
+ 
 
 
 ############################################
