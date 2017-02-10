@@ -12,6 +12,7 @@
 
 # data sources can be "commented-out" using the "#" character
 # be sure that there is no trailing "," after the last item in each list
+# raster summaries are displayed in the same order in which they are listed below
 
 raster.list <- list(
   continuous=list(
