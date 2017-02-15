@@ -1,1 +1,2 @@
+2017-02-15 (2.1-4): small bug fix for checking for aspect / circular raster data
 2017-02-10 (2.1-3): continuous raster data summaries now listed in same order as in config.R

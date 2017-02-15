@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '2.1-3'
+.report.version <- '2.1-4'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -291,7 +291,7 @@ sampling.res$raster.samples <- NULL
 ## TODO: eventually there should be a function / template for any categorical data
 
 # subset and enable aspect summary
-if(length(d.circ) > 0) {
+if(nrow(d.circ) > 0) {
   do.aspect <- TRUE
 } else do.aspect <- FALSE
 
