@@ -667,7 +667,7 @@ x <- xtabs(~ .id + value, data=d.nlcd.classes)
 x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 3)
 
 # remove 0's
-idx <- which(apply(x, 2, function(i) all(i != 0)))
+idx <- which(apply(x, 2, function(i) any(i > 0.001)))
 x <- x[, idx]
 
 # convert to long format for plotting
