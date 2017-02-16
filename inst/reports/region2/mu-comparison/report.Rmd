@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '2.1-4'
+.report.version <- '2.1-5'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -640,7 +640,7 @@ kable(x.sig, caption = 'Landform "signatures": these are created from the top 75
 
 These values are from the [2011 NLCD](https://www.mrlc.gov/nlcd2011.php) (30m) database.
 
-```{r, echo=FALSE, fig.width=12, fig.height=6, eval=do.nlcd.classes}
+```{r, echo=FALSE, fig.width=12, fig.height=8, eval=do.nlcd.classes}
 # These are from the NLCD 2011 metadata
 nlcd.leg <- structure(list(ID = c(0L, 11L, 12L, 21L, 22L, 23L, 24L, 31L, 
 41L, 42L, 43L, 51L, 52L, 71L, 72L, 73L, 74L, 81L, 82L, 90L, 95L
@@ -706,8 +706,11 @@ This plot displays the similarity of the map units across the set of environment
  * Overlap is proportional to similarity.
 
 ```{r, results='hide', echo=FALSE, fig.width=9, fig.height=9}
+## NOTES:
+# 1. this section will fail if there are NA in the samples: this is usually caused by raster extent not covering MU extent
+
 ## TODO: 
-# 1. add geomorphons, curvature classses, and possibly NLCD (factors)
+# 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
 
 # cast to wide format
 d.mu.wide <- dcast(d.continuous, sid + pID + .id ~ variable, value.var = 'value')
