@@ -1,9 +1,31 @@
-# Lab pedon report
+---
+title: Summary of NASIS NCSS Pedon Lab Data Table
+output:
+  html_document:
+    jquery: null
+    keep_md: no
+    mathjax: null
+    smart: no
+---
 
-```{r enter soil series name}
-# Set soil series
-#series <- "Treaty"
+```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+## version number
+.report.version <- 1.0
 
+## short description
+.report.description <- 'summarize lab data from NASIS Lab Layer table'
+```
+
+
+```{r setup, echo=FALSE, warning=FALSE}
+# setup
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, background="#F7F7F7", fig.retina=1, dev="png", tidy=FALSE, verbose=FALSE, results = 'asis')
+
+options(stringsAsFactors = FALSE)
+```
+
+
+```{r}
 # Set percentiles
 p <- c(0, 0.25, 0.5, 0.75, 1)
 ```
@@ -20,11 +42,7 @@ library(reshape2)
 library(knitr)
 library(maps)
 
-source("utils.R")
-source(paste0("./genhz_rules/", series, "_rules.R"))
-
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results = 'asis')
-options(stringsAsFactors = FALSE)
+source("config.R")
 
 opar <- trellis.par.get()
 trellis.par.set(theme = ggplot2like())
@@ -43,6 +61,9 @@ lh <- horizons(l)
 lp <- site(l)
 h <- horizons(f)
 s <- site(f)
+
+
+
 
 vars <- c("labsampnum", "hzdept", "hzdepb", "total_frags_pct", "total_frags_pct_cal")
 lh <- join(lh, h[vars], by = c("labsampnum", "hzdept", "hzdepb"), type = "left")
