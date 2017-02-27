@@ -24,7 +24,7 @@ listReports()
 reportSetup(reportName='region2/mu-comparison')
 
 # copy default configuration file and report to 'MU-comparison' in current working directory
-reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
+reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison', overwrite=FALSE)
 }
 }
 
