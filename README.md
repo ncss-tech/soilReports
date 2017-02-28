@@ -3,6 +3,11 @@
 
 soilReports is an R package container and includes convenience functions for soil data summary, comparison, and evaluation reports used mainly by NRCS staff.
 
+Example output:
+  
+  * [summary of select CA630 map units](http://ncss-tech.github.io/example-reports/mu-comparison/CA630-mu-comparison.html)
+  * [summary of select MLRA polygons](http://ncss-tech.github.io/example-reports/mu-comparison/MLRA-comparison-report.html)
+
 ## Pre-Installation (NRCS only). This is only required once.
 
 On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/First.Last/Documents/R/` for installing R packages. Again, you only have to do this **once**.
