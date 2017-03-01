@@ -25,9 +25,8 @@ options(stringsAsFactors = FALSE)
 ```
 
 
-```{r}
-# Set percentiles
-p <- c(0, 0.25, 0.5, 0.75, 1)
+```{r current environment}
+save.image(file = "C:/Temp/temp.RData")
 ```
 
 ```{r load packages, include=FALSE}
@@ -43,6 +42,8 @@ library(knitr)
 library(maps)
 
 source("config.R")
+source("utils.R")
+source(paste0("./genhz_rules/", series, "_rules.R"))
 
 opar <- trellis.par.get()
 trellis.par.set(theme = ggplot2like())
@@ -61,9 +62,6 @@ lh <- horizons(l)
 lp <- site(l)
 h <- horizons(f)
 s <- site(f)
-
-
-
 
 vars <- c("labsampnum", "hzdept", "hzdepb", "total_frags_pct", "total_frags_pct_cal")
 lh <- join(lh, h[vars], by = c("labsampnum", "hzdept", "hzdepb"), type = "left")
@@ -297,4 +295,10 @@ kable(addmargins(table(lh$genhz, lh$lab_texcl)), digits = 0, caption = "Texture 
 if (any(na.exclude(lh$stratextsflag) != 0)){
   kable(addmargins(table(lh$genhz, lh$stratextsflag)), digits = 0, caption = "Stratified flag by generic horizon")
   }
+```
+
+
+```{r cleanup}
+rm(list = (ls()))
+load("C:/Temp/temp.RData")
 ```

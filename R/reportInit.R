@@ -35,5 +35,11 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE) {
     #file.copy(from=notes.file, to=outputDir, overwrite = TRUE)
     message(paste0('default `config.R` , `report.Rmd`, and `NOTES.md` copied to ', outputDir))
   }
-    
+  
+  # source custom.R if it exists
+  custom.file <- paste0(base.dir, '/', 'custom.R')
+
+  if(file.exists(custom.file)) {
+    source(custom.file)
+  }
 }
