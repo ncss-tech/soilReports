@@ -38,8 +38,11 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE) {
   
   # source custom.R if it exists
   custom.file <- paste0(base.dir, '/', 'custom.R')
-
+  
   if(file.exists(custom.file)) {
     source(custom.file)
-  }
+    custom.files <- paste0(base.dir, '/', custom.files)
+    sapply(custom.files, function(x) 
+      file.copy(from = x, to = outputDir, overwrite = TRUE, recursive = TRUE))
+    }
 }

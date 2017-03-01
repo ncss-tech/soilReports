@@ -1,2 +1,1 @@
-file.copy(from = paste0(base.dir, '/', 'genhz_rules'), to = outputDir, overwrite = TRUE, recursive = TRUE)
-file.copy(from = paste0(base.dir, '/', 'utils.R'), to = outputDir, overwrite = TRUE, recursive = TRUE)
+custom.files <- c("genhz_rules", "utils.R")
