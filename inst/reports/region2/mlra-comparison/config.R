@@ -11,9 +11,9 @@
 #############################
 
 # you will need all three of these
-prism.path <- 'C:/Users/Dylan.Beaudette/Desktop/MLRA-samples/db/mlra-prism-data.rda'
-geomorphons.path <- 'C:/Users/Dylan.Beaudette/Desktop/MLRA-samples/db/mlra-geomorphons-data.rda'
-nlcd.path <- 'C:/Users/Dylan.Beaudette/Desktop/MLRA-samples/db/mlra-nlcd-data.rda'
+prism.path <- 'mlra-prism-data.rda'
+geomorphons.path <- 'mlra-geomorphons-data.rda'
+nlcd.path <- 'mlra-nlcd-data.rda'
 
 ####################
 ### MLRA selection #
