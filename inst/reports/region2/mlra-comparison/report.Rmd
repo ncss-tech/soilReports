@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '0.1'
+.report.version <- '0.2'
 
 ## short description
 .report.description <- 'compare MLRA using pre-made raster sample databases'
@@ -31,6 +31,16 @@ options(width=100, stringsAsFactors=FALSE)
 
 
 ## custom functions
+
+# remove NA from $value
+# compute density for $value, using 1.5x "default" bandwidth
+# re-scale to {0,1}
+# return x,y values
+scaled.density <- function(d) {
+  res <- stats::density(na.omit(d$value), kernel='gaussian', adjust=1.5)
+  return(data.frame(x=res$x, y=scales::rescale(res$y)))
+}
+
 
 
 # http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
@@ -206,7 +216,7 @@ bwplot(mlra ~ value | variable, data=mlra.prism.data.long,
 
 
 ### Density Plots
-These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set.
+These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
 
 **Suggested usage:**
 
@@ -222,7 +232,12 @@ tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 # dynamic setting of columns in legend
 n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 
-densityplot(~ value | variable, groups=mlra, data=mlra.prism.data.long, xlab='', ylab='', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.prism.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+# compute densities and re-scale to {0,1}
+density.plot.data <- ddply(mlra.prism.data.long, c('mlra', 'variable'), scaled.density)
+
+xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.prism.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+
+rm(density.plot.data)
 ```
 
 ### Tabular Summaries
