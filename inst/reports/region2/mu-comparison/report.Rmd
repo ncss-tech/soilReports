@@ -452,13 +452,14 @@ l_ply(split(mu.stats, mu.stats$variable), function(i) {
 
 
 ### Slope Aspect
-A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality.
+A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality. Use the figures and table below to determine "clockwise" / "counter clockwise" values for NASIS component records.
 
 **Suggested usage:**
 
  * Check circular density estimates for peaks: this suggests directionality.
  * These summaries are meaningless when slope values are less than approximately 3%.
  * These summaries are (mostly) meaningless when arrow lengths are short; e.g. low directionality.
+ * There is no general relationship between 10th/90th percentiles and "clockwise" vs. "counterclockwise"
 
 ```{r, echo=FALSE, results='hide', eval=do.aspect}
 ## circular stats, by map unit
