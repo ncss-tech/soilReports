@@ -55,10 +55,31 @@ reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 
 ## Available Reports
 
-### Map Unit Comparison/Summary Report. This is an output file named 'report.html' that is generated in the MU-comparison folder that was created in your working derectory.
+### Map Unit Comparison/Summary Report.
 
 This report was designed to assist with comparisons between map unit concepts via sampling of various raster data sources within map unit polygons. Configuration of data sources is done within `config.R`. Contact Dylan Beaudette (dylan.beaudette at ca.usda.gov) for questions or comments.
 
+### MLRA Comparison/Summary Report.
+
+This report was designed to assist with comparisons between MLRA concepts using a [pre-made raster sample database](https://github.com/ncss-tech/mlra-raster-db). You will need to put these database files into the same folder as `report.Rmd`. MLRA selection is done within `config.R`. Contact Dylan Beaudette (dylan.beaudette at ca.usda.gov) for questions or comments.
+
+```r
+# load this library
+library(soilReports)
+
+# install required packages for a named report
+reportSetup(reportName='region2/mlra-comparison')
+
+# copy default configuration file and report to 'MU-comparison' in current working directory
+reportInit(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
+```
+
+Download the three raster sample databases into the directory created above.
+```r
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-geomorphons-data.rda', destfile='MLRA-comparison/mlra-geomorphons-data.rda')
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-nlcd-data.rda', destfile='MLRA-comparison/mlra-nlcd-data.rda')
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-prism-data.rda', destfile='MLRA-comparison/mlra-prism-data.rda')
+```
 
 ## Troubleshooting
  1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
