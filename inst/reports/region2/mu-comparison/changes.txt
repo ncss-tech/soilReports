@@ -1,3 +1,4 @@
+2017-04-05 (2.3): minor additions, as suggested by folks on 4/13 and 4/14 teleconferences, simple fix for MU specified in config.R and not in MU polys
 2017-04-05 (2.2): new approach for normalization of y-axis of density estimates, addressing (https://github.com/ncss-tech/soilReports/issues/39)
 2017-02-16 (2.1-5): notes and todo items related to NA in samples
 2017-02-15 (2.1-4): small bug fix for checking for aspect / circular raster data; fixed small bug with removal of very small NLCD class proportions
