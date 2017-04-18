@@ -84,6 +84,9 @@ destfile='MLRA-comparison/mlra-nlcd-data.rda')
 
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-prism-data.rda', 
 destfile='MLRA-comparison/mlra-prism-data.rda')
+
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-soil-data.rda', 
+destfile='MLRA-comparison/mlra-soil-data.rda')
 ```
 
 ## Troubleshooting
