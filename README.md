@@ -76,9 +76,14 @@ reportInit(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
 
 Download the three raster sample databases into the directory created above.
 ```r
-download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-geomorphons-data.rda', destfile='MLRA-comparison/mlra-geomorphons-data.rda')
-download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-nlcd-data.rda', destfile='MLRA-comparison/mlra-nlcd-data.rda')
-download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-prism-data.rda', destfile='MLRA-comparison/mlra-prism-data.rda')
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-geomorphons-data.rda', 
+destfile='MLRA-comparison/mlra-geomorphons-data.rda')
+
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-nlcd-data.rda', 
+destfile='MLRA-comparison/mlra-nlcd-data.rda')
+
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-prism-data.rda', 
+destfile='MLRA-comparison/mlra-prism-data.rda')
 ```
 
 ## Troubleshooting
