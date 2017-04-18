@@ -14,14 +14,15 @@
 prism.path <- 'mlra-prism-data.rda'
 geomorphons.path <- 'mlra-geomorphons-data.rda'
 nlcd.path <- 'mlra-nlcd-data.rda'
+soil.path <- 'mlra-soil-data.rda'
 
 ####################
 ### MLRA selection #
 ####################
 
 # define a subset of MLRA
-mu.set <- c('17', '15', '18', '22A', '22B', '47')
-
+# mu.set <- c('17', '15', '18', '22A', '136', '144B', '58A', '93A', '42')
+mu.set <- c('17', '15', '18', '22A')
 
 ###########################
 ### quantiles of interest #

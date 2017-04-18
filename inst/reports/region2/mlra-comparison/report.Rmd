@@ -10,10 +10,10 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '0.2'
+.report.version <- '0.3'
 
 ## short description
-.report.description <- 'compare MLRA using pre-made raster sample databases'
+.report.description <- 'compare MLRA using pre-made, raster sample databases'
 ```
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
@@ -146,20 +146,23 @@ source('config.R')
 load(prism.path)
 load(geomorphons.path)
 load(nlcd.path)
+load(soil.path)
 
 # subset to requested MLRA
 mlra.prism.data <- subset(mlra.prism.data, subset=mlra %in% mu.set)
 mlra.geomorphons.data <- subset(mlra.geomorphons.data, subset=mlra %in% mu.set)
 mlra.nlcd.data <- subset(mlra.nlcd.data, subset=mlra %in% mu.set)
+mlra.soil.data <- subset(mlra.soil.data, subset=mlra %in% mu.set)
 
 # set factor levels to order in config.R
 mlra.prism.data$mlra <- factor(mlra.prism.data$mlra, levels=mu.set)
 mlra.geomorphons.data$mlra <- factor(mlra.geomorphons.data$mlra, levels=mu.set)
 mlra.nlcd.data$mlra <- factor(mlra.nlcd.data$mlra, levels=mu.set)
+mlra.soil.data$mlra <- factor(mlra.soil.data$mlra, levels=mu.set)
 
-# cast prism data to long format for plotting
+# cast some data to long format for plotting
 mlra.prism.data.long <- melt(mlra.prism.data, id.vars = 'mlra')
-
+mlra.soil.data.long <- melt(mlra.soil.data, id.vars = 'mlra')
 
 # nice colors
 # 7 or fewer classes, use high-constrast colors
@@ -215,6 +218,26 @@ bwplot(mlra ~ value | variable, data=mlra.prism.data.long,
 ```
 
 
+```{r, echo=FALSE, fig.width=8, fig.height=10}
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+
+# NOTE: notches rely on effective sampling size
+bwplot(mlra ~ value | variable, data=mlra.soil.data.long, 
+       scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
+       strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps,
+       layout=c(1, length(unique(mlra.soil.data.long$variable))),
+       panel=function(...) {
+         
+         # make a grid
+         panel.grid(h=0, v=-1, col='grey', lty=3)
+         panel.abline(h=1:length(unique(mlra.soil.data.long$mlra)), col='grey', lty=3)
+         
+         # boxplots
+         panel.bwplot(..., stats=custom.bwplot)
+       })
+```
+
+
 ### Density Plots
 These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
 
@@ -236,6 +259,21 @@ n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 density.plot.data <- ddply(mlra.prism.data.long, c('mlra', 'variable'), scaled.density)
 
 xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.prism.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+
+rm(density.plot.data)
+```
+
+
+```{r, echo=FALSE, fig.width=8, fig.height=9}
+tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
+
+# dynamic setting of columns in legend
+n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
+
+# compute densities and re-scale to {0,1}
+density.plot.data <- ddply(mlra.soil.data.long, c('mlra', 'variable'), scaled.density)
+
+xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.soil.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
 
 rm(density.plot.data)
 ```
@@ -265,7 +303,6 @@ l_ply(split(mu.stats, mu.stats$variable), function(i) {
 })
 
 ```
-
 
 
 
@@ -369,24 +406,30 @@ This plot displays the similarity of the map units across the set of environment
 ## TODO: 
 # 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
 
+# join soil data with PRISM data
+mlra.data <- cbind(mlra.prism.data, mlra.soil.data[, -1])
+
 # locate "non-id" vars
-mlra.prism.data.vars <- which(! names(mlra.prism.data) %in% c('mlra'))
+mlra.data.vars <- which(! names(mlra.data) %in% c('mlra'))
 
 ## TODO: what is a reasonable sample size?
 # only sub-sample if there are "a lot" of samples
-if(nrow(mlra.prism.data) > 1000) {
+if(nrow(mlra.data) > 1000) {
   # sub-sample via LHS: this takes time
   # first three columns are IDs
   # n: this is the number of sub-samples / map unit
   # non.id.vars: this is an index to non-ID columns
-  d.sub <- ddply(mlra.prism.data, 'mlra', f.subset, n=50, non.id.vars=mlra.prism.data.vars)
+  d.sub <- ddply(mlra.data, 'mlra', f.subset, n=50, non.id.vars=mlra.data.vars)
 } else {
-  d.sub <- mlra.prism.data
+  d.sub <- mlra.data
 }
 
+# remove NA
+d.sub <- na.omit(d.sub)
+
 ## NOTE: data with very low variability will cause warnings
-# eval numerical distance, removing 'sid' and '.id' columns
-d.dist <- daisy(d.sub[, mlra.prism.data.vars], stand=TRUE)
+# eval numerical distance, removing ID columns
+d.dist <- daisy(d.sub[, mlra.data.vars], stand=TRUE)
 
 ## map distance matrix to 2D space via principal coordinates
 d.betadisper <- vegan::betadisper(d.dist, group=d.sub$mlra, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
@@ -431,8 +474,8 @@ The following figure highlights shared information among raster data sources bas
 par(mar=c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
 ## This requires 3 or more variables
-if(ncol(d.sub[, mlra.prism.data.vars]) > 3) {
-  try(plot(Hmisc::varclus(as.matrix(d.sub[, mlra.prism.data.vars]))), silent=TRUE)
+if(ncol(d.sub[, mlra.data.vars]) > 3) {
+  try(plot(Hmisc::varclus(as.matrix(d.sub[, mlra.data.vars]))), silent=TRUE)
 } else
   print('This plot requires three or more raster variables, apart from aspect, curvature class, and geomorphons.')
 ```
@@ -454,7 +497,7 @@ if(length(levels(d.sub$mlra)) >= 2) {
  # use supervised classification to empirically determine the relative importance of each raster layer
   # TODO: include geomorphons and curvature classes
   # TODO: consider using party::cforest() for conditional variable importance-- varimp
-  m <- randomForest(x=d.sub[, mlra.prism.data.vars], y=d.sub$mlra, importance = TRUE)
+  m <- randomForest(x=d.sub[, mlra.data.vars], y=d.sub$mlra, importance = TRUE)
   
   # variable importance
   # TODO: how to interpret raw output from importance:
