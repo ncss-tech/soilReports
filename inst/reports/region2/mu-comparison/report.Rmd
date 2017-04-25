@@ -340,7 +340,7 @@ report version `r .report.version`
 `r format(Sys.time(), "%Y-%m-%d")`</div>
 
 <br>
-This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) as used as robust metrics of distribution central tendency and spread. Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
+This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) are used as robust metrics of distribution central tendency and spread. Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
 
 
 
