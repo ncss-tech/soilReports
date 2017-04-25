@@ -14,10 +14,10 @@ ghr <- list(
         "BA|A3|B1",
         "^E|A2",
         "t|T",
-        "g",
+        "g|G",
         "2B|IIB",
         "BC|B3",
-        "C",
+        "^C|2C|IIC",
         "d",
         "missing")
   )
