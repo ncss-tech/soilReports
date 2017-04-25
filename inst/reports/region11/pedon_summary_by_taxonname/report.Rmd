@@ -72,10 +72,10 @@ trellis.par.set(tpg)
 
 ```{r fetch and format, load-data, echo=FALSE, warning=FALSE}
 # load NASIS data
-pedons <- fetchNASIS(nullFragsAreZero = TRUE, lab = TRUE)
+pedons <- fetchNASIS_pedons(lab = TRUE)
 
 h <- horizons(pedons)
-h <- .metadata_replace(h)
+h <- uncode(h)
 h <- within(h, {
   hzname = ifelse(is.na(hzname), "missing", hzname)
   hzdepm = (hzdept + hzdepb) / 2
@@ -87,8 +87,8 @@ h <- horizons(pedons)
 s <- site(pedons)
 d <- diagnostic_hz(pedons)
 
-h <- data.frame(lapply(h, .na_replace), stringsAsFactors = FALSE)
-s <- data.frame(lapply(s, .na_replace), stringsAsFactors = FALSE)
+h <- data.frame(lapply(h, na_replace), stringsAsFactors = FALSE)
+s <- data.frame(lapply(s, na_replace), stringsAsFactors = FALSE)
 
 # modify the horizon table
 idx <- names(h) == "total_frags_pct_cal" | names(h) == "total_frags_pct"
@@ -185,7 +185,7 @@ for (i in unique(idx)){
 ```{r surface rock fragments, echo=FALSE, results='asis'}
 vars <- c("total_srf", "fgravel", "gravel", "cobbles", "stones", "boulders", "channers", "flagstones")
 srf.lo <- melt(srf, measure.vars = vars)
-srf.5n <- ddply(srf.lo, .(variable), .fun = .sum5n)
+srf.5n <- ddply(srf.lo, .(variable), .fun = sum5n)
 
 kable(srf.5n, align = "c", caption =  "Surface rock fragments (min, 25th, median, 75th, max)(n)")
  
@@ -210,7 +210,7 @@ pscs.lo <- data.frame(diag_kind = "particle size control section",
                       )
 # combine diagnostic and particle size control section long tables
 diag.lo <- rbind(diag.lo, pscs.lo)
-diag.5n <- ddply(diag.lo, .(variable, diag_kind), .fun = .sum5n)
+diag.5n <- ddply(diag.lo, .(variable, diag_kind), .fun = sum5n)
 diag.wi <- dcast(diag.5n, diag_kind ~ variable, value.var = 'range')
 
 kable(diag.wi, align = "c", caption = "Depths and thickness of diagnostic horizons and features(min, 25th, median, 75th, max)(n)")
@@ -242,7 +242,7 @@ genhz.lo <- melt(h, id.vars="genhz", measure.vars = c('hzdept', 'hzdepb'))
 genhz.thk <- ddply(h, .(phiid, genhz), summarize, thickness=sum(hzdepb-hzdept))
 genhz.lo2 <- melt(genhz.thk, id.vars = "genhz", measure.vars = 'thickness')
 genhz.lo <- rbind(genhz.lo, genhz.lo2)
-genhz.5n <- ddply(genhz.lo, .(variable, genhz), .fun = .sum5n)
+genhz.5n <- ddply(genhz.lo, .(variable, genhz), .fun = sum5n)
 
 kable(dcast(genhz.5n, genhz ~ variable, value.var = 'range'), align = "c", caption = "Depths and thickness of generic horizons (min, 25th, median, 75th, max)(n)")
 
@@ -257,7 +257,7 @@ bwplot(genhz ~ value | variable, data = genhz.lo,
 
 ```{r genhz numeric variables, echo=FALSE, results='asis', warning=FALSE, fig.height=nh, fig.width=8}
 h.lo <- melt(h, id.vars="genhz", measure.vars = num_vars)
-h.5n <- ddply(h.lo, .(variable, genhz), .fun = .sum5n)
+h.5n <- ddply(h.lo, .(variable, genhz), .fun = sum5n)
 h.wi <- dcast(h.5n, genhz ~ variable, value.var = 'range')
 
 idx <- .pindex(h.wi, 5)
@@ -307,13 +307,13 @@ kable(addmargins(xtabs(~ genhz + effervescence, data = h, drop.unused.levels = T
 vars <- c("elev_field", "slope_field")
 morf <- subset(s, select = vars)
 morf.lo <- melt(morf, measure.vars = vars)
-morf.5n <- ddply(morf.lo, .(variable), .fun = .sum5n)
+morf.5n <- ddply(morf.lo, .(variable), .fun = sum5n)
 
 if (!all(is.na(s$aspect_field))) {
   aspect <- subset(s, select = c("aspect_field"))
   aspect.lo <- melt(aspect, measure.vars = "aspect_field")
   aspect.lo$value <- circular(aspect.lo$value, template="geographic", units="degrees", modulo="2pi")
-  aspect.5n <- ddply(aspect.lo, .(variable), .fun = .sum5n)
+  aspect.5n <- ddply(aspect.lo, .(variable), .fun = sum5n)
   kable(rbind(morf.5n, aspect.5n), caption = "Elevation, slope gradient and aspect (min, 25th, median, 75th, max)(n)", align = "c")
   } else(kable(morf.5n, caption="Elevation and slope gradient (min, 25th, median, 75th, max)(n)", align = "c"))         
 
