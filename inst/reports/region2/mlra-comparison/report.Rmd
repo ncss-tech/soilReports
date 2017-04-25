@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '0.3'
+.report.version <- '0.4'
 
 ## short description
 .report.description <- 'compare MLRA using pre-made, raster sample databases'
@@ -184,7 +184,7 @@ report version `r .report.version`
 `r format(Sys.time(), "%Y-%m-%d")`</div>
 
 <br>
-This report is designed to provide statistical summaries of the environmental properties for one or more MLRA Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html).
+This report is designed to provide statistical summaries of the environmental properties for one or more MLRA Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) as used as robust metrics of distribution central tendency and spread.
 
 
 
