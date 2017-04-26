@@ -1,0 +1,1 @@
+2017-04-26: inital commit of cleanish copy; setup for working within soilReports package
