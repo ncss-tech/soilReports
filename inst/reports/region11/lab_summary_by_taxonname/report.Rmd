@@ -135,7 +135,7 @@ h <- data.frame(lapply(h, na_replace))
 lh_i <- c('peiid', 'labpeiid', 'labsampnum', 'layerseqnum', 'hzdept', 'hzdepb', 'hzdepm', 'layertype', 'hzname', 'hznameoriginal', 'genhz', 'moist_prepstate', 'coverkind_1', 'recwlupdated', 'ncsslayerlabdataiid')
 
 # static soil properties
-lh_s <- c('lab_texcl', 'stratextsflag', 'sandvc', 'sandco', 'sandmed', 'sandfine', 'sandvf', 'sandtot', 'siltco', 'siltfine', 'silttot', 'claycarb', 'clayfine', 'claytot', 'ompctest', 'fiberrubbedpct', 'fiberunrubbedpct', 'fragwt25', 'fragwt520', 'fragwt2075', 'fragwt275', 'wtpct0175', 'wtpctgt2ws')
+lh_s <- c('texcl', 'stratextsflag', 'sandvc', 'sandco', 'sandmed', 'sandfine', 'sandvf', 'sandtot', 'siltco', 'siltfine', 'silttot', 'claycarb', 'clayfine', 'claytot', 'ompctest', 'fiberrubbedpct', 'fiberunrubbedpct', 'fragwt25', 'fragwt520', 'fragwt2075', 'fragwt275', 'wtpct0175', 'wtpctgt2ws')
 
 # dynamic soil properties
 lh_d <- c('organicmatpct', 'carbonorganicpct', 'carbontotalpct', 'ph1to1h2o', 'ph01mcacl2', 'phnaf', 'phoxidized', 'resistivity', 'ec', 'esp', 'sar', 'cecsumcations', 'cec7', 'ecec', 'sumbases', 'basesatsumcations', 'basesatnh4oac', 'caco3equiv', 'caco3lt20', 'gypsumequiv', 'feoxalate', 'feextractable', 'fetotal', 'sioxalate', 'extracid', 'extral', 'aloxalate', 'altotal', 'pmehlich3', 'ph2osoluble', 'poxalate', 'polsen', 'ptotal', 'nzpretention', 'dbthirdbar', 'dbovendry', 'aggstabpct', 'wtenthbarclod', 'wtenthbarsieve', 'wthirdbarclod', 'wthirdbarsieve', 'wfifteenbar', 'wretentiondiffws', 'wfifteenbartoclay', 'awc', 'adod', 'lep', 'cole', 'liquidlimit', 'pi', 'cec7clay')
@@ -350,7 +350,7 @@ bwplot(genhz_nlcd ~ value | variable, data = lh.lo,
 ## Texture
 
 ```{r texture}
-kable(addmargins(table(lh$genhz, lh$lab_texcl)), digits = 0, caption = "Texture by generic horizon")
+kable(addmargins(xtabs(~ genhz + texcl, data = lh, drop.unused.levels = TRUE)), digits = 0, caption = "Texture by generic horizon")
 ```
 
 
