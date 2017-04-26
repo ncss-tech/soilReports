@@ -3,6 +3,15 @@ title: "Interactive Component Report"
 output: flexdashboard::flex_dashboard
 runtime: shiny
 ---
+
+```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+## version number
+.report.version <- 0.1
+
+## short description
+.report.description <- 'Shiny dashboard for customizing NASIS selected set an export of pedon/component summary report'
+```
+
 ```{r, echo=FALSE, message=FALSE, results='hide'}
 #re-vamped component report 
 
@@ -37,7 +46,7 @@ Inputs {.sidebar}
 ```{r, echo=FALSE}  
 inputPanel(
     #selectInput("s.mu", label = "Select target map unit: ",choices = c("",levels(factor(site(pedons)$MUSYM))), selectize=T)
-    textInput("s.mu",label="Enter pattern for matching MUSYM",value="6054") 
+    textInput("s.mu",label="Enter pattern for matching MUSYM",value=".") 
 )
 
 renderUI( {
@@ -125,23 +134,7 @@ renderLeaflet({
     comp <- s.comp
     peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list)
     pedon_locations <- as(peds,'SpatialPointsDataFrame')
-    
-    
-      for(p in 1:nrow(site(peds))) {
-        png(paste0("./graphs/",p,".png"),width = 225, height = 350)
-        par(mar=c(0,1,0,0))
-        plotSPC(peds[p,],width=0.8, cex.names = 1.25,name="hzname",label="taxonname",alt.label = "site_id", alt.label.col = "WHITE",axis.line.offset = -4.5)
-        dev.off()
-      }
-    
-    ## popupImage(paste0(Sys.getenv("temp"),"\\",1:nrow(site(peds)),".png"), width = 125, height = 250)
-    
-    # p <- lapply(1:nrow(site(peds)), function(i) {
-    #   plotSPC(peds[i,],width=0.8, cex.names = 1.25,name="hzname",label="taxonname",alt.label = "site_id", alt.label.col = "WHITE",axis.line.offset = -4.5)
-    #   recordPlot()
-    # })
-
-    mapview(pedon_locations,popup=popupImage(src = "local",paste0("./graphs/",1:nrow(site(peds)),".png")))@map #there is also a renderMapview() function. 
+    mapview(pedon_locations)@map #there is also a renderMapview() function. ##,popup=popupImage(src = "local",paste0("./graphs/",1:nrow(site(peds)),".png"))
                                  #  here we just access the leaflet map slot directly for shiny rendering and use renderLeaflet
 })
 ```
