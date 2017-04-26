@@ -6,18 +6,15 @@ getMapunitPedons <- function(targetmu) {
 
 getPedonsByPattern <- function(compname,upid,pedon_list) {
   peds <- data.frame()
-  
   upidmatch <- grepl(pattern=upid,s.pedons$pedon_id)
-  compmatch <- grepl(pattern=compname,s.pedons$taxonname)
-  
   idx.match=rep(TRUE, length(s.pedons$pedon_id))
-  if(pedon_list != "." & pedon_list != "") { #If there has been a list of pedons specified, use that in lieu of compname/upid pattern
+  if(pedon_list != "." & pedon_list != "") { #If there has been a list of pedons specified, use that in lieu of (toggle AND/OR?) compname/upid pattern
     plist <- strsplit(pedon_list,",",fixed=T) #TODO use regex and handle whitespace before or after comma in list
     if(length(plist[[1]]) >= 1) { #length should always be 1 or more?
-      idx.match = (s.pedons$pedon_id %in% plist[[1]]) #should this allow for regex too? would comma-delimited regex patterns be potentially ambiguous?
+      idx.match = (s.pedons$pedon_id %in% plist[[1]]) #could this allow for regex too? would comma-delimited regex patterns be potentially ambiguous?
     }
   } else {
-    idx.match <- upidmatch & compmatch
+    idx.match <- upidmatch
   }
   peds <- s.pedons[idx.match,]
   peds$musym <- peds$MUSYM #TODO: trace this to see what functions rely on lowercase 'musym'
