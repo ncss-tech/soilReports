@@ -1,0 +1,519 @@
+---
+title: null
+output:
+  html_document:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
+---
+
+```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+## version number
+.report.version <- '0.4'
+
+## short description
+.report.description <- 'compare MLRA using pre-made, raster sample databases'
+```
+
+```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+# setup
+library(knitr, quietly=TRUE)
+
+# package options
+opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
+
+# chunk options
+opts_chunk$set(message=FALSE, warning=FALSE, background='#F7F7F7', fig.align='center', fig.retina=2, dev='png', antialias='cleartype', tidy=FALSE)
+
+# R session options
+options(width=100, stringsAsFactors=FALSE)
+
+
+## custom functions
+
+# remove NA from $value
+# compute density for $value, using 1.5x "default" bandwidth
+# re-scale to {0,1}
+# return x,y values
+scaled.density <- function(d) {
+  res <- stats::density(na.omit(d$value), kernel='gaussian', adjust=1.5)
+  return(data.frame(x=res$x, y=scales::rescale(res$y)))
+}
+
+
+
+# http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
+kdeContours <- function(i, prob, cols, m, ...) {
+  
+  if(nrow(i) < 2) {
+    return(NULL)
+  }
+  
+  this.id <- unique(i$mlra)
+  this.col <- cols[match(this.id, m)]
+  dens <- kde2d(i$x, i$y, n=200); ## estimate the z counts
+
+  dx <- diff(dens$x[1:2])
+  dy <- diff(dens$y[1:2])
+  sz <- sort(dens$z)
+  c1 <- cumsum(sz) * dx * dy
+  levels <- sapply(prob, function(x) {
+    approx(c1, sz, xout = 1 - x)$y
+  })
+  
+  # add contours if possibly
+  if(!is.na(levels))
+    contour(dens, levels=levels, drawlabels=FALSE, add=TRUE, col=this.col, ...)
+
+}
+
+
+# cut down to reasonable size: using cLHS
+f.subset <- function(i, n, non.id.vars) {
+	# if there are more than n records, then sub-sample
+	if(nrow(i) > n) {
+	  # columns with IDs have been pre-filtered
+		idx <- clhs(i[, non.id.vars], size=n, progress=FALSE, simple=TRUE, iter=1000)
+		i.sub <- i[idx, ]
+	}
+	#	otherwise use what we have
+	else
+		i.sub <- i
+	
+	return(i.sub)
+}
+
+
+
+# stat summary function
+f.summary <- function(i, p) {
+  
+  # remove NA
+  v <- na.omit(i$value)
+  
+  # compute quantiles
+  q <- quantile(v, probs=p)
+  res <- data.frame(t(q))
+  
+  ## TODO: implement better MADM processing and explanation  
+  if(nrow(res) > 0) {
+#     # MADM: MAD / median
+#     # take the natural log of absolute values of MADM
+#     res$log_abs_madm <- log(abs(mad(v) / median(v)))
+#     # 0's become -Inf: convert to 0
+#     res$log_abs_madm[which(is.infinite(res$log_abs_madm))] <- 0
+    
+    # assign reasonable names (quantiles)
+    names(res) <- c(paste0('Q', p * 100))
+    
+    return(res)
+  }
+  else
+    return(NULL)
+}
+
+# custom stats for box-whisker plot: 5th-25th-50th-75th-95th percentiles
+# x: vector of values to summarize
+custom.bwplot <- function(x, coef=1.5, do.out=FALSE) {
+  # custom quantiles for bwplot
+  stats <- quantile(x, p=c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE)
+  # number of samples
+  n <- length(na.omit(x))
+  
+  out.low <- x[which(x < stats[1])]
+  out.high <- x[which(x > stats[5])]
+  
+  return(list(stats=stats, out=c(out.low, out.high)))
+}
+
+# load required packages
+library(MASS, quietly=TRUE)
+library(plyr, quietly=TRUE)
+library(reshape2, quietly=TRUE)
+library(latticeExtra, quietly=TRUE)
+library(cluster, quietly=TRUE)
+library(clhs, quietly=TRUE)
+library(randomForest, quietly=TRUE)
+
+## load local configuration
+source('config.R')
+```
+
+
+```{r, echo=FALSE, results='hide'}
+# load raster samples
+load(prism.path)
+load(geomorphons.path)
+load(nlcd.path)
+load(soil.path)
+
+# subset to requested MLRA
+mlra.prism.data <- subset(mlra.prism.data, subset=mlra %in% mu.set)
+mlra.geomorphons.data <- subset(mlra.geomorphons.data, subset=mlra %in% mu.set)
+mlra.nlcd.data <- subset(mlra.nlcd.data, subset=mlra %in% mu.set)
+mlra.soil.data <- subset(mlra.soil.data, subset=mlra %in% mu.set)
+
+# set factor levels to order in config.R
+mlra.prism.data$mlra <- factor(mlra.prism.data$mlra, levels=mu.set)
+mlra.geomorphons.data$mlra <- factor(mlra.geomorphons.data$mlra, levels=mu.set)
+mlra.nlcd.data$mlra <- factor(mlra.nlcd.data$mlra, levels=mu.set)
+mlra.soil.data$mlra <- factor(mlra.soil.data$mlra, levels=mu.set)
+
+# cast some data to long format for plotting
+mlra.prism.data.long <- melt(mlra.prism.data, id.vars = 'mlra')
+mlra.soil.data.long <- melt(mlra.soil.data, id.vars = 'mlra')
+
+# nice colors
+# 7 or fewer classes, use high-constrast colors
+if(length(mu.set) <= 7) {
+  cols <- brewer.pal(9, 'Set1') 
+  # remove light colors
+  cols <- cols[c(1:5,7,9)]
+} else {
+  # otherwise, use 12 paired colors
+  cols <- brewer.pal(12, 'Paired')
+}
+```
+
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;"><span style="font-size: 200%; font-weight: bold;">MLRA: `r paste(mu.set, collapse = ", ")`</span>
+<br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d")`</div>
+
+<br>
+This report is designed to provide statistical summaries of the environmental properties for one or more MLRA Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) are used as robust metrics of distribution central tendency and spread.
+
+
+
+### Modified Box and Whisker Plots
+Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile.
+
+**Suggested usage:**
+
+ * Gauge overlap between map units in terms of boxes (25th-75th percentiles) and whiskers (5th-95th percentiles).
+ * Non-overlapping boxes are a strong indication that the central tendencies (of select raster data) differ.
+ * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
+
+```{r, echo=FALSE, fig.width=8, fig.height=15}
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+
+# NOTE: notches rely on effective sampling size
+bwplot(mlra ~ value | variable, data=mlra.prism.data.long, 
+       scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
+       strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps,
+       layout=c(1, length(unique(mlra.prism.data.long$variable))),
+       panel=function(...) {
+         
+         # make a grid
+         panel.grid(h=0, v=-1, col='grey', lty=3)
+         panel.abline(h=1:length(unique(mlra.prism.data.long$mlra)), col='grey', lty=3)
+         
+         # boxplots
+         panel.bwplot(..., stats=custom.bwplot)
+       })
+
+```
+
+
+```{r, echo=FALSE, fig.width=8, fig.height=10}
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+
+# NOTE: notches rely on effective sampling size
+bwplot(mlra ~ value | variable, data=mlra.soil.data.long, 
+       scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
+       strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps,
+       layout=c(1, length(unique(mlra.soil.data.long$variable))),
+       panel=function(...) {
+         
+         # make a grid
+         panel.grid(h=0, v=-1, col='grey', lty=3)
+         panel.abline(h=1:length(unique(mlra.soil.data.long$mlra)), col='grey', lty=3)
+         
+         # boxplots
+         panel.bwplot(..., stats=custom.bwplot)
+       })
+```
+
+
+### Density Plots
+These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
+
+**Suggested usage:**
+
+ * Density plots depict a more detailed summary of distribution shape.
+ * When making comparisons, be sure to look for:
+   + multiple peaks
+   + narrow peaks vs. wide "mounds"
+   + short vs. long "tails"
+
+```{r, echo=FALSE, fig.width=8, fig.height=15}
+tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
+
+# dynamic setting of columns in legend
+n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
+
+# compute densities and re-scale to {0,1}
+density.plot.data <- ddply(mlra.prism.data.long, c('mlra', 'variable'), scaled.density)
+
+xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.prism.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+
+rm(density.plot.data)
+```
+
+
+```{r, echo=FALSE, fig.width=8, fig.height=9}
+tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
+
+# dynamic setting of columns in legend
+n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
+
+# compute densities and re-scale to {0,1}
+density.plot.data <- ddply(mlra.soil.data.long, c('mlra', 'variable'), scaled.density)
+
+xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.soil.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+
+rm(density.plot.data)
+```
+
+### Tabular Summaries
+Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable. In these tables, headings like "Q5" can be interpreted as the the "5th percentile"; 5% of the data are less than this value. The 50th percentile ("Q50") is the median.
+
+```{r, echo=FALSE, results='asis'}
+# summarize raster data for tabular output
+mu.stats <- ddply(mlra.prism.data.long, c('variable', 'mlra'), f.summary, p=p.quantiles)
+
+# print medians
+dg <- c(0, rep(2, times=length(unique(mu.stats$variable))))
+mu.stats.wide <- dcast(mu.stats, mlra ~ variable, value.var = 'Q50')
+kable(mu.stats.wide, row.names=FALSE, caption = 'Median Values', align = 'r', digits=dg, col.names=c('MLRA', names(mu.stats.wide)[-1]))
+```
+
+```{r, echo=FALSE, results='asis'}
+# iterate over variables and print smaller tables
+# note: https://github.com/yihui/knitr/issues/886
+l_ply(split(mu.stats, mu.stats$variable), function(i) {
+  # remove variable column
+  var.name <- unique(i$variable)
+  i$variable <- NULL
+  dg <- c(0, rep(2, times=length(p.quantiles)), 3)
+  print(kable(i, caption = var.name, row.names=FALSE, align = 'r', digits=dg, col.names=c('MLRA', names(i)[-1])))
+})
+
+```
+
+
+
+### Geomorphon Landform Classification
+Proportion of samples within each map unit that correspond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm. Landform classification by [this method](http://dx.doi.org/10.1016/j.geomorph.2012.11.005) is scale-invariant and is therefore not affected by computational window size selection.
+
+
+**Suggested usage:**
+
+  * Use the graphical summary to identify patterns, then consult the tabular representation for specifics.
+  * "Flat" is based on a 3% slope threshold.
+  * Map units are organized (in the figure) according to the similarity, computed from proportions of each landform position.
+  * The [dendrogram](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html) on the right side of the figure describes relative similarity. "Lower branch height" (e.g. closer to the right-hand side of the figure) denotes more similar landform positions.
+  * Landform class labels and colors are aligned with an idealized *shedding* &rarr; *accumulating* hydrologic gradient.
+
+```{r, echo=FALSE, fig.width=12, fig.height=6}
+# make some colors, and set style
+cols.geomorphons <- c('grey', brewer.pal(9, 'Spectral'))
+tps <- list(superpose.polygon=list(col=cols.geomorphons, lwd=2, lend=2))
+
+# cast to wide format for clustering
+mlra.geomorphons.data.wide <- dcast(mlra.geomorphons.data, mlra ~ geomorphons, value.var = 'Freq')
+
+# clustering of proportions only works with >1 group
+if(length(unique(mlra.geomorphons.data$mlra)) > 1) {
+  # cluster proportions
+  x.d <- as.hclust(diana(daisy(mlra.geomorphons.data.wide[, -1])))
+  # re-order MU labels levels based on clustering
+  mlra.geomorphons.data$mlra <- factor(mlra.geomorphons.data$mlra, levels=mlra.geomorphons.data.wide$mlra[x.d$order])
+  
+  # musym are re-ordered according to clustering
+  trellis.par.set(tps)
+  barchart(mlra ~ Freq, groups=geomorphons, data=mlra.geomorphons.data, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=5, text=levels(mlra.geomorphons.data$geomorphons), rectangles = TRUE, points=FALSE), legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10))))
+} else {
+  trellis.par.set(tps)
+  barchart(mlra ~ Freq, groups=geomorphons, data=mlra.geomorphons.data, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=5, text=levels(mlra.geomorphons.data$geomorphons), rectangles = TRUE, points=FALSE))
+}
+```
+
+```{r, echo=FALSE}
+# print and truncate to 2 decimal places
+kable(mlra.geomorphons.data.wide, digits = 3, caption = '')
+```
+
+
+
+### Landcover Summary
+
+These values are from the [2011 NLCD](https://www.mrlc.gov/nlcd2011.php) (30m) database.
+
+```{r, echo=FALSE, fig.width=12, fig.height=8}
+# These are from the NLCD 2011 metadata
+nlcd.leg <- structure(list(ID = c(0L, 11L, 12L, 21L, 22L, 23L, 24L, 31L, 
+41L, 42L, 43L, 51L, 52L, 71L, 72L, 73L, 74L, 81L, 82L, 90L, 95L
+), name = c("nodata", "Open Water", "Perennial Ice/Snow", "Developed, Open Space", 
+"Developed, Low Intensity", "Developed, Medium Intensity", "Developed, High Intensity", 
+"Barren Land (Rock/Sand/Clay)", "Deciduous Forest", "Evergreen Forest", 
+"Mixed Forest", "Dwarf Scrub", "Shrub/Scrub", "Grassland/Herbaceous", 
+"Sedge/Herbaceous", "Lichens", "Moss", "Pasture/Hay", "Cultivated Crops", 
+"Woody Wetlands", "Emergent Herbaceous Wetlands"), col = c("#000000", 
+"#476BA0", "#D1DDF9", "#DDC9C9", "#D89382", "#ED0000", "#AA0000", 
+"#B2ADA3", "#68AA63", "#1C6330", "#B5C98E", "#A58C30", "#CCBA7C", 
+"#E2E2C1", "#C9C977", "#99C147", "#77AD93", "#DBD83D", "#AA7028", 
+"#BAD8EA", "#70A3BA")), .Names = c("ID", "name", "col"), row.names = c(NA, 
+-21L), class = "data.frame")
+
+# These are from the NLCD 2011 metadata
+# get colors for only those classes in this data
+cols.nlcd.classes <- nlcd.leg$col[match(levels(mlra.nlcd.data$nlcd), nlcd.leg$name)]
+tps <- list(superpose.polygon=list(col=cols.nlcd.classes, lwd=2, lend=2))
+
+# no re-ordering of musym
+trellis.par.set(tps)
+barchart(mlra ~ Freq, groups=nlcd, data=mlra.nlcd.data, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(mlra.nlcd.data$nlcd), rectangles = TRUE, points=FALSE))
+```
+
+```{r, echo=FALSE}
+# print and truncate to 2 decimal places
+mlra.nlcd.data.wide <- dcast(mlra.nlcd.data, mlra ~ nlcd, value.var = 'Freq')
+kable(mlra.nlcd.data.wide, digits = 2, caption = '')
+```
+
+
+### Multivariate Summary
+
+This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 75% (dotted line), 50% (dashed line), and 25% (solid line) of the points in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Data from map units with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
+
+**Suggested usage:**
+
+ * The relative position of points and contours are meaningful; absolute position will vary each time the report is run.
+ * Colors match those used in the density plots above. Be sure to cross-reference this figure with density plots.
+ * Look for "diffuse" vs. "concentrated" clusters: these suggest relatively broadly vs. narrowly defined map unit concepts.
+ * Multiple, disconnected contours (per map unit) could indicate errors or small map unit separated by large distances. Check for multiple peaks in the associated density plots.
+ * Nesting of clusters (e.g. smaller cluster contained by larger cluster) suggests superset/subset relationships.
+ * Overlap is proportional to similarity.
+
+```{r, results='hide', echo=FALSE, fig.width=9, fig.height=9}
+## NOTES:
+# 1. this section will fail if there are NA in the samples: this is usually caused by raster extent not covering MU extent
+
+## TODO: 
+# 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
+
+# join soil data with PRISM data
+mlra.data <- cbind(mlra.prism.data, mlra.soil.data[, -1])
+
+# locate "non-id" vars
+mlra.data.vars <- which(! names(mlra.data) %in% c('mlra'))
+
+## TODO: what is a reasonable sample size?
+# only sub-sample if there are "a lot" of samples
+if(nrow(mlra.data) > 1000) {
+  # sub-sample via LHS: this takes time
+  # first three columns are IDs
+  # n: this is the number of sub-samples / map unit
+  # non.id.vars: this is an index to non-ID columns
+  d.sub <- ddply(mlra.data, 'mlra', f.subset, n=50, non.id.vars=mlra.data.vars)
+} else {
+  d.sub <- mlra.data
+}
+
+# remove NA
+d.sub <- na.omit(d.sub)
+
+## NOTE: data with very low variability will cause warnings
+# eval numerical distance, removing ID columns
+d.dist <- daisy(d.sub[, mlra.data.vars], stand=TRUE)
+
+## map distance matrix to 2D space via principal coordinates
+d.betadisper <- vegan::betadisper(d.dist, group=d.sub$mlra, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
+d.scores <- vegan::scores(d.betadisper)
+
+## TODO: there might be a better way to do this, ask Jay
+# contour density estimates
+# add contours for fixed pct of data density using KDE
+# other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
+s <- data.frame(x=d.scores$sites[, 1], y=d.scores$sites[, 2], mlra=d.sub$mlra)
+s <- split(s, s$mlra)
+
+# plot
+par(mar=c(1,1,3,1))
+plot(d.scores$sites, type='n', axes=FALSE)
+abline(h=0, v=0, lty=2, col='grey')
+
+# NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
+# add contours of prob density
+res <- lapply(s, kdeContours, prob=c(0.75), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=3)
+res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=2)
+res <- lapply(s, kdeContours, prob=c(0.25), cols=cols, m=levels(d.sub$mlra), lwd=2, lty=1)
+
+points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$mlra)], pch=16)
+# note special indexing for cases when low-var MU have been removed
+vegan::ordilabel(d.betadisper, display='centroids', col=cols[match(mu.set, levels(d.sub$mlra))])
+title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
+box()
+```
+
+
+
+### Raster Data Correlation
+The following figure highlights shared information among raster data sources based on [Spearman's Ranked Correlation coefficient](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient). Branch height is associated with the degree of shared information between raster data.
+
+**Suggested usage:**
+
+ * Look for clustered sets of raster data: typically PRISM-derived and elevation data are closely correlated.
+ * Highly correlated raster data sources reduce the reliability of the "raster data importance" figure.
+
+```{r, echo=FALSE, fig.width=10, fig.height=8}
+par(mar=c(2,5,2,2))
+## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
+## This requires 3 or more variables
+if(ncol(d.sub[, mlra.data.vars]) > 3) {
+  try(plot(Hmisc::varclus(as.matrix(d.sub[, mlra.data.vars]))), silent=TRUE)
+} else
+  print('This plot requires three or more raster variables, apart from aspect, curvature class, and geomorphons.')
+```
+
+
+### Raster Data Importance
+The following figure ranks raster data sources in terms of how accurately each can be used to discriminate between map unit concepts. 
+
+**Suggested usage:**
+
+ * Map unit concepts are more consistently predicted (by supervised classification) using those raster data sources with relatively larger "Mean Decrease in Accuracy" values.
+ * Highly correlated raster data sources will "compete" for positions in this figure. For example, if *elevation* and *mean annual air temperature* are highly correlated, then their respective "importance" values are interchangeable.
+
+
+```{r, echo=FALSE, fig.width=8, fig.height=6}
+# this will only work with >= 2 map units
+
+if(length(levels(d.sub$mlra)) >= 2) {
+ # use supervised classification to empirically determine the relative importance of each raster layer
+  # TODO: include geomorphons and curvature classes
+  # TODO: consider using party::cforest() for conditional variable importance-- varimp
+  m <- randomForest(x=d.sub[, mlra.data.vars], y=d.sub$mlra, importance = TRUE)
+  
+  # variable importance
+  # TODO: how to interpret raw output from importance:
+  # http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
+  varImpPlot(m, scale=TRUE, type=1, main='Mean Decrease in Accuracy')
+  # kable(importance(m, scale=FALSE, type=2), digits = 3)
+  
+  ## TODO: join with output SHP via sid 
+} else {
+  # print message about not enough map unit s
+  print('This plot requires two or more map units.')
+}
+
+```
+
+----------------------------
+Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
+

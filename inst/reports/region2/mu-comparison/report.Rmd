@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '2.1-5'
+.report.version <- '2.4'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -31,6 +31,16 @@ options(width=100, stringsAsFactors=FALSE)
 
 
 ## custom functions
+
+# remove NA from $value
+# compute density for $value, using 1.5x "default" bandwidth
+# re-scale to {0,1}
+# return x,y values
+scaled.density <- function(d) {
+  res <- stats::density(na.omit(d$value), kernel='gaussian', adjust=1.5)
+  return(data.frame(x=res$x, y=scales::rescale(res$y)))
+}
+
 
 abbreviateNames <- function(spdf) {
  sapply(names(spdf)[-1], function(i) {
@@ -222,11 +232,15 @@ mu[[mu.col]] <- as.character(mu[[mu.col]])
 
 # if no filter, then keep all map units
 if(exists('mu.set')) {
-  # coerce mu.set to character just in case
+  # coerce mu.set to character just in integers were specified
   mu.set <- as.character(mu.set)
   # filter
   mu <- mu[which(mu[[mu.col]] %in% mu.set), ]
+  # just in case an MU is specified that doesn't exist, 
+  # keep only those records that made it through the filering step
+  mu.set <- unique(mu[[mu.col]])
 } else {
+  # mu.set not defined in config.R, define using the data on hand
   mu.set <- unique(mu[[mu.col]])
 }
 
@@ -326,7 +340,7 @@ report version `r .report.version`
 `r format(Sys.time(), "%Y-%m-%d")`</div>
 
 <br>
-This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
+This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) are used as robust metrics of distribution central tendency and spread. Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
 
 
 
@@ -342,7 +356,7 @@ kable(sampling.res$raster.summary, row.names = FALSE, digits = 3)
 ```
 
 ### Area Summaries
-Consider increasing the sampling density (<b>`r pts.per.acre` points/ac.</b>) in `config.R` if there are unsampled polygons. Note that the actual sampling density will always be slightly lower than the target sampling density defined in `config.R`.
+Target sampling density: <b>`r pts.per.acre` points/ac.</b> defined in `config.R`. Consider increasing if there are unsampled polygons or if the number of samples is less than *about 200*. Note that the mean sampling density (per polygon) will always be slightly lower than the target sampling density, depending on polygon shape.
 ```{r, echo=FALSE}
 kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(sampling.res$area.stats)[-1]))
 ```
@@ -360,7 +374,7 @@ Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki
  * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
 
 ```{r, echo=FALSE, fig.width=8, fig.height=15}
-tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.75), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
 # NOTE: notches rely on effective sampling size
 bwplot(.id ~ value | variable, data=d.continuous, 
@@ -390,7 +404,7 @@ bwplot(.id ~ value | variable, data=d.continuous,
 
 
 ### Density Plots
-These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set.
+These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
 
 **Suggested usage:**
 
@@ -406,7 +420,12 @@ tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 # dynamic setting of columns in legend
 n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 
-densityplot(~ value | variable, groups=.id, data=d.continuous, xlab='', ylab='', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+# compute densities and re-scale to {0,1}
+density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density)
+
+xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+
+rm(density.plot.data)
 ```
 
 ### Tabular Summaries
@@ -437,13 +456,14 @@ l_ply(split(mu.stats, mu.stats$variable), function(i) {
 
 
 ### Slope Aspect
-A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality.
+A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality. Use the figures and table below to determine "clockwise" / "counter clockwise" values for NASIS component records.
 
 **Suggested usage:**
 
  * Check circular density estimates for peaks: this suggests directionality.
  * These summaries are meaningless when slope values are less than approximately 3%.
  * These summaries are (mostly) meaningless when arrow lengths are short; e.g. low directionality.
+ * There is no general relationship between 10th/90th percentiles and "clockwise" vs. "counterclockwise"
 
 ```{r, echo=FALSE, results='hide', eval=do.aspect}
 ## circular stats, by map unit
@@ -668,7 +688,8 @@ x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 3)
 
 # remove 0's
 idx <- which(apply(x, 2, function(i) any(i > 0.001)))
-x <- x[, idx]
+# ensure that result is an object that can be converted to a data.frame: use drop=FALSE
+x <- x[, idx, drop=FALSE]
 
 # convert to long format for plotting
 x.long <- melt(x)
