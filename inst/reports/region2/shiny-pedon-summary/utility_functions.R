@@ -6,7 +6,6 @@ getMapunitPedons <- function(targetmu) {
 
 getPedonsByPattern <- function(compname,upid,pedon_list) {
   peds <- data.frame()
-  
   upidmatch <- grepl(pattern=upid,s.pedons$pedon_id)
   compmatch <- grepl(pattern=compname,s.pedons$taxonname)
   
