@@ -126,7 +126,12 @@ renderLeaflet({
     comp <- s.comp
     peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list)
     pedon_locations <- as(peds,'SpatialPointsDataFrame')
+<<<<<<< HEAD
     mapview(pedon_locations)@map #  here we just access the leaflet map slot directly for shiny rendering and use renderLeaflet
+=======
+    mapview(pedon_locations)@map #there is also a renderMapview() function. ##,popup=popupImage(src = "local",paste0("./graphs/",1:nrow(site(peds)),".png"))
+                                 #  here we just access the leaflet map slot directly for shiny rendering and use renderLeaflet
+>>>>>>> fixed minor issue with subsetting and removed code to add soilprofile plots to mapview (this is a work in progress). added report metadata to shiny.Rmd (placeholder until issues with metadata and setup are resolved).
 })
 ```
 
