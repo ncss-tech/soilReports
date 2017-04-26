@@ -3,10 +3,7 @@ title: "Interactive Component Report"
 output: flexdashboard::flex_dashboard
 runtime: shiny
 ---
-<<<<<<< HEAD
 
-=======
->>>>>>> added stable version of Shiny interactive pedon summary / component report; still does not conform to default soilReportsetup (i.e. needs both shiny.Rmd and report.Rmd); may be worth creating a separate tier for Shiny-interfaces that create static reports?
 ```{r, echo=FALSE, message=FALSE, results='hide'}
 #re-vamped component report 
 
@@ -42,10 +39,14 @@ Inputs {.sidebar}
 inputPanel(
     #selectInput("s.mu", label = "Select target map unit: ",choices = c("",levels(factor(site(pedons)$MUSYM))), selectize=T)
 <<<<<<< HEAD
+<<<<<<< HEAD
     textInput("s.mu",label="Enter pattern for matching MUSYM",value=".") 
 =======
     textInput("s.mu",label="Enter pattern for matching MUSYM",value="6054") 
 >>>>>>> added stable version of Shiny interactive pedon summary / component report; still does not conform to default soilReportsetup (i.e. needs both shiny.Rmd and report.Rmd); may be worth creating a separate tier for Shiny-interfaces that create static reports?
+=======
+    textInput("s.mu",label="Enter pattern for matching MUSYM",value=".") 
+>>>>>>> fixed minor issue with subsetting and removed code to add soilprofile plots to mapview (this is a work in progress). added report metadata to shiny.Rmd (placeholder until issues with metadata and setup are resolved).
 )
 
 renderUI( {
@@ -135,6 +136,7 @@ renderLeaflet({
     pedon_locations <- as(peds,'SpatialPointsDataFrame')
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     mapview(pedon_locations)@map #  here we just access the leaflet map slot directly for shiny rendering and use renderLeaflet
 =======
     mapview(pedon_locations)@map #there is also a renderMapview() function. ##,popup=popupImage(src = "local",paste0("./graphs/",1:nrow(site(peds)),".png"))
@@ -158,6 +160,9 @@ renderLeaflet({
     # })
 
     mapview(pedon_locations,popup=popupImage(src = "local",paste0("./graphs/",1:nrow(site(peds)),".png")))@map #there is also a renderMapview() function. 
+=======
+    mapview(pedon_locations)@map #there is also a renderMapview() function. ##,popup=popupImage(src = "local",paste0("./graphs/",1:nrow(site(peds)),".png"))
+>>>>>>> fixed minor issue with subsetting and removed code to add soilprofile plots to mapview (this is a work in progress). added report metadata to shiny.Rmd (placeholder until issues with metadata and setup are resolved).
                                  #  here we just access the leaflet map slot directly for shiny rendering and use renderLeaflet
 >>>>>>> added stable version of Shiny interactive pedon summary / component report; still does not conform to default soilReportsetup (i.e. needs both shiny.Rmd and report.Rmd); may be worth creating a separate tier for Shiny-interfaces that create static reports?
 })
