@@ -10,7 +10,7 @@ output:
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '2.4-1'
+.report.version <- '2.5'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
@@ -300,8 +300,6 @@ d.continuous$variable <- factor(d.continuous$variable, levels=names(raster.list$
 # free-up some memory
 sampling.res$raster.samples <- NULL
 
-
-
 ## TODO: eventually there should be a function / template for any categorical data
 
 # subset and enable aspect summary
@@ -329,6 +327,16 @@ if(length(nlcd.classes) > 0) {
   do.nlcd.classes <- TRUE
   d.nlcd.classes <- subset(d.cat, subset=variable == nlcd.classes)
 } else do.nlcd.classes <- FALSE
+
+## figure out reasonable figure heights for bwplots and density plots
+# baseline height for figure margins, axes, and legend
+min.height <- 2 
+# height required for each panel
+panel.height <- 2 * length(levels(d.continuous$variable))
+# extra height for each ID
+id.height <- 0.25 * length(levels(d.continuous$.id))
+
+dynamic.fig.height <- min.height + panel.height + id.height
 
 ```
 
@@ -373,14 +381,14 @@ Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki
  * Non-overlapping boxes are a strong indication that the central tendencies (of select raster data) differ.
  * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
 
-```{r, echo=FALSE, fig.width=8, fig.height=15}
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.75), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
 # NOTE: notches rely on effective sampling size
 bwplot(.id ~ value | variable, data=d.continuous, 
        scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
        strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, subscripts=TRUE, 
-       layout=c(1, length(unique(d.continuous$variable))),
+       layout=c(1, length(levels(d.continuous$variable))),
        panel=function(x, subscripts=subscripts, ...) {
          
          # extract the current raster name
@@ -414,7 +422,7 @@ These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.
    + narrow peaks vs. wide "mounds"
    + short vs. long "tails"
 
-```{r, echo=FALSE, fig.width=8, fig.height=15}
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 
 # dynamic setting of columns in legend
@@ -423,7 +431,7 @@ n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 # compute densities and re-scale to {0,1}
 density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density)
 
-xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(levels(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
 
 rm(density.plot.data)
 ```
@@ -739,81 +747,85 @@ d.mu.wide <- na.omit(d.mu.wide)
 # locate "non-id" vars
 d.mu.wide.vars <- which(! names(d.mu.wide) %in% c('.id', 'sid', 'pID'))
 
-# check SD of each column, by group
-sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, d.mu.wide.vars], sd, na.rm=TRUE)})
-sd.by.id$res <- apply(sd.by.id[, -1], 1, function(i) any(i < 1e-5))
-
-
-# if the SD is low in any column from all MU then stop
-if(all(sd.by.id$res)) {
+# must have > 1 variables to perform multivariate summary
+if(length(d.mu.wide.vars) < 2) {
   multivariate.summary <- FALSE
 } else {
-  # OK to run MV summaries
-  multivariate.summary <- TRUE
+  # check SD of each column, by group
+  sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, d.mu.wide.vars, drop=FALSE], sd, na.rm=TRUE)})
+  sd.by.id$res <- apply(sd.by.id[, -1], 1, function(i) any(i < 1e-5))
   
-  # filter out low-variance MU
-  if(any(sd.by.id$res)) {
-    ids.to.keep <- sd.by.id$.id[which(!sd.by.id$res)]
-    d.mu.wide <- d.mu.wide[which(d.mu.wide$.id %in% ids.to.keep), ]
-    
-    # reset mu.set accordingly
-    idx.to.keep <- which(! mu.set %in% setdiff(mu.set, ids.to.keep))
-    mu.set <- mu.set[idx.to.keep]
-  }
-  
-  ## TODO: what is a reasonable sample size?
-  # only sub-sample if there are "a lot" of samples
-  if(nrow(d.mu.wide) > 1000) {
-    # sub-sample via LHS: this takes time
-    # first three columns are IDs
-    # n: this is the number of sub-samples / map unit
-    # non.id.vars: this is an index to non-ID columns
-    d.sub <- ddply(d.mu.wide, '.id', f.subset, n=50, non.id.vars=d.mu.wide.vars)
+  # if the SD is low in any column from all MU then stop  
+  if(all(sd.by.id$res)) {  
+    multivariate.summary <- FALSE
   } else {
-    d.sub <- d.mu.wide
+    # OK to run MV summaries
+    multivariate.summary <- TRUE
+    
+    # filter out low-variance MU
+    if(any(sd.by.id$res)) {
+      ids.to.keep <- sd.by.id$.id[which(!sd.by.id$res)]
+      d.mu.wide <- d.mu.wide[which(d.mu.wide$.id %in% ids.to.keep), ]
+      
+      # reset mu.set accordingly
+      idx.to.keep <- which(! mu.set %in% setdiff(mu.set, ids.to.keep))
+      mu.set <- mu.set[idx.to.keep]
+    }
+    
+    ## TODO: what is a reasonable sample size?
+    # only sub-sample if there are "a lot" of samples
+    if(nrow(d.mu.wide) > 1000) {
+      # sub-sample via LHS: this takes time
+      # first three columns are IDs
+      # n: this is the number of sub-samples / map unit
+      # non.id.vars: this is an index to non-ID columns
+      d.sub <- ddply(d.mu.wide, '.id', f.subset, n=50, non.id.vars=d.mu.wide.vars)
+    } else {
+      d.sub <- d.mu.wide
+    }
+    
+    ## NOTE: data with very low variability will cause warnings
+    # eval numerical distance, removing 'sid' and '.id' columns
+    d.dist <- daisy(d.sub[, d.mu.wide.vars], stand=TRUE)
+    
+    ## map distance matrix to 2D space via principal coordinates
+    d.betadisper <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
+    d.scores <- vegan::scores(d.betadisper)
+    
+    ## TODO: there might be a better way to do this, ask Jay
+    # contour density estimates
+    # add contours for fixed pct of data density using KDE
+    # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
+    s <- data.frame(x=d.scores$sites[, 1], y=d.scores$sites[, 2], .id=d.sub$.id)
+    s <- split(s, s$.id)
+    
+    
+    # default plot is OK, but density-based contours are more useful
+    # vegan:::plot.betadisper(d.betadisper, ellipse = TRUE, hull = FALSE, col=cols[1:length(mu.set)], conf=0.5, segments=FALSE, xlab='', ylab='', main='', sub='', las=1)
+    
+    # plot
+    par(mar=c(1,1,3,1))
+    plot(d.scores$sites, type='n', axes=FALSE)
+    abline(h=0, v=0, lty=2, col='grey')
+    
+    # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
+    # add contours of prob density
+    res <- lapply(s, kdeContours, prob=c(0.75), cols=cols, m=levels(d.sub$.id), lwd=1, lty=3)
+    res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$.id), lwd=1, lty=2)
+    res <- lapply(s, kdeContours, prob=c(0.25), cols=cols, m=levels(d.sub$.id), lwd=2, lty=1)
+    
+    points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$.id)], pch=16)
+    # note special indexing for cases when low-var MU have been removed
+    vegan::ordilabel(d.betadisper, display='centroids', col=cols[match(mu.set, levels(d.sub$.id))])
+    title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
+    box()
   }
-  
-  ## NOTE: data with very low variability will cause warnings
-  # eval numerical distance, removing 'sid' and '.id' columns
-  d.dist <- daisy(d.sub[, d.mu.wide.vars], stand=TRUE)
-  
-  ## map distance matrix to 2D space via principal coordinates
-  d.betadisper <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
-  d.scores <- vegan::scores(d.betadisper)
-  
-  ## TODO: there might be a better way to do this, ask Jay
-  # contour density estimates
-  # add contours for fixed pct of data density using KDE
-  # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
-  s <- data.frame(x=d.scores$sites[, 1], y=d.scores$sites[, 2], .id=d.sub$.id)
-  s <- split(s, s$.id)
-  
-  
-  # default plot is OK, but density-based contours are more useful
-  # vegan:::plot.betadisper(d.betadisper, ellipse = TRUE, hull = FALSE, col=cols[1:length(mu.set)], conf=0.5, segments=FALSE, xlab='', ylab='', main='', sub='', las=1)
-  
-  # plot
-  par(mar=c(1,1,3,1))
-  plot(d.scores$sites, type='n', axes=FALSE)
-  abline(h=0, v=0, lty=2, col='grey')
-  
-  # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
-  # add contours of prob density
-  res <- lapply(s, kdeContours, prob=c(0.75), cols=cols, m=levels(d.sub$.id), lwd=1, lty=3)
-  res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$.id), lwd=1, lty=2)
-  res <- lapply(s, kdeContours, prob=c(0.25), cols=cols, m=levels(d.sub$.id), lwd=2, lty=1)
-  
-  points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$.id)], pch=16)
-  # note special indexing for cases when low-var MU have been removed
-  vegan::ordilabel(d.betadisper, display='centroids', col=cols[match(mu.set, levels(d.sub$.id))])
-  title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
-  box()
 }
 ```
 
 ```{r, echo=FALSE}
 if(multivariate.summary == FALSE)
-  print('Cannot create ordination plot: not enough variance within each map unit.')
+  print('Cannot create ordination plot: >1 rasters required or not enough variance within each map unit.')
 ```
 
 
@@ -829,7 +841,7 @@ The following figure highlights shared information among raster data sources bas
 par(mar=c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
 ## This requires 3 or more variables
-if(ncol(d.sub[, d.mu.wide.vars]) > 3) {
+if(length(d.mu.wide.vars) > 3) {
   try(plot(Hmisc::varclus(as.matrix(d.sub[, d.mu.wide.vars]))), silent=TRUE)
 } else
   print('This plot requires three or more raster variables, apart from aspect, curvature class, and geomorphons.')
@@ -846,7 +858,7 @@ The following figure ranks raster data sources in terms of how accurately each c
 
 
 ```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
-# this will only work with >= 2 map units
+# this will only work with >= 2 map units and >= 2 variables
 
 # reset factor levels so that empty classes are not passed on to randomForest() (will cause error if empty/low-variance MUs are present)
 d.sub$.id <- factor(d.sub$.id)
