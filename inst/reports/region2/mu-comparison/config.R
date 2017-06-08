@@ -45,8 +45,12 @@ raster.list <- list(
 ###################
 
 ##
-## Data are in a geodatabase with many map units, explicit subsetting
-## Note: consider sub-setting to SHP if the geodatabase contains more than 2-3 soil survey areas
+## Data must be in a projected coordinate system, with units of meters!
+##
+
+##
+## Geodatabase with many map units, explicit subsetting
+## consider sub-setting to SHP if the geodatabase contains more than 2-3 soil survey areas
 ##
 
 # geodatabase path
