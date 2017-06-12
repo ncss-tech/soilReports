@@ -3,7 +3,7 @@ title: Summary of NASIS NCSS Pedon Lab Data Table
 date: "`r Sys.Date()`"
 output:
   html_document:
-    keep_md: yes
+    keep_md: no
     number_sections: yes
     toc: yes
     toc_float:

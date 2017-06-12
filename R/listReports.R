@@ -42,7 +42,7 @@ listReports <- function() {
   report.metadata <- do.call('rbind', report.metadata)
   
   # combine and return
-  res <- data.frame(name=report.set, report.metadata, stringsAsFactors = FALSE)
+  res <- data.frame(name=report.set, report.metadata, file.path = full.paths, stringsAsFactors = FALSE)
   
   return(res)
 }

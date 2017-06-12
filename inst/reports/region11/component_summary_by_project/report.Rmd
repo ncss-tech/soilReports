@@ -1,0 +1,173 @@
+---
+title: "Component Report"
+author: "`r Sys.getenv('USERNAME')`"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+---
+
+
+```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+## version number
+.report.version <- 0.1
+
+## short description
+.report.description <- 'summarize component data for an MLRA project'
+```
+
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE)
+
+options(stringsAsFactors = FALSE)
+```
+
+
+```{r}
+library(soilDB)
+library(ggplot2)
+library(knitr)
+
+pm <- get_projectmapunit_from_NASIS()
+```
+
+
+# Project Data
+
+```{r}
+
+# project mapunits
+
+kable(pm[1, 1:3])
+
+kable(pm[4:ncol(pm)])
+
+```
+
+
+# Component Data
+
+```{r component data, fig.width=8.5, fig.height=6}
+
+# load component data
+comp <- fetchNASIS_component_data(fill = TRUE)
+comp$dep <- comp$hzdept_r
+comp$dmudesc_short <- abbreviate(comp$dmudesc, 20)
+comp$comp_id <- with(site(comp), paste(dmuiid, "\n", compname, comppct_r, "%"))
+
+s <- site(comp)
+h <- horizons(comp)
+
+# component
+
+kable(with(s, data.frame(
+  dmudesc_short, compname, comppct_r, majcompflag, localphase, drainagecl, 
+  slope_l, slope_r, slope_h,
+  taxpartsize, taxsubgrp))
+  )
+
+# parent material and landform
+kable(with(s, data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, landform.string)))
+```
+
+
+## Component Soil Moisture Month
+
+```{r soil moisture, fig.width=8.5, fig.height=6}
+# component soil moisture month
+
+cosm <- get_cosoilmoist_from_NASIS()
+
+cosm <- subset(cosm, !is.na(dept_r))
+
+ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status)) +
+  geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
+                ymin = 0, ymax = max(cosm$depb_r),
+                fill = flodfreqcl)) +
+  geom_line(cex = 1) +
+  geom_point() +
+  geom_ribbon(aes(ymin = dept_l, ymax = dept_h), alpha = 0.2) +
+  ylim(max(cosm$depb_r), 0) +
+  xlab("month") + ylab("depth (cm)") +
+  scale_x_continuous(breaks = 1:12, labels = month.abb, name="Month") +
+  facet_wrap(~ paste(dmuiid, "\n", compname, "\n", comppct_r, "%")) +
+  ggtitle("Water Table Levels from Component Soil Moisture Month Data")
+```
+
+
+# Horizon Data
+
+```{r horizon data}
+# profile plot
+plot(comp, label = "comp_id", id.style = "top")
+
+# temp <- merge(s[c("coiid", "dmudesc")], h, by = "coiid", all.y = TRUE)
+# temp <- temp[with(temp, order(dmudesc, -comppct_r, compname)), ]
+
+vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h2o", "caco3")
+```
+
+## Horizon Depth Plots
+
+```{r, depth plots, fig.width=8.5, fig.height=6}
+# convert the data for depth plot
+vars_slice = horizons(slice(comp, seq(0, 200, 2) ~ hzname + dep + 
+                              claytotal_l + claytotal_r + claytotal_h +
+                              fragvoltot_l + fragvoltot_r + fragvoltot_h +
+                              om_l + om_r + om_h +
+                              dbthirdbar_l + dbthirdbar_r + dbthirdbar_h + 
+                              ksat_l + ksat_r + ksat_h +
+                              awc_l + awc_r + awc_h + 
+                              ph1to1h2o_l + ph1to1h2o_r + ph1to1h2o_h +
+                              caco3_l + caco3_r + caco3_h
+                            ))
+
+h <- merge(vars_slice, site(comp)[c("comp_id", "coiid")], by = "coiid", all.x = TRUE)
+
+# depth plot of clay content by soil component
+gg_comp <- function(x, var) {
+  ggplot(x) +
+  geom_line(aes(y = r, x = hzdept_r)) +
+  geom_ribbon(aes(ymin = l, ymax = h, x = hzdept_r), alpha = 0.2) +
+  xlim(200, 0) +
+  xlab("depth (cm)") +
+  facet_wrap(~ comp_id) + 
+  coord_flip() +
+  ggtitle(var)
+  }
+
+gg_list <- lapply(vars, function(x) {
+  h_sub = h[c("comp_id", "coiid", "hzname", "dep", "hzdept_r", "hzdepb_r", 
+                 paste0(x, c("_l", "_r", "_h")))]
+  names(h_sub) = gsub(paste0(x, "_"), "", names(h_sub))
+  h_sub$var = x
+  gg_temp = gg_comp(h_sub, x)
+  
+  if (x == "ksat") {
+    brks = c(0, 0.01, 0.1, 1, 10, 100, 1000)
+    gg_temp = gg_temp + scale_y_log10(breaks = brks) + ylab("micrometers / second")
+    }
+  if (x %in% c("claytotal", "fragvoltot", "om", "caco3")) gg_temp = gg_temp + ylab("%")
+  if (x == "dbthirdbar") gg_temp = gg_temp + ylab("grams / cubic centimeter")
+  if (x == "awc") gg_temp = gg_temp + ylab("centimeters / centimeter")
+  
+  return(gg_temp)
+  })
+names(gg_list) <- vars
+
+plot(gg_list$claytotal)
+plot(gg_list$fragvoltot)
+plot(gg_list$om)
+plot(gg_list$dbthirdbar)
+plot(gg_list$ksat)
+plot(gg_list$awc)
+plot(gg_list$ph1to1h2o)
+plot(gg_list$caco3)
+
+```
+

@@ -89,6 +89,33 @@ download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/
 destfile='MLRA-comparison/mlra-soil-data.rda')
 ```
 
+### Component Summary by Project
+
+This report summarizes the components within an MLRA project. Several figures are generated to compare several data mapunits.
+
+Be sure to load your selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.
+
+```
+# load the soilReports package
+library(soilReports)
+
+# create a workspace folder
+dir.create(path="C:/workspace2")
+
+# run the report manually
+## copy to your workspace2 folder
+
+reportInit(reportName = "region11/component_summary_by_project", outputDir = "C:/workspace2/component_summary")
+
+## open the "report.Rmd" file from "C:/workspace2/component_summary" in RStudio, and hit the "Knit HTML" button
+
+
+## run the report via commandline
+reports = listReports()
+idx = grepl("component_summary_by_project", reports$file.path)
+render(input = reports$file.path[idx], output_dir = "C:/workspace2", output_file = "C:/workspace2/comp_summary.html", envir = new.env())
+```
+
 ## Troubleshooting
  1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
  2. Make sure that the map unit polygon data source is an [OGR-compatible format](http://www.gdal.org/ogr_formats.html): ESRI SHP, ESRI FGDB, etc.
