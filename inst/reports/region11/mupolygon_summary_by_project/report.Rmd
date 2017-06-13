@@ -9,6 +9,10 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
+params:
+   geodatabase: !r as.character("RTSD_R11-IND_FY16.gdb")
+   project_data_file_path: !r as.character("M:/geodata/project_data/")
+   ssoffice: !r as.character("11IND")
 ---
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
@@ -64,9 +68,19 @@ gdalUtils::gdal_setInstallation(search_path="C:/Program Files/QGIS Essen/bin", r
 
 
 ```{r map unit summary function}
+geodatabase <- params$geodatabase
+dir <- params$project_data_file_path
+ssoffice <- params$ssoffice
+
+# sample percent (%)
+samplePercent <- 15
+ 
+# percentiles
+p <- c(0, 0.25, 0.5, 0.75, 1)
+
 project <- get_projectmapunit_from_NASIS()
   
-office_folder <- paste0(dir, office, "/")
+office_folder <- paste0(dir, ssoffice, "/")
 region_folder <- paste0(dir, "11REGION/")
 cache <- paste0(office_folder, "cache/", unique(project$uprojectid), "_", samplePercent, ".Rdata")
 mupolygon_cache <- gsub(".gdb", "", paste0(office_folder, geodatabase, "_cache.RData"))

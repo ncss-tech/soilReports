@@ -21,7 +21,7 @@ Reports are a handy way to summarize large volumes of data, particularly with fi
   
   - [summary of select CA630 map units](http://ncss-tech.github.io/example-reports/mu-comparison/CA630-mu-comparison.html)
   - [summary of select MLRA polygons](http://ncss-tech.github.io/example-reports/mu-comparison/MLRA-comparison-report.html)
-  - [summary of mupolygon layer](http://ncss-tech.github.io/example-reports/mupolgon_report.html)
+  - [summary of mupolygon layer](http://ncss-tech.github.io/example-reports/mupolygon_report.html)
   - [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   - [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   - [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
@@ -110,9 +110,9 @@ destfile='MLRA-comparison/mlra-soil-data.rda')
 
 ### Component Summary by Project
 
-This report summarizes the components within an MLRA project. Several figures are generated to compare several data mapunits.
+This report summarizes the components within an MLRA project. Several figures are generated to compare the component aomong several data mapunits.
 
-Be sure to load your selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.
+Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.
 
 ```r
 # load the soilReports package
@@ -131,6 +131,38 @@ reportInit(reportName = "region11/component_summary_by_project", outputDir = "C:
 reports = listReports()
 reports = subset(reports, name == "region11/component_summary_by_project")
 render(input = reports$file.path, output_dir = "C:/workspace2", output_file = "C:/workspace2/comp_summary.html", envir = new.env())
+```
+
+### MUPOLYGON Summary by Project
+
+This report summarizes the zonal statistics for the MUPOLYGON layer from a file geodatabase. The spatial variables summarized include: elevation, slope, aspect, relief, preciptation, temperature, frost free period, and landcover. The report assumes the spatial data follows the proper folder hierachy and naming conventions (e.g. C:/geodata/project_data/11IND).
+
+Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.
+
+```r
+# load the soilReports package
+library(soilReports)
+library(rmarkdown)
+
+# run the report manually
+## copy to your workspace2 folder
+
+reportInit(reportName = "region11/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
+
+## Open the "report.Rmd" file from "C:/workspace2/mupolygon_summary" in RStudio, and hit the "Knit HTML" drop down arrow and select "Knit with Paramters..." menu item. Modify the parameters accordingly. 
+
+
+## run the report via commandline
+reports = listReports()
+reports = subset(reports, name == "region11/mupolygon_summary_by_project")
+render(input = reports$file.path, 
+       output_dir = "C:/workspace2", 
+       output_file = "C:/workspace2/mupolygon_summary.html", 
+       envir = new.env(), 
+       params = list(geodatabase = "RTSD_R11-IND_FY16.gdb",
+                     project_data_file_path = "M:/geodata/project_data/",
+                     ssoffice = "11IND"
+                     ))
 ```
 
 

@@ -1,21 +1,3 @@
-# Adjustable parameters
-# geodatabase
-geodatabase <- "RTSD_R11-IND_FY16.gdb"
-
-# geodata project data directory
-dir <- "M:/geodata/project_data/"
-
-# MLRA office code (e.g. 11IND)
-office <- "11IND"
-
-# sample percent (%)
-samplePercent <- 15
-
-# percentiles
-p <- c(0, 0.25, 0.5, 0.75, 1)
-
-
-
 # Custom code, don't modify!!!
 
 pindex <- function(x, interval){
