@@ -22,7 +22,7 @@ output:
 
 
 ```{r setup, echo = FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, fig.width = 8.5, fig.height = 6)
 
 options(stringsAsFactors = FALSE)
 ```
@@ -58,7 +58,7 @@ kable(pm[4:ncol(pm)])
 comp <- fetchNASIS_component_data(fill = TRUE)
 comp$dep <- comp$hzdept_r
 comp$dmudesc_short <- abbreviate(comp$dmudesc, 20)
-comp$comp_id <- with(site(comp), paste(dmuiid, "\n", compname, comppct_r, "%"))
+comp$comp_id <- with(site(comp), paste(dmuiid, "\n", compname, "\n", comppct_r, "%"))
 
 s <- site(comp)
 h <- horizons(comp)
@@ -78,12 +78,12 @@ kable(with(s, data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, land
 
 ## Component Soil Moisture Month
 
-```{r soil moisture, fig.width=8.5, fig.height=6}
+```{r soil moisture}
 # component soil moisture month
 
 cosm <- get_cosoilmoist_from_NASIS()
 
-cosm <- subset(cosm, !is.na(dept_r))
+cosm <- subset(cosm, !is.na(dept_r) & status == "wet")
 
 ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status)) +
   geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
@@ -114,7 +114,7 @@ vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h
 
 ## Horizon Depth Plots
 
-```{r, depth plots, fig.width=8.5, fig.height=6}
+```{r, depth plots}
 # convert the data for depth plot
 vars_slice = horizons(slice(comp, seq(0, 200, 2) ~ hzname + dep + 
                               claytotal_l + claytotal_r + claytotal_h +

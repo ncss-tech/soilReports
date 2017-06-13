@@ -1,16 +1,34 @@
 
 # soilReports
 
-soilReports is an R package container and includes convenience functions for soil data summary, comparison, and evaluation reports used mainly by NRCS staff.
+Reports are a handy way to summarize large volumes of data, particularly with figures and tables. soilReports is an R package container and was developed to replicate NASIS's report repository. Currently soilReports contains a small collection of reports intended to assist with soil survey activities such as:
 
-Example output:
+- populating soil components and developing official Series descriptions (OSD)
+- performing quality control and assurance
+- analyzing map unit polygons
+
+
+**Requirements:**
+
+- [The user is familiar with Rstudio](http://ncss-tech.github.io/stats_for_soil_survey/chapters/1_introduction/1_introduction.html)
+- NASIS selected set is loaded with the necessary tables (e.g. "Project - legend/mapunit/dmu by sso, pname & uprojectid")
+-	[ODBC connection to NASIS is setup](http://ncss-tech.github.io/AQP/soilDB/setup_local_nasis.html)
+- [custom .Rprofile exists](https://github.com/ncss-tech/soilReports#pre-installation-nrcs-only-this-is-only-required-once)
+- [necessary R packages are installed](http://ncss-tech.github.io/stats_for_soil_survey/chapters/0_pre-class-assignment/pre-class-assignment.html)
+
+
+**Example output:**
   
-  * [summary of select CA630 map units](http://ncss-tech.github.io/example-reports/mu-comparison/CA630-mu-comparison.html)
-  * [summary of select MLRA polygons](http://ncss-tech.github.io/example-reports/mu-comparison/MLRA-comparison-report.html)
+  - [summary of select CA630 map units](http://ncss-tech.github.io/example-reports/mu-comparison/CA630-mu-comparison.html)
+  - [summary of select MLRA polygons](http://ncss-tech.github.io/example-reports/mu-comparison/MLRA-comparison-report.html)
+  - [summary of mupolygon layer](http://ncss-tech.github.io/example-reports/mupolgon_report.html)
+  - [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
+  - [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
+  - [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
 
 ## Pre-Installation (NRCS only). This is only required once.
 
-On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/First.Last/Documents/R/` for installing R packages. Again, you only have to do this **once**.
+On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/FirstName.LastName/Documents/R/` for installing R packages. Again, you only have to do this **once**.
 
 ```r
 # run this in the R console
@@ -19,14 +37,16 @@ installRprofile()
 ```
 
 The following code can be used to "see" where the `$HOME` directory is. The result should look like "C:/Users/First.Last/Documents"
+
 ```r
 # run this in the R console
 path.expand('~')
 ```
 
-## Installation of the soilReports package.  Only required for first-time use of soilReports and when a new version of soilReports is released.
+## Installation of the soilReports package. Only required for first-time use of soilReports and when a new version of soilReports is released.
 
 The current version of `soilReports` is installed with the following code:
+
 ```r
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)
@@ -35,8 +55,7 @@ install.packages('devtools', dep=TRUE)
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 ```
 
-## Loading the soilReports library and downloading the required files.  Only required for first-time use, when a new version of soilReports is released, or when you need an original version of the config.R and report.Rmd files. 
-
+## Loading the soilReports library and downloading the required files. This is only required for first-time use.
 The `soilReports` package contains reports and associated configuration files. The following steps perform all required setup for the **region2/mu-comparison** report, then copies the configuration (config.R) and report (report.Rmd) files to a folder that it creates named 'MU-comparison' in the working directory. Edit the `config.R` file (or replace it with an existing config.R in the working directory) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button. The package will put a 'report.html' file in the MU-comparison folder and will create a folder named 'output' for report-generated shapefiles.
 
 ```r
@@ -49,7 +68,7 @@ listReports()
 # install required packages for a named report
 reportSetup(reportName='region2/mu-comparison')
 
-# copy default configuration file and report to 'MU-comparison' in current working directory
+# copy report file 'MU-comparison' to your current working directory
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
@@ -95,12 +114,10 @@ This report summarizes the components within an MLRA project. Several figures ar
 
 Be sure to load your selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.
 
-```
+```r
 # load the soilReports package
 library(soilReports)
-
-# create a workspace folder
-dir.create(path="C:/workspace2")
+library(rmarkdown)
 
 # run the report manually
 ## copy to your workspace2 folder
@@ -112,9 +129,10 @@ reportInit(reportName = "region11/component_summary_by_project", outputDir = "C:
 
 ## run the report via commandline
 reports = listReports()
-idx = grepl("component_summary_by_project", reports$file.path)
-render(input = reports$file.path[idx], output_dir = "C:/workspace2", output_file = "C:/workspace2/comp_summary.html", envir = new.env())
+reports = subset(reports, name == "region11/component_summary_by_project")
+render(input = reports$file.path, output_dir = "C:/workspace2", output_file = "C:/workspace2/comp_summary.html", envir = new.env())
 ```
+
 
 ## Troubleshooting
  1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)

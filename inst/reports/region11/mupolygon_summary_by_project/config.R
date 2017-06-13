@@ -1,12 +1,12 @@
 # Adjustable parameters
 # geodatabase
-geodatabase <- "RTSD_R11-JUE_FY16.gdb"
+geodatabase <- "RTSD_R11-IND_FY16.gdb"
 
 # geodata project data directory
 dir <- "M:/geodata/project_data/"
 
 # MLRA office code (e.g. 11IND)
-office <- "11JUE"
+office <- "11IND"
 
 # sample percent (%)
 samplePercent <- 15
@@ -42,8 +42,8 @@ ogr_extract <- function(pd, geodatabase, cache, project){
   ogr2ogr(
     src_datasource_name = paste0(pd, geodatabase),
     dst_datasource_name = cache,
-    layer = "Project_Record",
-    where = paste0("PROJECT_NAME IN (", noquote(paste("'", project, "'", collapse=",", sep="")),")"),
+    layer = "MUPOLYGON",
+    where = paste0("MUKEY IN (", noquote(paste("'", project, "'", collapse=",", sep="")),")"),
     s_srs = CRS("+init=epsg:5070"),
     t_srs = CRS("+init=epsg:5070"),
     overwrite = T,

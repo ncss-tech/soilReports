@@ -20,7 +20,7 @@ output:
 ```
 
 
-**Report Description**
+# Report Description
 
 This report summarizes the geographic setting of a list of musym within a shapefile. It is intented to be used to compare and contrast map units, and suggest possible Low, RV, and High values for soil components. 
 
@@ -48,6 +48,7 @@ library(rgdal)
 library(sp)
 library(sf)
 library(raster)
+library(gdalUtils)
 
 library(soilDB)
 
@@ -57,6 +58,8 @@ tpg <- trellis.par.get()
 tpg$axis.line <-  list(alpha = 1, col = "#000000", lty = rep(1, 7), lwd = rep(0.2, 7))
 tpg$strip.border <- list(alpha = 1, col = "#000000", lty = rep(1, 7), lwd = rep(0.2, 7))
 trellis.par.set(tpg)
+
+gdalUtils::gdal_setInstallation(search_path="C:/Program Files/QGIS Essen/bin", rescan = TRUE)
 ```
 
 
@@ -73,7 +76,26 @@ mupolygon_cache <- gsub(".gdb", "", paste0(office_folder, geodatabase, "_cache.R
 ## local functions
 if (!file.exists(cache)){
   
-  if (!file.exists(mupolygon_cache)) {
+  if (sum(file.size(list.files(paste0(office_folder, geodatabase), full.names = TRUE))) / 1e+9 > 1.5 &
+      file.exists("C:/Program Files/QGIS Essen/bin") &
+      !file.exists(paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))
+      ) {
+    ogr_extract(office_folder, geodatabase, paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".shp"), project$mukey)
+
+    mupolygon <- read_sf(dsn = paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".shp"), layer = unique(project$uprojectid)[1])
+    st_crs(mupolygon) <- "+init=epsg:5070"
+
+    sapolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "SAPOLYGON")
+    st_crs(sapolygon) <- "+init=epsg:5070"
+
+    save(mupolygon, sapolygon, file = paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))
+    }
+  
+  if (file.exists(paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))) {
+    load(file = paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))
+    }
+  
+  if (!file.exists(mupolygon_cache) & file.size(paste0(office_folder, geodatabase)) / 1e+9 <= 1.5) {
     sapolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "SAPOLYGON")
     st_crs(sapolygon) <- "+init=epsg:5070"
     
@@ -83,14 +105,16 @@ if (!file.exists(cache)){
     save(mupolygon, sapolygon, file = mupolygon_cache)
   } else load(file = mupolygon_cache)
   
-  idx <- names(mupolygon) != "Shape"
+  idx <- ! names(mupolygon) %in% c("Shape", "Geometry")
   names(mupolygon)[idx] <- tolower(names(mupolygon)[idx])
+  idx2 <- grepl("shape_leng", names(mupolygon))
+  names(mupolygon)[idx2] <- "shape_leng"
   
   mupolygon <- mupolygon[mupolygon$mukey %in% project$mukey, ]
   
   mupolygon <- within(mupolygon, {
     Acres = shape_area * 0.000247105
-    Circularity = shape_length / (2 * sqrt(shape_area / pi) * pi)
+    Circularity = shape_leng / (2 * sqrt(shape_area / pi) * pi)
     })
   
   # Sample soil map unit
@@ -128,13 +152,13 @@ data <- rbind(data2, data)
 ```
 
 
-**Project Name**
+# Project Name
 ```{r project name}
 unique(project$projectname)
 ```
 
 
-**Variables**
+# Variables
 
 ```{r variables}
 a <- c("elev", "slope", "aspect", "valley", "wetness", "relief", "ppt", "temp", "ffp", "lulc")
