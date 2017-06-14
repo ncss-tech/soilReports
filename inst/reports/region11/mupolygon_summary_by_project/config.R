@@ -37,13 +37,13 @@ ogr_extract <- function(pd, geodatabase, cache, project){
 raster_extract <- function(x){
   # Load grids
   files <- c(
-    slope     = paste0(office_folder, "ned10m_", office, "_slope5.tif"),
-    aspect    = paste0(office_folder, "ned10m_", office, "_aspect5.tif"),
-    elev      = paste0(office_folder, "ned30m_", office, ".tif"),
-    wetness   = paste0(office_folder, "ned30m_", office, "_wetness.tif"),
-    valley    = paste0(office_folder, "ned30m_", office, "_mvalleys.tif"),
-    relief    = paste0(office_folder, "ned30m_", office, "_z2stream.tif"),
-    lulc      = paste0(office_folder, "nlcd30m_", office, "_lulc2011.tif"),
+    slope     = paste0(office_folder, "ned10m_", ssoffice, "_slope5.tif"),
+    aspect    = paste0(office_folder, "ned10m_", ssoffice, "_aspect5.tif"),
+    elev      = paste0(office_folder, "ned30m_", ssoffice, ".tif"),
+    wetness   = paste0(office_folder, "ned30m_", ssoffice, "_wetness.tif"),
+    valley    = paste0(office_folder, "ned30m_", ssoffice, "_mvalleys.tif"),
+    relief    = paste0(office_folder, "ned30m_", ssoffice, "_z2stream.tif"),
+    lulc      = paste0(office_folder, "nlcd30m_", ssoffice, "_lulc2011.tif"),
     ppt       = paste0(region_folder, "prism800m_11R_ppt_1981_2010_annual_mm.tif"),
     temp      = paste0(region_folder, "prism800m_11R_tmean_1981_2010_annual_C.tif"),
     ffp       = paste0(region_folder, "rmrs1000m_11R_ffp_1961_1990_annual_days.tif")

@@ -68,6 +68,8 @@ gdalUtils::gdal_setInstallation(search_path="C:/Program Files/QGIS Essen/bin", r
 
 
 ```{r map unit summary function}
+
+# report parameters
 geodatabase <- params$geodatabase
 dir <- params$project_data_file_path
 ssoffice <- params$ssoffice
@@ -78,23 +80,34 @@ samplePercent <- 15
 # percentiles
 p <- c(0, 0.25, 0.5, 0.75, 1)
 
+# 
 project <- get_projectmapunit_from_NASIS()
   
+# folder paths
 office_folder <- paste0(dir, ssoffice, "/")
 region_folder <- paste0(dir, "11REGION/")
-cache <- paste0(office_folder, "cache/", unique(project$uprojectid), "_", samplePercent, ".Rdata")
-mupolygon_cache <- gsub(".gdb", "", paste0(office_folder, geodatabase, "_cache.RData"))
 
+# cache files
+sample_cache <- paste0(office_folder, "cache/", unique(project$uprojectid), "_", samplePercent, ".Rdata")
+gdb_cache <- gsub(".gdb", "", paste0(office_folder, geodatabase, "_cache.RData"))
+shp_cache <- paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData")
 
 
 ## local functions
-if (!file.exists(cache)){
+if (!file.exists(sample_cache)){
   
-  if (sum(file.size(list.files(paste0(office_folder, geodatabase), full.names = TRUE))) / 1e+9 > 1.5 &
-      file.exists("C:/Program Files/QGIS Essen/bin") &
-      !file.exists(paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))
-      ) {
-    ogr_extract(office_folder, geodatabase, paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".shp"), project$mukey)
+  # extract shapefile via gdalUtils if the geodatabase is > 1.5GB
+  if (
+    # geodatabase is > 1.5GB
+    sum(file.size(list.files(paste0(office_folder, geodatabase), full.names = TRUE))) / 1e+9 > 1.5 & 
+    # QGIS is installed
+    file.exists("C:/Program Files/QGIS Essen/bin") &
+    # shapefile of project doesn't already exist
+    !file.exists(shp_cache)
+    ){
+    # extract polygons from geodatabase
+    ogr_extract(office_folder, geodatabase, 
+                paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".shp"), project$mukey)
 
     mupolygon <- read_sf(dsn = paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".shp"), layer = unique(project$uprojectid)[1])
     st_crs(mupolygon) <- "+init=epsg:5070"
@@ -102,22 +115,30 @@ if (!file.exists(cache)){
     sapolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "SAPOLYGON")
     st_crs(sapolygon) <- "+init=epsg:5070"
 
-    save(mupolygon, sapolygon, file = paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))
+    save(mupolygon, sapolygon, file = shp_cache)
     }
   
-  if (file.exists(paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))) {
-    load(file = paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData"))
+  # shapefile cache
+  if (file.exists(shp_cache)) {
+    load(file = shp_cache)
     }
   
-  if (!file.exists(mupolygon_cache) & file.size(paste0(office_folder, geodatabase)) / 1e+9 <= 1.5) {
+  # geodatabase cache
+  if (
+    # shapefile cache exist?
+    !file.exists(shp_cache) &
+    # geodatabase cache exists?
+    !file.exists(gdb_cache) &
+    # geodatabase size
+    sum(file.size(list.files(paste0(office_folder, geodatabase), full.names = TRUE))) / 1e+9 <= 1.5) {
     sapolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "SAPOLYGON")
     st_crs(sapolygon) <- "+init=epsg:5070"
     
     mupolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "MUPOLYGON")
     st_crs(mupolygon) <- "+init=epsg:5070"
     
-    save(mupolygon, sapolygon, file = mupolygon_cache)
-  } else load(file = mupolygon_cache)
+    save(mupolygon, sapolygon, file = gdb_cache)
+    } else if (file.exists(gdb_cache)) load(file = gdb_cache)
   
   idx <- ! names(mupolygon) %in% c("Shape", "Geometry")
   names(mupolygon)[idx] <- tolower(names(mupolygon)[idx])
@@ -152,8 +173,8 @@ if (!file.exists(cache)){
 #  mlra_acres <- transform(mlra_acres, mlra_percent = round(mlra_percent / sum(mlra_percent) * 100, 0))
 
   data.l <- list(data = data, mupolygon = mupolygon, sapolygon = sapolygon)
-  save(data.l, file = cache)
-} else load(file = cache) #load cache file
+  save(data.l, file = sample_cache)
+} else load(file = sample_cache) #load sample_cache file
 
 
 attach(data.l)
