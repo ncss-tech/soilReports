@@ -112,7 +112,7 @@ destfile='MLRA-comparison/mlra-soil-data.rda')
 
 This report summarizes the components within an MLRA project. Several figures are generated to compare the component aomong several data mapunits.
 
-Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.
+Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder. Check "Legend" for National. Check "Project", "Mapunit", "DataMapunit", and "Legend Mapunit" for Local. 
 
 ```r
 # load the soilReports package
