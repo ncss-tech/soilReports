@@ -112,7 +112,7 @@ destfile='MLRA-comparison/mlra-soil-data.rda')
 
 This report summarizes the components within an MLRA project. Several figures are generated to compare the component aomong several data mapunits.
 
-Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder. Check "Legend" for National. Check "Project", "Mapunit", "DataMapunit", and "Legend Mapunit" for Local. 
+Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.  
 
 ```r
 # load the soilReports package
@@ -137,7 +137,7 @@ render(input = reports$file.path, output_dir = "C:/workspace2", output_file = "C
 
 This report summarizes the zonal statistics for the MUPOLYGON layer from a file geodatabase. The spatial variables summarized include: elevation, slope, aspect, relief, preciptation, temperature, frost free period, and landcover. The report assumes the spatial data follows the proper folder hierachy and naming conventions (e.g. C:/geodata/project_data/11IND).
 
-Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.
+Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder. Check "Legend" for National. Check "Project", "Mapunit", "DataMapunit", and "Legend Mapunit" for Local.
 
 ```r
 # load the soilReports package
