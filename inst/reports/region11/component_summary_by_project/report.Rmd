@@ -22,7 +22,7 @@ output:
 
 
 ```{r setup, echo = FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, fig.width = 8.5, fig.height = 6)
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, fig.width = 8.5)
 
 options(stringsAsFactors = FALSE)
 ```
@@ -32,6 +32,8 @@ options(stringsAsFactors = FALSE)
 library(soilDB)
 library(ggplot2)
 library(knitr)
+
+source("config.R")
 
 pm <- get_projectmapunit_from_NASIS()
 ```
@@ -63,6 +65,12 @@ comp$comp_id <- with(site(comp), paste(dmuiid, "\n", compname, "\n", comppct_r, 
 s <- site(comp)
 h <- horizons(comp)
 
+n_depthplots <- ceiling(length(comp$compname) / 4) * 3
+n_cosoilmoist <- ceiling(length(comp$compname) / 2) * 3
+
+profile_idx <- pindex(comp, 15)
+n_profile_idx <- ceiling(length(comp$compname) / 15) * 6.5
+
 # component
 
 kable(with(s, data.frame(
@@ -78,7 +86,7 @@ kable(with(s, data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, land
 
 ## Component Soil Moisture Month
 
-```{r soil moisture}
+```{r soil moisture, fig.height=n_cosoilmoist}
 # component soil moisture month
 
 cosm <- get_cosoilmoist_from_NASIS()
@@ -95,16 +103,24 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status)) +
   ylim(max(cosm$depb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
   scale_x_continuous(breaks = 1:12, labels = month.abb, name="Month") +
-  facet_wrap(~ paste(dmuiid, "\n", compname, "\n", comppct_r, "%")) +
+  facet_wrap(~ paste(dmuiid, "\n", compname, "\n", comppct_r, "%"), ncol = 2) +
   ggtitle("Water Table Levels from Component Soil Moisture Month Data")
 ```
 
 
 # Horizon Data
 
-```{r horizon data}
+## Soil Profile Plots
+
+```{r horizon data, fig.height=n_profile_idx}
 # profile plot
-plot(comp, label = "comp_id", id.style = "top")
+
+# plot no more than 15 soil profiles on each row
+for (i in unique(profile_idx)){
+  plot(comp[which(profile_idx == i)], name = 'hzname', label = 'comp_id', id.style = "top")
+  }
+
+#plot(comp, label = "comp_id", id.style = "top")
 
 # temp <- merge(s[c("coiid", "dmudesc")], h, by = "coiid", all.y = TRUE)
 # temp <- temp[with(temp, order(dmudesc, -comppct_r, compname)), ]
@@ -114,7 +130,7 @@ vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h
 
 ## Horizon Depth Plots
 
-```{r, depth plots}
+```{r, depth plots, fig.height=n_depthplots}
 # convert the data for depth plot
 vars_slice = horizons(slice(comp, seq(0, 200, 2) ~ hzname + dep + 
                               claytotal_l + claytotal_r + claytotal_h +
@@ -136,7 +152,7 @@ gg_comp <- function(x, var) {
   geom_ribbon(aes(ymin = l, ymax = h, x = hzdept_r), alpha = 0.2) +
   xlim(200, 0) +
   xlab("depth (cm)") +
-  facet_wrap(~ comp_id) + 
+  facet_wrap(~ comp_id, ncol = 3) + 
   coord_flip() +
   ggtitle(var)
   }
@@ -160,12 +176,12 @@ gg_list <- lapply(vars, function(x) {
   })
 names(gg_list) <- vars
 
-plot(gg_list$claytotal)
 plot(gg_list$fragvoltot)
-plot(gg_list$om)
-plot(gg_list$dbthirdbar)
+plot(gg_list$claytotal)
 plot(gg_list$ksat)
 plot(gg_list$awc)
+plot(gg_list$om)
+plot(gg_list$dbthirdbar)
 plot(gg_list$ph1to1h2o)
 plot(gg_list$caco3)
 
