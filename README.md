@@ -25,11 +25,7 @@ Reports are a handy way to summarize large volumes of data, particularly with fi
   - [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   - [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   - [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
-  
- **Additional Instructions:**
- 
-  - Download the pdf files from the top section of this GitHub page, for background and instructions for the Map Unit Summary Report and instructions for the MLRA Comparison Report.
- 
+
 ## Pre-Installation (NRCS only). This is only required once.
 
 On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/FirstName.LastName/Documents/R/` for installing R packages. Again, you only have to do this **once**.
@@ -134,7 +130,11 @@ reportInit(reportName = "region11/component_summary_by_project", outputDir = "C:
 ## run the report via commandline
 reports = listReports()
 reports = subset(reports, name == "region11/component_summary_by_project")
-render(input = reports$file.path, output_dir = "C:/workspace2", output_file = "C:/workspace2/comp_summary.html", envir = new.env())
+render(input = reports$file.path, 
+       output_dir = "C:/workspace2", 
+       output_file = "C:/workspace2/comp_summary.html", 
+       envir = new.env()
+       )
 ```
 
 ### MUPOLYGON Summary by Project
@@ -151,7 +151,7 @@ library(rmarkdown)
 # run the report manually
 ## copy to your workspace2 folder
 
-reportInit(reportName = "region11/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
+copyReport(reportName = "region11/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
 
 ## Open the "report.Rmd" file from "C:/workspace2/mupolygon_summary" in RStudio, and hit the "Knit HTML" drop down arrow and select "Knit with Paramters..." menu item. Modify the parameters accordingly. 
 
