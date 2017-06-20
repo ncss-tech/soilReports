@@ -30,7 +30,8 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE) {
   if(file.exists(config.new.path) | file.exists(report.new.path) | file.exists(config.new.path)) {
     stop('existing files present in working directory', call. = FALSE)
   } else {
-    file.copy(from=config.file, to=outputDir, overwrite = FALSE)
+    if (file.exists(config.new.path)) {
+      file.copy(from=config.file, to=outputDir, overwrite = FALSE)}
     file.copy(from=report.file, to=outputDir, overwrite = FALSE)
     #file.copy(from=notes.file, to=outputDir, overwrite = TRUE)
     message(paste0('default `config.R` , `report.Rmd`, and `NOTES.md` copied to ', outputDir))
@@ -46,3 +47,9 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE) {
       file.copy(from = x, to = outputDir, overwrite = TRUE, recursive = TRUE))
     }
 }
+
+
+# renaming reportInit(), more intuitive
+copyReport <- function(reportName, outputDir=NULL, overwrite=FALSE) {
+  reportInit(reportName, outputDir, overwrite)
+  }

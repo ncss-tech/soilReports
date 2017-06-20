@@ -1,5 +1,6 @@
 ---
 title: Summary of NASIS Pedon Horizon Table
+author: "`r Sys.getenv('USERNAME')`"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -8,6 +9,9 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
+params:
+   series: !r as.character("Miami")
+   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/pedon_summary_by_taxonname/genhz_rules/Generic_rules.R"))
 ---
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE, include=FALSE}
@@ -19,14 +23,8 @@ output:
 ```
 
 ```{r setup, echo=FALSE, warning=FALSE}
-# report parameters
-source("config.R")
-
-# custom functions 
-source("utils.R")
-
 # generic horizon rules
-source(paste0("./genhz_rules/", series, "_rules.R"))
+source(params$genhz_rules)
 
 # knit options
 knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE, background="#F7F7F7", fig.retina=1, dev="png", tidy=FALSE, verbose=FALSE)
@@ -34,15 +32,11 @@ knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE, 
 options(stringsAsFactors = FALSE)
 ```
 
-```{r current environment}
-# save current workspace image and reload, for some reason when a report is knit using render() doesn't clear the temporary objects from the global environment
-save.image(file = "C:/Temp/temp.RData")
-```
-
 ```{r load packages}
 # soil libraries
 library(aqp)
 library(soilDB)
+library(soilReports)
 
 # data manipulation libraries
 library(knitr)
@@ -90,8 +84,6 @@ h[var] = lapply(h[var], as.integer)
   
 horizons(pedons) <- h
 
-h <- data.frame(lapply(h, na_replace), stringsAsFactors = FALSE)
-s <- data.frame(lapply(s, na_replace), stringsAsFactors = FALSE)
 
 # rename rock fragments
 idx <- names(h) == "total_frags_pct"
@@ -147,8 +139,8 @@ if (dim(s)[1] != 0) {
   coordinates(pedon_locations) <- ~ x_std + y_std
   proj4string(pedon_locations) <- CRS("+init=epsg:4326")
   
-  if(series != "Generic") {
-    series_extent <- seriesExtent(series)
+  if(params$series != "Generic") {
+    series_extent <- seriesExtent(params$series)
     
     mapView(pedon_locations) + series_extent
     } else mapView(pedon_locations)
@@ -168,7 +160,7 @@ kable(subset(s, select = c("pedon_id", "taxonname", "tax_subgroup", "part_size_c
 ```{r genhz matching, fig.width=8}
 hz_t <- addmargins(table(h$genhz, h$hzname))
 
-idx <- pindex(hz_t, 15)
+idx <- pIndex(hz_t, 15)
 
 # plot 15 horizon designations per row
 for (i in unique(idx)){
@@ -185,7 +177,7 @@ hz.names <- levels(pedons$genhz)
 # assign a color to each generalized horizon label
 pedons$genhz.soil_color <- cols[match(pedons$genhz, hz.names)]
 
-idx <- pindex(pedons, 15)
+idx <- pIndex(pedons, 15)
 
 # plot 15 profiles at a time
 for (i in unique(idx)){
@@ -203,7 +195,9 @@ for (i in unique(idx)){
 ```{r surface rock fragments, echo=FALSE, results='asis'}
 vars <- c("total_srf", "fgravel", "gravel", "cobbles", "stones", "boulders", "channers", "flagstones")
 srf.lo <- melt(srf, measure.vars = vars)
-srf.5n <- ddply(srf.lo, .(variable), .fun = sum5n)
+srf.5n <- ddply(srf.lo, .(variable), summarize,
+                range = prettySummary(value)
+                )
 
 kable(srf.5n, align = "c", caption =  "Surface rock fragments (min, 25th, median, 75th, max)(n)")
  
@@ -227,7 +221,9 @@ pscs.lo <- data.frame(diag_kind = "particle size control section",
                       )
 # combine diagnostic and particle size control section long tables
 diag.lo <- rbind(diag.lo, pscs.lo)
-diag.5n <- ddply(diag.lo, .(variable, diag_kind), .fun = sum5n)
+diag.5n <- ddply(diag.lo, .(variable, diag_kind), summarize,
+                range = prettySummary(value)
+                )
 diag.wi <- dcast(diag.5n, diag_kind ~ variable, value.var = 'range')
 
 kable(diag.wi, align = "c", caption = "Depths and thickness of diagnostic horizons and features(min, 25th, median, 75th, max)(n)")
@@ -250,7 +246,9 @@ genhz.lo <- melt(h, id.vars="genhz", measure.vars = c('hzdept', 'hzdepb'))
 genhz.thk <- ddply(h, .(phiid, genhz), summarize, thickness=sum(hzdepb-hzdept))
 genhz.lo2 <- melt(genhz.thk, id.vars = "genhz", measure.vars = 'thickness')
 genhz.lo <- rbind(genhz.lo, genhz.lo2)
-genhz.5n <- ddply(genhz.lo, .(variable, genhz), .fun = sum5n)
+genhz.5n <- ddply(genhz.lo, .(variable, genhz), summarize,
+                range = prettySummary(value)
+                )
 
 kable(dcast(genhz.5n, genhz ~ variable, value.var = 'range'), align = "c", caption = "Depths and thickness of generic horizons (min, 25th, median, 75th, max)(n)")
 
@@ -270,10 +268,12 @@ bwplot(genhz ~ value | variable, data = genhz.lo,
 
 ```{r ric ssp tables}
 h.lo <- melt(h, id.vars="genhz", measure.vars = num_vars)
-h.5n <- ddply(h.lo, .(variable, genhz), .fun = sum5n)
+h.5n <- ddply(h.lo, .(variable, genhz), summarize,
+                range = prettySummary(value)
+                )
 h.wi <- dcast(h.5n, genhz ~ variable, value.var = 'range')
 
-idx <- pindex(h.wi, 5)
+idx <- pIndex(h.wi, 5)
 
 for (i in unique(idx)) {
   print(kable(h.wi[, c(T, idx == i)], align = "c", caption = "Numeric variables by generic horizon (min, 25th, median, 75th, max)(n)"))
@@ -302,7 +302,7 @@ bwplot(genhz ~ value | variable, data = h.lo,
 kable(addmargins(xtabs(~ genhz + texcl, data = h, drop.unused.levels = TRUE)), digits = 0, caption = "Texture by generic horizon (counts)")
 
 hz_tex <- addmargins(xtabs(~ genhz + texture, data = h))
-idx <- pindex(hz_tex, 15)
+idx <- pIndex(hz_tex, 15)
 
 for (i in unique(idx)){
   print(kable(hz_tex[, c(idx == i)], align = "c", digits = 0, caption = "Tex Mod & Class by generic horizon (counts)"))
@@ -332,13 +332,17 @@ kable(addmargins(xtabs(~ genhz + effclass, data = h, drop.unused.levels = TRUE))
 vars <- c("elev_field", "slope_field")
 morf <- subset(s, select = vars)
 morf.lo <- melt(morf, measure.vars = vars)
-morf.5n <- ddply(morf.lo, .(variable), .fun = sum5n)
+morf.5n <- ddply(morf.lo, .(variable), summarize,
+                range = prettySummary(value)
+                )
 
 if (!all(is.na(s$aspect_field))) {
   aspect <- subset(s, select = c("aspect_field"))
   aspect.lo <- melt(aspect, measure.vars = "aspect_field")
   aspect.lo$value <- circular(aspect.lo$value, template="geographic", units="degrees", modulo="2pi")
-  aspect.5n <- ddply(aspect.lo, .(variable), .fun = sum5n)
+  aspect.5n <- ddply(aspect.lo, .(variable), summarize,
+                range = prettySummary(value)
+                )
   kable(rbind(morf.5n, aspect.5n), caption = "Elevation, slope gradient and aspect (min, 25th, median, 75th, max)(n)", align = "c")
   } else(kable(morf.5n, caption="Elevation and slope gradient (min, 25th, median, 75th, max)(n)", align = "c"))         
 

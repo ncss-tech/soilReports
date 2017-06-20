@@ -49,12 +49,13 @@ library(circular)
 library(maps)
 library(maptools)
 library(rgdal)
+library(gdalUtils)
 library(sp)
 library(sf)
 library(raster)
-library(gdalUtils)
 
 library(soilDB)
+library(soilReports)
 
 opar <- trellis.par.get()
 trellis.par.set(theme = ggplot2like())
@@ -80,7 +81,7 @@ samplePercent <- 15
 # percentiles
 p <- c(0, 0.25, 0.5, 0.75, 1)
 
-# 
+# project data
 project <- get_projectmapunit_from_NASIS()
   
 # folder paths
@@ -91,8 +92,9 @@ region_folder <- paste0(dir, "11REGION/")
 sample_cache <- paste0(office_folder, "cache/", unique(project$uprojectid), "_", samplePercent, ".Rdata")
 gdb_cache <- gsub(".gdb", "", paste0(office_folder, geodatabase, "_cache.RData"))
 shp_cache <- paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData")
+```
 
-
+```{r}
 ## local functions
 if (!file.exists(sample_cache)){
   
@@ -233,7 +235,9 @@ pol <- rbind(pol2, pol)
 
 pol.lo1 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres", "Circularity"))
 pol.lo2 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres"))
-pol.5n1 <- ddply(pol.lo2, .(ssa_musym, variable), .fun=sum5n2)
+pol.5n1 <- ddply(pol.lo2, .(ssa_musym, variable), summarize, 
+                 range = prettySummary(value, n = FALSE, signif = FALSE)
+                 )
 pol.5n2 <- ddply(pol, .(ssa_musym), summarize, 
                  nArces = round(sum(Acres), 0), 
                  nPolygons = length(musym)
@@ -273,27 +277,30 @@ kable(prop.table(xtabs(~ ssa_musym + valley_classes, data = data, drop.unused.le
 
 lulc_t <- {xtabs(~ ssa_musym + lulc_classes, data = data, drop.unused.levels = TRUE) ->.;
   addmargins(prop.table(., margin = 1)) * 100}
-idx <- pindex(lulc_t, 8)
+idx <- pIndex(lulc_t, 8)
 for (i in unique(idx)){
   print(kable(lulc_t[, c(idx == i)], digits = 0, align = "c", caption = "Landuse and Landcover"))
   }
 ```
 
-# Quantile breaks
+# Percentile breaks
 Five number summary (min, 25th, median, 75th, max)(percentiles) and number of random samples (n)
 
 ```{r quantiles by musym, results="asis", warning=FALSE, fig.height=10, fig.width=8}
 data.lo <- melt(data, id.vars="ssa_musym", measure.vars = c("elev", "slope", "valley", "wetness", "relief", "ppt", "temp", "ffp"))
 
-data.5n <- ddply(data.lo, .(variable, ssa_musym), .fun = sum5n2)
-
+data.5n <- ddply(data.lo, .(variable, ssa_musym), summarize,
+                 range = prettySummary(value, n = FALSE, signif = FALSE)
+                 )
 
 data.c <- dcast(data.5n, ssa_musym ~ variable, value.var = 'range')
 data.n <- ddply(data, .(ssa_musym), .drop=T, summarize, n = length(ssa_musym))
 
 aspect.lo <- melt(data, id.vars="ssa_musym", measure.vars = c("aspect"))
 aspect.lo$value <- circular(aspect.lo$value, template = "geographic", units="degrees", modulo="2pi")
-aspect.5n <- ddply(aspect.lo, .(variable, ssa_musym), .fun = sum5n2)
+aspect.5n <- ddply(aspect.lo, .(variable, ssa_musym), summarize,
+                   range = prettySummary(value, n = FALSE, signif = FALSE)
+                   )
 aspect.c <- dcast(aspect.5n, ssa_musym ~ variable, value.var = 'range')
 
 kable(cbind(data.c[c(1:6)], data.n["n"]), align = "c")

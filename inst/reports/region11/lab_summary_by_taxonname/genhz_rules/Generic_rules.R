@@ -5,8 +5,8 @@ ghr <- list(
         "Bt",
         "Btg",
         "2Bt", 
-        "2BC", 
         "C",
+        "2BC", 
         "Cd",
         "missing"),
   
@@ -14,10 +14,10 @@ ghr <- list(
         "BA|A3|B1",
         "^E|A2",
         "t|T",
-        "g|G",
+        "g",
         "2B|IIB",
+        "C",
         "BC|B3",
-        "^C|2C|IIC",
         "d",
         "missing")
   )

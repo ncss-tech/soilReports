@@ -30,10 +30,9 @@ options(stringsAsFactors = FALSE)
 
 ```{r}
 library(soilDB)
+library(soilReports)
 library(ggplot2)
 library(knitr)
-
-source("config.R")
 
 pm <- get_projectmapunit_from_NASIS()
 ```
@@ -68,7 +67,7 @@ h <- horizons(comp)
 n_depthplots <- ceiling(length(comp$compname) / 4) * 3
 n_cosoilmoist <- ceiling(length(comp$compname) / 2) * 3
 
-profile_idx <- pindex(comp, 15)
+profile_idx <- pIndex(comp, 15)
 n_profile_idx <- ceiling(length(comp$compname) / 15) * 6.5
 
 # component

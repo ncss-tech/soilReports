@@ -4,6 +4,7 @@
 \alias{installRprofile}
 \alias{listReports}
 \alias{reportInit}
+\alias{copyReport}
 \alias{reportSetup}
 \docType{package}
 \title{Soil Reports: R-Markdown reports and convenience functions for soil survey.}
