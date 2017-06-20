@@ -25,7 +25,11 @@ Reports are a handy way to summarize large volumes of data, particularly with fi
   - [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   - [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   - [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
-
+  
+ **Additional Instructions:**
+ 
+  - Download the pdf files in the top section of this GitHub page, for background and instructions for the Map Unit Summary Report and instructions for the MLRA Comparison Report.
+ 
 ## Pre-Installation (NRCS only). This is only required once.
 
 On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/FirstName.LastName/Documents/R/` for installing R packages. Again, you only have to do this **once**.
