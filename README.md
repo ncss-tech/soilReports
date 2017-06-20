@@ -126,7 +126,7 @@ library(rmarkdown)
 # run the report manually
 ## copy to your workspace2 folder
 
-reportInit(reportName = "region11/component_summary_by_project", outputDir = "C:/workspace2/component_summary")
+copyReport(reportName = "region11/component_summary_by_project", outputDir = "C:/workspace2/component_summary")
 
 ## open the "report.Rmd" file from "C:/workspace2/component_summary" in RStudio, and hit the "Knit HTML" button
 
@@ -134,7 +134,11 @@ reportInit(reportName = "region11/component_summary_by_project", outputDir = "C:
 ## run the report via commandline
 reports = listReports()
 reports = subset(reports, name == "region11/component_summary_by_project")
-render(input = reports$file.path, output_dir = "C:/workspace2", output_file = "C:/workspace2/comp_summary.html", envir = new.env())
+render(input = reports$file.path, 
+       output_dir = "C:/workspace2", 
+       output_file = "C:/workspace2/comp_summary.html", 
+       envir = new.env()
+       )
 ```
 
 ### MUPOLYGON Summary by Project
@@ -151,7 +155,7 @@ library(rmarkdown)
 # run the report manually
 ## copy to your workspace2 folder
 
-reportInit(reportName = "region11/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
+copyReport(reportName = "region11/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
 
 ## Open the "report.Rmd" file from "C:/workspace2/mupolygon_summary" in RStudio, and hit the "Knit HTML" drop down arrow and select "Knit with Paramters..." menu item. Modify the parameters accordingly. 
 
