@@ -28,7 +28,7 @@ Reports are a handy way to summarize large volumes of data, particularly with fi
   
  **Additional Instructions:**
  
- - [Download the pdf files from the top section of this GitHub page](https://github.com/ncss-tech/soilReports/tree/master/docs), for background and instructions for the Map Unit Summary Report and instructions for the MLRA Comparison Report.
+ - [Download the pdf files from the docs folder of this GitHub page](https://github.com/ncss-tech/soilReports/tree/master/docs), for background and instructions for the Map Unit Summary Report and instructions for the MLRA Comparison Report.
  
 ## Pre-Installation (NRCS only). This is only required once.
 
