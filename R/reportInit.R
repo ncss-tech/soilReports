@@ -27,10 +27,10 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE) {
   report.new.path <- paste0(outputDir, '/', 'report.Rmd')
   #notes.new.path <- paste0(outputDir, '/', 'NOTES.md')
   
-  if(file.exists(config.new.path) | file.exists(report.new.path) | file.exists(config.new.path)) {
+  if (file.exists(config.new.path) | file.exists(report.new.path) | file.exists(config.new.path)) {
     stop('existing files present in working directory', call. = FALSE)
   } else {
-    if (file.exists(config.new.path)) {
+    if (file.exists(config.file)) {
       file.copy(from=config.file, to=outputDir, overwrite = FALSE)}
     file.copy(from=report.file, to=outputDir, overwrite = FALSE)
     #file.copy(from=notes.file, to=outputDir, overwrite = TRUE)
