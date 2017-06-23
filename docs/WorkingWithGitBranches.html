@@ -122,10 +122,10 @@ $(document).ready(function () {
 <h2>Working with Git and Branches</h2>
 <div id="author-andrew-brown" class="section level4">
 <h4>@author: Andrew Brown</h4>
-<p>In the Git version control system, branches are a way to “experiment” with new features and maintain a record of commit history without contaminating the <em>master</em> or production branch.</p>
-<p>Essentially, a branch keeps track of the changes that have occured since a common ancestor (parent commit). Subsequent changes to the repository result in divergence of the branches. But, because of the known parent-child relationships, changes made on related branches can be merged with or rebased from other branches with relative ease.</p>
+<p>In the Git version control system, branches are a way to experiment with new features whilst maintaining a record of commit history. This allows you to make commits and progress within your branch without contaminating the “production” branch (for our purposes typically called <em>master</em>).</p>
+<p>Essentially, a branch keeps track of the changes that have occured since a common ancestor/parent commit. Subsequent changes to the repository result in divergence of the branches, depending on which branch those changes are committed to. But, because of the known parent-child relationships between commits, changes made on related branches can be merged with or rebased from other branches with relative ease.</p>
 <p>Some branching principles: * Branch early and branch often. Branches are cheap, so don’t be afraid to use them. * Don’t let branches diverge too much if you can avoid it (at least rebase to <em>master</em> periodically, see below). * Maintaining branches for individual projects allows issues of varying scale to be addressed and updated without affecting non-target components. Further, it allows one to quickly change gears and track progress in sub-projects within the repository.</p>
-<p>As with working in any version control system, care needs to be taken to not create conflicting changes in parallel branches (that is, editing the same code in both branches) as these will have to be manually reconciled, which can be time-consuming.</p>
+<p>As with any version control system, care needs to be taken to not create conflicting changes in parallel branches (that is, editing the same code simultaneously in both branches) as these will have to be manually reconciled, which can be time-consuming. See the <code>git merge</code> documentation (link at bottom of page) for a much more indepth discussion of resolving conflicts.</p>
 <p>This helpfile assumes that <code>git</code> is available via the command-line (by adding the git bin path to your USER %PATH% variable) or that you are using Git Shell. All the same functionality is also available through the GUI version of Git.</p>
 </div>
 <div id="creating-a-local-repository" class="section level3">
@@ -136,7 +136,7 @@ $(document).ready(function () {
 </div>
 <div id="saving-your-changes-to-the-local-repository" class="section level3">
 <h3>Saving your changes to the local repository</h3>
-<p>Use <code>git add</code> to add files that you have changed within your repository to the “staging area” for a commit. The <code>-a</code> parameter for <code>git add</code> will stage all uncommited changes (be careful!) within the repository. You can use a .gitignore file to specify files to never include in your unstaged changes list (.RData, temp files, large output, binaries etc. are all good candidates for gitignore).</p>
+<p>Use <code>git add</code> to add files that you have changed within your repository to the “staging area” for a commit. The <code>-a</code> parameter for <code>git add</code> will stage all unstaged changes (be careful!) within the repository. You can use a .gitignore file to specify files to never include in your unstaged changes list (.RData, temp files, large output, binaries etc. are all good candidates for gitignore).</p>
 <p>Use <code>git commit</code> to save changes that are staged and assign them a unique commit hash code. The state of the repository at time of commit can be retreived and referenced based on this unique code.</p>
 <pre><code>git add *.R
 git commit -m &quot;Added all the R files. Some descriptive message about what you changed in this commit.&quot;</code></pre>
