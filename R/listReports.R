@@ -2,10 +2,10 @@
 # extract the version number from a single report
 .getReportMetaData <- function(x) {
   env <- new.env()
-  sys.source(x,env)
+  sys.source(paste0(dirname(x),"/setup.R"), env)
   # combine and return
   if(exists('.report.name',env) & exists('.report.version',env) & exists('.report.description',env))
-  res <- data.frame(name=get('.report.version',env), version=get('.report.version',env), description=get('.report.description',env), stringsAsFactors = FALSE)
+    res <- data.frame(name=get('.report.name',env), version=get('.report.version',env), description=get('.report.description',env), stringsAsFactors = FALSE)
   return(res)
 }
 
