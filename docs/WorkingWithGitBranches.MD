@@ -28,7 +28,7 @@ git clone https://github.com/github-username/MyRepository.git
 
 ### Saving your changes to the local repository 
 
-Use `git add` to add files that you have changed within your repository to the "staging area" for a commit. The `-a` parameter for `git add` will stage all uncommited changes (be careful!) within the repository. You can use a .gitignore file  to specify files to never include in your unstaged changes list (.RData, temp files, large output, binaries etc. are all good candidates for gitignore).
+Use `git add` to add files that you have changed within your repository to the "staging area" for a commit. The `-a` parameter for `git add` will stage all unstaged changes (be careful!) within the repository. You can use a .gitignore file  to specify files to never include in your unstaged changes list (.RData, temp files, large output, binaries etc. are all good candidates for gitignore).
 
 Use `git commit` to save changes that are staged and assign them a unique commit hash code. The state of the repository at time of commit can be retreived and referenced based on this unique code. 
 
