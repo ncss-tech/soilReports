@@ -1,23 +1,11 @@
 
 # extract the version number from a single report
 .getReportMetaData <- function(x) {
-  # scan through .Rmd file
-  f <- readLines(x)
-  
-  # locate the version string
-  idx <- grep('.report.version <- ', f)
-  v <- as.character(eval(parse(text=f[idx])))
-  if(length(v) < 1)
-    v <- NA
-  
-  # locate the description string
-  idx <- grep('.report.description <- ', f)
-  d <- as.character(eval(parse(text=f[idx])))
-  if(length(d) < 1)
-    d <- NA
-  
+  env <- new.env()
+  sys.source(x,env)
   # combine and return
-  res <- data.frame(version=v, description=d, stringsAsFactors = FALSE)
+  if(exists('.report.name',env) & exists('.report.version',env) & exists('.report.description',env))
+  res <- data.frame(name=get('.report.version',env), version=get('.report.version',env), description=get('.report.description',env), stringsAsFactors = FALSE)
   return(res)
 }
 
