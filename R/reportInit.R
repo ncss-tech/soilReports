@@ -38,6 +38,7 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
     } else stop("Failed to update report -- no update paths to copy specified in setup.R!")
   }
   
+for shiny interface, append description above YAML header
   # Add HTML comment containing report name, version and instance creation date/time above YAML header at top of report.Rmd
   if(exists('.report.name', envir=env) & exists('.report.version', envir=env) & exists('.report.description', envir=env)) {
     headtxt <- paste0("<!-- ", get('.report.name', env), " (v", get('.report.version', env), ") -- instance created ",Sys.time(), "-->  \n")
