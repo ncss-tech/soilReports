@@ -1,6 +1,6 @@
 
 # save a local copy of a report's configuration file
-reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE) {
+reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport=FALSE) {
   # output is saved in working dir when not specified
   
   # get base directory where reports are stored within package
@@ -13,21 +13,29 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE) {
   env <- new.env()
   sys.source(setup.file, envir = env)
   
-  if(missing(outputDir)) {
-    outputDir <- getwd()
+  if(!updateReport) {
+    if(missing(outputDir)) {
+      outputDir <- getwd()
+    } else {
+      # check for existing data
+      if(overwrite != TRUE & dir.exists(outputDir)) 
+        stop(paste0('there is already a folder named `', outputDir, '` in the current working directory'), call. = FALSE)
+      # create the specified output directory
+      dir.create(outputDir, recursive = TRUE)
+    }
+    
+    if(exists('.paths.to.copy', envir = env)) { #copy everything if not in "update" mode
+      pa <- get('.paths.to.copy', envir = env)
+      lapply(pa, FUN=copyPath, base.dir, outputDir)
+    } else stop("Failed to instantiate report -- no paths to copy specified in setup.R!")
   } else {
-    # check for existing data
-    if(overwrite != TRUE & dir.exists(outputDir))
-      stop(paste0('there is already a folder named `', outputDir, '` in the current working directory'), call. = FALSE)
-    # create the specified output directory
-    dir.create(outputDir, recursive = TRUE)
+    #TODO: could try and infer which files are "config" and ignore those, requiring only the .paths.to.copy variable
+    #      but for now, just require reports to specify what gets updated when updateReport is called
+    if(exists('.update.paths.to.copy', envir = env)) {
+      pa <- get('.update.paths.to.copy', envir = env)
+      lapply(pa, FUN=copyPath, base.dir, outputDir, overwrite=T)
+    } else stop("Failed to update report -- no update paths to copy specified in setup.R!")
   }
-  
-  if(exists('.paths.to.copy', envir = env)) {
-    pa <- get('.paths.to.copy', envir = env)
-    lapply(pa, FUN=copyPath, base.dir, outputDir)
-  } else
-    stop("No paths to copy specified in setup.R!")
   
   # Add HTML comment containing report name, version and instance creation date/time above YAML header at top of report.Rmd
   if(exists('.report.name', envir=env) & exists('.report.version', envir=env) & exists('.report.description', envir=env)) {
@@ -70,6 +78,11 @@ copyPath <- function(fname, srcDir, outputDir, overwrite = F) {
       }
     }
   }
+}
+
+reportUpdate <- function(reportName, outputDir=NULL) {
+  #Uses report init, only with overwrite and updateReport default value override
+  reportInit(reportName,outputDir,overwrite = T,updateReport = T)
 }
 
 # renaming reportInit(), more intuitive
