@@ -111,7 +111,6 @@ categorical.defs <- list()#this defines the aliases and label:value:color sets f
 source("categorical_definitions.R") #this will load the structures that define value:label:color for categorical plot. 
                                     #updates the "section_toggle" variable defined at top of report which will knit the appropriate plots for the specified categoricals from config.R
 
-
 ### FORMATTING
 ## figure out reasonable figure heights for bwplots and density plots
 # baseline height for figure margins, axes, and legend
@@ -379,7 +378,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
   spatial.summary[[paste0('shannon_h_',variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, function(i) {
     -sum(i * log(i, base=10), na.rm=TRUE)
   })
-  
+
   colors=metadat$colors[metadat$levels %in% lvls]
   tps <- list(superpose.polygon=list(col=colors, lwd=2, lend=2))
   trellis.par.set(tps)
