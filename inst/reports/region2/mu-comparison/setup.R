@@ -14,6 +14,7 @@
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 
 .paths.to.copy <- c('report.Rmd','config.R','NOTES.md','changes.txt')
+.update.paths.to.copy <- c('report.Rmd','NOTES.md','changes.txt')
 
 .packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'raster', 'plyr', 'reshape2', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071')
 
