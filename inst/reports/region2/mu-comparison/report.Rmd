@@ -1,23 +1,17 @@
 ---
 title: null
-output:
-  html_document:
-    mathjax: null
-    jquery: null
-    smart: no
-    keep_md: no
+output: html_document
 ---
 
 ```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 ## version number
-.report.version <- '2.5'
+.report.version <- '3.0'
 
 ## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 ```
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-# setup
 library(knitr, quietly=TRUE)
 
 # package options
@@ -29,179 +23,11 @@ opts_chunk$set(message=FALSE, warning=FALSE, background='#F7F7F7', fig.align='ce
 # R session options
 options(width=100, stringsAsFactors=FALSE)
 
+## load dependencies
 
-## custom functions
+#TODO: verify that these have been installed and correct version. Just as a sanity check, should check version being compatible with report manifest
+# reportSetup should do this on creation of the report instance (see soilReports issue #45 on GH)
 
-# remove NA from $value
-# compute density for $value, using 1.5x "default" bandwidth
-# re-scale to {0,1}
-# return x,y values
-scaled.density <- function(d) {
-  res <- stats::density(na.omit(d$value), kernel='gaussian', adjust=1.5)
-  return(data.frame(x=res$x, y=scales::rescale(res$y)))
-}
-
-
-abbreviateNames <- function(spdf) {
- sapply(names(spdf)[-1], function(i) {
-  # keep only alpha and underscore characters in field names
-  i <- gsub('[^[:alpha:]_]', '', i)
-  # abbreviate after filtering other bad chars
-  abbr <- abbreviate(i, minlength = 10)
-  return(abbr)
-  })
-}
-
-# return DF with proportions outside range for each polygon (by pID)
-flagPolygons <- function(i) {
-  
-   # convert to values -> quantiles
-  e.i <- ecdf(i$value)
-  q.i <- e.i(i$value)
-  # locate those samples outside of our 5th-95th range
-  out.idx <- which(q.i < 0.05 | q.i > 0.95)
-  
-  ## TODO: may need to protect against no matching rows?
-  tab <- sort(prop.table(table(i$pID[out.idx])), decreasing = TRUE)
-  df <- data.frame(pID=names(tab), prop.outside.range=round(as.vector(tab), 2))
-  
-  # keep only those with > 15% of samples outside of range
-  #df <- df[which(df$prop.outside.range > p.crit), ]  
-  
-  #all proportions outside now reported in QC shapefile; no need to have a threshold
-  return(df)
-}
-
-
-# http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
-kdeContours <- function(i, prob, cols, m, ...) {
-  
-  if(nrow(i) < 2) {
-    return(NULL)
-  }
-  
-  this.id <- unique(i$.id)
-  this.col <- cols[match(this.id, m)]
-  dens <- kde2d(i$x, i$y, n=200); ## estimate the z counts
-
-  dx <- diff(dens$x[1:2])
-  dy <- diff(dens$y[1:2])
-  sz <- sort(dens$z)
-  c1 <- cumsum(sz) * dx * dy
-  levels <- sapply(prob, function(x) {
-    approx(c1, sz, xout = 1 - x)$y
-  })
-  
-  # add contours if possibly
-  if(!is.na(levels))
-    contour(dens, levels=levels, drawlabels=FALSE, add=TRUE, col=this.col, ...)
-  
-  # # add bivariate medians
-  # points(median(i$x), median(i$y), pch=3, lwd=2, col=this.col)
-}
-
-
-# masking function applied to a "wide" data.frame of sampled raster data
-# function is applied column-wise
-# note: using \leq and \geq for cases with very narrow distributions
-mask.fun <- function(i) {
-  res <- i >= quantile(i, prob=0.05, na.rm=TRUE) & i <= quantile(i, prob=0.95, na.rm=TRUE)
-  return(res)
-}
-
-
-# cut down to reasonable size: using cLHS
-f.subset <- function(i, n, non.id.vars) {
-	# if there are more than n records, then sub-sample
-	if(nrow(i) > n) {
-	  # columns with IDs have been pre-filtered
-		idx <- clhs(i[, non.id.vars], size=n, progress=FALSE, simple=TRUE, iter=1000)
-		i.sub <- i[idx, ]
-	}
-	#	otherwise use what we have
-	else
-		i.sub <- i
-	
-	return(i.sub)
-}
-
-
-# set multi-row figure based on number of groups and fixed number of columns
-dynamicPar <- function(n, max.cols=3) {
-  # simplest case, fewer than max number of allowed columns
-  if(n <= max.cols) {
-    n.rows <- 1
-    n.cols <- n
-  } else {
-    
-    # simplest case, a square
-    if(n %% max.cols == 0) {
-      n.rows <- n / max.cols
-      n.cols <- max.cols
-    } else {
-      # ragged
-      n.rows <- round(n / max.cols) + 1
-      n.cols <- max.cols
-    }
-  }
-  
-  par(mar=c(0,0,0,0), mfrow=c(n.rows, n.cols))
-  # invisibly return geometry
-  invisible(c(n.rows, n.cols))
-}
-
-# stat summary function
-f.summary <- function(i, p) {
-  
-  # remove NA
-  v <- na.omit(i$value)
-  
-  # compute quantiles
-  q <- quantile(v, probs=p)
-  res <- data.frame(t(q))
-  
-  ## TODO: implement better MADM processing and explanation  
-  if(nrow(res) > 0) {
-#     # MADM: MAD / median
-#     # take the natural log of absolute values of MADM
-#     res$log_abs_madm <- log(abs(mad(v) / median(v)))
-#     # 0's become -Inf: convert to 0
-#     res$log_abs_madm[which(is.infinite(res$log_abs_madm))] <- 0
-    
-    # assign reasonable names (quantiles)
-    names(res) <- c(paste0('Q', p * 100))
-    
-    return(res)
-  }
-  else
-    return(NULL)
-}
-
-# custom stats for box-whisker plot: 5th-25th-50th-75th-95th percentiles
-# NOTE: we are re-purposing the coef argument!
-# x: vector of values to summarize
-# coef: Moran's I associated with the current raster
-custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
-  # custom quantiles for bwplot
-  stats <- quantile(x, p=c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE)
-  # number of samples
-  n <- length(na.omit(x))
-  
-  # compute effective sample size
-  rho <- coef
-  n_eff <- ESS_by_Moran_I(n, rho)
-  
-  # confidence "notch" is based on ESS
-  iqr <- stats[4] - stats[2]
-  conf <- stats[3] + c(-1.58, 1.58) * iqr/sqrt(n_eff)
-  
-  out.low <- x[which(x < stats[1])]
-  out.high <- x[which(x > stats[5])]
-  
-  return(list(stats=stats, n=n, conf=conf, out=c(out.low, out.high)))
-}
-
-# load required packages
 library(MASS, quietly=TRUE)
 library(rgdal, quietly=TRUE)
 library(rgeos, quietly=TRUE)
@@ -215,58 +41,44 @@ library(clhs, quietly=TRUE)
 library(randomForest, quietly=TRUE)
 library(spdep, quietly=TRUE)
 
+## load report-specific functions
+source('custom.R') 
 
-## load local configuration
+## load local configuration 
+#TODO: allow entry of simple fields interactively if they are not specified?
+#TODO: allow for batching from a basic report.Rmd
 source('config.R')
-```
 
-
-```{r, echo=FALSE, results='hide'}
-# load map unit polygons from OGR data source
+## load map unit polygons from OGR data source
 mu <- try(readOGR(dsn=mu.dsn, layer=mu.layer, stringsAsFactors = FALSE))
 if(class(mu) == 'try-error')
   stop(paste0('Cannot find map unit polygon file/feature: "', mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
 
-# just in case, coerce mu.col to character
-mu[[mu.col]] <- as.character(mu[[mu.col]])
+mu[[mu.col]] <- as.character(mu[[mu.col]]) # just in case, coerce mu.col to character
 
 # if no filter, then keep all map units
-if(exists('mu.set')) {
+if(exists('mu.set')) { #TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
   # coerce mu.set to character just in integers were specified
   mu.set <- as.character(mu.set)
-  # filter
-  mu <- mu[which(mu[[mu.col]] %in% mu.set), ]
-  # just in case an MU is specified that doesn't exist, 
-  # keep only those records that made it through the filering step
-  mu.set <- unique(mu[[mu.col]])
-} else {
-  # mu.set not defined in config.R, define using the data on hand
-  mu.set <- unique(mu[[mu.col]])
+  mu <- mu[which(mu[[mu.col]] %in% mu.set), ] # if mu.set defined in config.R, only keep the items from set
 }
-
-# nice colors
-# 7 or fewer classes, use high-constrast colors
-if(length(mu.set) <= 7) {
-  cols <- brewer.pal(9, 'Set1') 
-  # remove light colors
-  cols <- cols[c(1:5,7,9)]
-} else {
-  # otherwise, use 12 paired colors
-  cols <- brewer.pal(12, 'Paired')
-}
+#mu.set <- unique(mu[[mu.col]])# keep only those records that made it through the filering step
 
 # add a unique polygon ID
 mu$pID <- seq(from=1, to=length(mu))
 
-# check for cached data
 if(cache.samples & file.exists('cached-samples.Rda')) {
   message('Using cached raster samples...')
   .sampling.time <- 'using cached samples'
   load('cached-samples.Rda')
 } else {
+  #This script generates an Rda file (R object) containing samples from a set of rasters overlapping a polygon feature class.
+  #Samples are obtained from features of interest using constant density sampling. These data can then be used for summary of the variable space associated with mapunits, geologies, MLRAs, study areas, etc. Several reports have been designed to make use of these datasets. 
   
-  # remove previous samples
-  unlink('cached-samples.Rda')
+  #TODO: check for existence of parameter objects before using them... fail elegantly by asking for user input via knitr?
+  # Sourcing this script succesfully relies on a baseline definition of report parameters in the global environment. 
+  # Needed params and names are based on config.R from v2.5 of mu summary report, though they may be defined in any way that is convenient
+  # (i.e. batch/programattically, interactively, and via static config file)
   
   # suppressing warnings: these have to do with conversion of CRS of points
   # iterate over map units and sample rasters
@@ -274,60 +86,41 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   .timer.start <- Sys.time()
   sampling.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre, estimateEffectiveSampleSize = correct.sample.size))
   .timer.stop <- Sys.time()
+  
   .sampling.time <- format(difftime(.timer.stop, .timer.start, units='mins'), digits=2)
-
-  # cache for later
+  print(paste0("Completed sampling of raster stack for poly symbols (",paste(mu.set,collapse=","),") in ",.sampling.time,"."))
+  
+  sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels=mu.set)
+  #TODO: toggle for appending date/time to file name for Rda containing samnples; or take file name as param?
+  save(sampling.res, file=paste0("samples_",paste(mu.set,collapse="_"),"-",strftime(Sys.time(),format="%Y%m%d_%H%M%S"),".Rda"))
+  print("DONE!")
+  
   if(cache.samples)
-    save(sampling.res, file='cached-samples.Rda')
+    save(mu, sampling.res,file = 'cached-samples.Rda')
 }
 
-## convert MU id into factor, using originally specified levels
-sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels=mu.set)
-
-## split raster data into types: continuous, categorical, circular
-d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
-
-## TODO: could there ever be more than one type of circular variable?
+## subset raster samples by data type: continuous, categorical, circular
+d.continuous <- subset(sampling.res$raster.samples, variable.type == 'continuous')
+d.continuous$variable <- factor(d.continuous$variable, levels=names(raster.list$continuous))
 d.circ <- subset(sampling.res$raster.samples, variable.type == 'circular')
 
-## extract continuous raster values
-d.continuous <- subset(sampling.res$raster.samples, variable.type == 'continuous')
-
-# convert "variable" into a factor with the same order as listed in config.R
-d.continuous$variable <- factor(d.continuous$variable, levels=names(raster.list$continuous))
-
-## http://adv-r.had.co.nz/memory.html#memory
-# free-up some memory
-sampling.res$raster.samples <- NULL
-
-## TODO: eventually there should be a function / template for any categorical data
-
 # subset and enable aspect summary
-if(nrow(d.circ) > 0) {
+if(nrow(d.circ) > 0) { ## TODO: could there ever be more than one type of circular variable? 
+#AB: direction of gradient could be determined for basically any raster... but obv. we don't use anything other than direction of slope gradient
   do.aspect <- TRUE
 } else do.aspect <- FALSE
 
-# subset and enable curvature classes
-curvature.classes <- unique(d.cat$variable)[grep('curvature', unique(d.cat$variable), ignore.case = TRUE)]
-if(length(curvature.classes) > 0) {
-  do.curvature.classes <- TRUE
-  d.curvature.classes <- subset(d.cat, subset=variable == curvature.classes)
-} else do.curvature.classes <- FALSE
+### SUBSET CATEGORICAL VARIABLEs
+#d.cat is derived from the sample object resulting from running cLHS_sample_by_polygon.R
+d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
+d.cat$.id <- factor(d.cat$.id,levels=mu.set)
+d.cat.sub <- list()
+categorical.defs <- list()#this defines the aliases and label:value:color sets for displaying categorical variables
+source("categorical_definitions.R") #this will load the structures that define value:label:color for categorical plot. 
+                                    #updates the "section_toggle" variable defined at top of report which will knit the appropriate plots for the specified categoricals from config.R
 
-# subset and enable geomorphons
-geomorphons.vars <- unique(d.cat$variable)[grep('geomorphon', unique(d.cat$variable), ignore.case = TRUE)]
-if(length(geomorphons.vars) > 0) {
-  do.geomorphons <- TRUE
-  d.geomorphons <- subset(d.cat, subset=variable == geomorphons.vars)
-} else do.geomorphons <- FALSE
 
-# subset and enable 2011 NLCD
-nlcd.classes <- unique(d.cat$variable)[grep('nlcd',unique(d.cat$variable), ignore.case = TRUE)]
-if(length(nlcd.classes) > 0) {
-  do.nlcd.classes <- TRUE
-  d.nlcd.classes <- subset(d.cat, subset=variable == nlcd.classes)
-} else do.nlcd.classes <- FALSE
-
+### FORMATTING
 ## figure out reasonable figure heights for bwplots and density plots
 # baseline height for figure margins, axes, and legend
 min.height <- 2 
@@ -335,9 +128,14 @@ min.height <- 2
 panel.height <- 2 * length(levels(d.continuous$variable))
 # extra height for each ID
 id.height <- 0.25 * length(levels(d.continuous$.id))
-
 dynamic.fig.height <- min.height + panel.height + id.height
 
+# nice colors
+cols <- brewer.pal(length(mu.set), 'Spectral')#makeNiceColors()
+
+#TODO: Null out raster samples to save memory TOGGLE
+## http://adv-r.had.co.nz/memory.html#memory
+#sampling.res$raster.samples <- NULL
 ```
 
 <br>
@@ -349,8 +147,6 @@ report version `r .report.version`
 
 <br>
 This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) are used as robust metrics of distribution central tendency and spread. Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
-
-
 
 ### Map Unit Polygon Data Source
 ```{r, echo=FALSE}
@@ -368,8 +164,6 @@ Target sampling density: <b>`r pts.per.acre` points/ac.</b> defined in `config.R
 ```{r, echo=FALSE}
 kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(sampling.res$area.stats)[-1]))
 ```
-
-
 
 
 ### Modified Box and Whisker Plots
@@ -501,225 +295,132 @@ res <- ldply(d.circ.list, function(i) {
 kable(res, align = 'r', col.names=c(mu.col, names(res)[-1]))
 ```
 
-
-### Slope Shape (Curvature) Summary
-The classes were generated using a 5x5 moving window, from a regional 30m or 10m, integer DEM. The precision may be limited, use with caution. See instructions for using your own (higher resolution) curvature classification raster.
-
-**Suggested usage:**
-
- * Use the graphical summary to identify patterns, then consult the tabular representation for specifics.
- * The conventions used here are "C" = concave, "L" = linear, and "V" = convex; "down slope" / "across slope".
- * Window size has a significant impact on reported curvature classes; larger windows = more generalization.
- * Curvature class and colors are aligned with an idealized *shedding* &rarr; *accumulating* hydrologic gradient.
-
-```{r, echo=FALSE, fig.width=12, fig.height=6, eval=do.curvature.classes}
-# set names: from Field Guide for description of soils
-## source data: opposite convention
-# 1's place: profile curvature
-# 10's place: plan curvature
-#
-## adapted from above
-## data are reported down/across slope
-# L/L | L/V | L/C         22 | 32 | 12  
-# V/L | V/V | V/C   ----> 23 | 33 | 13
-# C/L | C/V | C/C         21 | 31 | 11
-#
-# order according to approximate "shedding" -> "accumulating" gradient:
-# 'V/V', 'L/V', 'V/L', 'C/V', 'LL', 'C/L', 'V/C', 'L/C', 'C/C'
-#
-d.curvature.classes$value <- factor(d.curvature.classes$value, 
-                                    levels=c(33, 32, 23, 31, 22, 21, 13, 12, 11), 
-                                    labels = c('V/V', 'L/V', 'V/L', 'C/V', 'LL', 'C/L', 'V/C', 'L/C', 'C/C'))
-
-# tabulate and convert to proportions
-x <- xtabs(~ .id + value, data=d.curvature.classes)
-x <- sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/')
-
-# convert to long format for plotting
-x.long <- melt(x)
-# fix names: second column contains curvature class labels
-names(x.long)[2] <- 'curvature.class'
-
-# make some colors, and set style
-cols.curvature.classes <- brewer.pal(9, 'Spectral')
-tps <- list(superpose.polygon=list(col=cols.curvature.classes, lwd=2, lend=2))
-
-# no re-ordering of musym
-trellis.par.set(tps)
-barchart(as.character(.id) ~ value, groups=curvature.class, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$curvature.class), rectangles = TRUE, points=FALSE))
-```
-
-```{r, echo=FALSE, eval=do.curvature.classes}
-# print and truncate to 2 decimal places
-kable(x, digits = 2, caption = '')
-```
-
-
-
-### Geomorphon Landform Classification
-Proportion of samples within each map unit that correspond to 1 of 10 possible landform positions, as generated via [geomorphon](https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html) algorithm. Landform classification by [this method](http://dx.doi.org/10.1016/j.geomorph.2012.11.005) is scale-invariant and is therefore not affected by computational window size selection.
-
-
-**Suggested usage:**
-
-  * Use the graphical summary to identify patterns, then consult the tabular representation for specifics.
-  * "Flat" is based on a 3% slope threshold.
-  * Map units are organized (in the figure) according to the similarity, computed from proportions of each landform position.
-  * The [dendrogram](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html) on the right side of the figure describes relative similarity. "Lower branch height" (e.g. closer to the right-hand side of the figure) denotes more similar landform positions.
-  * Landform class labels and colors are aligned with an idealized *shedding* &rarr; *accumulating* hydrologic gradient.
-
-```{r, echo=FALSE, eval=do.geomorphons, fig.width=12, fig.height=6}
-## geomorphons:
-# set names
-# https://grass.osgeo.org/grass70/manuals/addons/r.geomorphon.html
-d.geomorphons$value <- factor(d.geomorphons$value, levels=1:10, labels = c('flat', 'summit', 'ridge', 'shoulder', 'spur', 'slope', 'hollow', 'footslope', 'valley', 'depression'))
-
-# tabulate and convert to proportions
-x <- xtabs(~ .id + value, data=d.geomorphons)
-x <- sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/')
-
-# create a signature of the most frequent classes that sum to 75% or
-x.sig <- apply(x, 1, function(i) {
-  # order the proportions of each row
-  o <- order(i, decreasing = TRUE)
-  # determine a cut point for cumulative proportion >= threshold value
-  thresh.n <- which(cumsum(i[o]) >= 0.75)[1]
-  # if there is only a single class that dominates, then offset index as we subtract 1 next
-  if(thresh.n == 1)
-    thresh.n <- 2
-  # get the top classes
-  top.classes <- i[o][1:(thresh.n-1)]
-  # format for adding to a table
-  paste(names(top.classes), collapse = '/')
-}
-)
-# prepare for printing HTML table
-x.sig <- as.data.frame(x.sig)
-names(x.sig) <- 'landform signature'
-
-# get a geomorphon signature for each polygon
-geomorphon.spatial.summary <- ddply(d.geomorphons, c('pID', '.id'), .fun=function(i) {
-  # drop unused map unit .id levels: we are only interested in the _current_ MU
-  i$.id <- factor(i$.id)
-  # tabulate and convert to proportions
-  # retain all geomorphon code levels
-  x <- xtabs(~ .id + value, data=i, drop.unused.levels = FALSE)
-  x <- sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/')
-  return(x)
-})
-
-## consider supervised classification for QC at this stage:
-# r <- randomForest(factor(.id) ~ ., data=geomorphon.spatial.summary[, -1])
-# geomorphon.spatial.summary$pred.id <- predict(r, geomorphon.spatial.summary)
-
-## most likely landform
-most.likely.landform.idx <- apply(geomorphon.spatial.summary[, -c(1:2)], 1, which.max)
-geomorphon.spatial.summary$ml_landform <- levels(d.geomorphons$value)[most.likely.landform.idx]
-
-## shannon H by polygon
-geomorphon.spatial.summary$shannon_h <- apply(geomorphon.spatial.summary[, 3:10], 1, function(i) {
-  -sum(i * log(i, base=10), na.rm=TRUE)
-})
-
-## TODO: is this of any use?
-# bwplot(.id ~ shannon_h, data=geomorphon.spatial.summary, xlab='Shannon Entropy', varwidth=TRUE, notch=TRUE)
-
-
-## convert proportions to long format for plotting
-x.long <- melt(x)
-# fix names: second column contains geomorphon labels
-names(x.long)[2] <- 'geomorphon'
-
-# make some colors, and set style
-cols.geomorphons <- c('grey', brewer.pal(9, 'Spectral'))
-tps <- list(superpose.polygon=list(col=cols.geomorphons, lwd=2, lend=2))
-
-# clustering of proportions only works with >1 group
-if(length(unique(x.long$.id)) > 1) {
-  # cluster proportions
-  x.d <- as.hclust(diana(daisy(x)))
-  # re-order MU labels levels based on clustering
-  x.long$.id <- factor(x.long$.id, levels=x.long$.id[x.d$order])
+```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis"}
+makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
+  variable.name = unique(dat$variable)[1] #this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
+  pat = variableNameToPattern(variable.name)
   
-  # musym are re-ordered according to clustering
-  trellis.par.set(tps)
-  barchart(.id ~ value, groups=geomorphon, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=5, text=levels(x.long$geomorphon), rectangles = TRUE, points=FALSE), legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10))))
-} else {
-  # re-order MU labels levels based on clustering
-  x.long$.id <- factor(x.long$.id)
+  metadat <- lvls <- lbls <- list()
   
+  if(is.null(pat)) {
+    metadat$header=variable.name #if no specific metadata for this variable, use the variable name as used in config file as header
+    metadat$description = "" #TODO: read from XML of raster?
+    metadat$levels = unique(dat$value)
+    metadat$labels = metadat$levels #does nothing special... one value = one label as character
+    lvls=metadat$levels
+    lbls=metadat$labels
+    metadat$colors = brewer.pal(length(metadat$levels), 'Spectral')
+                    #makeNiceColors() #tries to get contrasting colors if the number of classes is sufficiently small (<= 7) doesnt seem to work AB
+    metadat$decimals = 2
+    dat$value=factor(dat$value, levels=metadat$levels, labels=metadat$labels)
+  } else {
+    metadat <- categorical.defs[[pat]] #get the metadata if defined
+    flag = FALSE
+    if(!is.null(metadat$keep.all.classes)) #do not have to specify keep all classes, optional parameter. 
+      if(metadat$keep.all.classes) 
+        flag=TRUE     
+    if(!flag) {
+      lvls=metadat$levels[metadat$levels %in% dat$value] #default behavior is to remove extraneous classes for table readability
+      lbls=metadat$labels[metadat$levels %in% lvls]
+    } else {
+      lvls=metadat$levels
+      lbls=metadat$labels
+    }
+    dat$value=factor(dat$value, levels=lvls, labels=lbls)
+  }
+  
+  cat(paste0("  \n###", metadat$header,"  \n"))
+  if(!is.null(metadat$description))  {
+    cat(paste0("  \n",metadat$description,"  \n"))
+  }
+  if(!is.null(metadat$usage))  {
+    cat("  \n  **Suggested usage:**  \n")
+    cat(paste0("  \n",metadat$usage,"  \n  \n"))
+  }
+  
+  x <- sweepProportions(dat)
+  
+  # remove 0's
+  idx <- which(apply(x, 2, function(i) any(i > 0.001)))
+  # ensure that result is an object that can be converted to a data.frame: use drop=FALSE
+  
+  #now remove the extra classes if we had to drop a class after determining proportions to be too small
+  # this ensures that the correct color is used for each class
+  bad.vars.flag <- (!lbls %in% colnames(x[, -idx]))
+  lvls <- lvls[bad.vars.flag]
+  lbls <- lbls[bad.vars.flag]
+  
+  x <- x[, idx, drop=FALSE]
+  x.long <- melt(x)
+  names(x.long)[2] <- "label"
+  x.long[,1] <- factor(x.long[,1],levels=levels(factor(mu.set))) #what on earth why do i have to do this
+  
+  # create a signature of the most frequent classes that sum to 75% or
+  x.sig <- apply(x, 1, function(i) {
+      # order the proportions of each row
+      o <- order(i, decreasing = TRUE)
+      # determine a cut point for cumulative proportion >= threshold value
+      thresh.n <- which(cumsum(i[o]) >= 0.75)[1]
+      # if there is only a single class that dominates, then offset index as we subtract 1 next
+      if(thresh.n == 1)
+        thresh.n <- 2
+      # get the top classes
+      top.classes <- i[o][1:(thresh.n-1)]
+      # format for adding to a table
+      paste(names(top.classes), collapse = '/')
+    })
+  x.sig <- as.data.frame(x.sig)
+  names(x.sig) <- 'mapunit composition "signature" (most frequent classes that sum to 75% or more)'
+  
+  # get a signature for each polygon
+  spatial.summary <- ddply(dat, c( '.id','pID'), .fun=sweepProportions, drop.unused.levels=FALSE)
+  
+  ## consider supervised classification for QC at this stage:
+  # r <- randomForest(factor(.id) ~ ., data=geomorphon.spatial.summary[, -1])
+  # geomorphon.spatial.summary$pred.id <- predict(r, geomorphon.spatial.summary)
+  
+  ## most likely landform
+  most.likely.class.idx <- apply(spatial.summary[, -c(1:2)], 1, which.max)
+  spatial.summary[[paste0('ml_',variable.name)]] <- levels(dat$value)[most.likely.class.idx]
+  
+  ## shannon H by polygon
+  spatial.summary[[paste0('shannon_h_',variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, function(i) {
+    -sum(i * log(i, base=10), na.rm=TRUE)
+  })
+  
+  colors=metadat$colors[metadat$levels %in% lvls]
+  tps <- list(superpose.polygon=list(col=colors, lwd=2, lend=2))
   trellis.par.set(tps)
-  barchart(.id ~ value, groups=geomorphon, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=5, text=levels(x.long$geomorphon), rectangles = TRUE, points=FALSE))
+
+  if(length(unique(x.long$.id)) > 1 & do.spatial.summary) {
+    # cluster proportions
+    x.d <- as.hclust(diana(daisy(x)))
+    # re-order MU labels levels based on clustering
+    x.long$.id <- factor(x.long$.id, levels=unique(x.long$.id)[x.d$order])
+    # musym are re-ordered according to clustering
+    cat('  \n  \n')
+    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(factor(x.long$label)), rectangles = TRUE, points=FALSE),legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10)))))
+    cat('  \n  \n')
+  } else {
+    # re-order MU labels levels based on order()
+    x.long$.id <- factor(x.long$.id, levels=factor(x.long$.id))
+    
+    trellis.par.set(tps)
+    cat('  \n  \n')
+    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(factor(x.long$label)), rectangles = TRUE, points=FALSE)))
+    cat('  \n  \n')
+  }  
+  print(kable(x, digits = metadat$decimals))
+  cat('  \n  \n')
+  if(do.spatial.summary) {
+    print(kable(x.sig))
+    cat('  \n  \n')
+    mu <- merge(mu, spatial.summary, by='pID', all.x=TRUE)
+  }
+  return(TRUE)
 }
+l <- lapply(split(d.cat, f=d.cat$variable),FUN=makeCategoricalOutput)
 ```
-
-```{r, echo=FALSE, eval=do.geomorphons}
-# print and truncate to 2 decimal places
-kable(x, digits = 2, caption = '')
-```
-
-
-```{r, echo=FALSE, eval=do.geomorphons}
-kable(x.sig, caption = 'Landform "signatures": these are created from the top 75% fraction of (sampled) landform classes, in decreasing order.')
-```
-
-
-### Landcover Summary
-
-These values are from the [2011 NLCD](https://www.mrlc.gov/nlcd2011.php) (30m) database.
-
-```{r, echo=FALSE, fig.width=12, fig.height=8, eval=do.nlcd.classes}
-# These are from the NLCD 2011 metadata
-nlcd.leg <- structure(list(ID = c(0L, 11L, 12L, 21L, 22L, 23L, 24L, 31L, 
-41L, 42L, 43L, 51L, 52L, 71L, 72L, 73L, 74L, 81L, 82L, 90L, 95L
-), name = c("nodata", "Open Water", "Perennial Ice/Snow", "Developed, Open Space", 
-"Developed, Low Intensity", "Developed, Medium Intensity", "Developed, High Intensity", 
-"Barren Land (Rock/Sand/Clay)", "Deciduous Forest", "Evergreen Forest", 
-"Mixed Forest", "Dwarf Scrub", "Shrub/Scrub", "Grassland/Herbaceous", 
-"Sedge/Herbaceous", "Lichens", "Moss", "Pasture/Hay", "Cultivated Crops", 
-"Woody Wetlands", "Emergent Herbaceous Wetlands"), col = c("#000000", 
-"#476BA0", "#D1DDF9", "#DDC9C9", "#D89382", "#ED0000", "#AA0000", 
-"#B2ADA3", "#68AA63", "#1C6330", "#B5C98E", "#A58C30", "#CCBA7C", 
-"#E2E2C1", "#C9C977", "#99C147", "#77AD93", "#DBD83D", "#AA7028", 
-"#BAD8EA", "#70A3BA")), .Names = c("ID", "name", "col"), row.names = c(NA, 
--21L), class = "data.frame")
-
-# set factor levels
-d.nlcd.classes$value <- factor(d.nlcd.classes$value, 
-                                    levels = nlcd.leg$ID, 
-                                    labels = nlcd.leg$name)
-
-# tabulate and convert to proportions
-x <- xtabs(~ .id + value, data=d.nlcd.classes)
-# rounding to remove "tiny" fractions -> simpler legend
-x <- round(sweep(x, MARGIN = 1, STATS = rowSums(x), FUN = '/'), 3)
-
-# remove 0's
-idx <- which(apply(x, 2, function(i) any(i > 0.001)))
-# ensure that result is an object that can be converted to a data.frame: use drop=FALSE
-x <- x[, idx, drop=FALSE]
-
-# convert to long format for plotting
-x.long <- melt(x)
-# fix names: second column contains NLCD class labels
-names(x.long)[2] <- 'nlcd.class'
-
-
-# These are from the NLCD 2011 metadata
-# get colors for only those classes in this data
-cols.nlcd.classes <- nlcd.leg$col[match(levels(x.long$nlcd.class), nlcd.leg$name)]
-tps <- list(superpose.polygon=list(col=cols.nlcd.classes, lwd=2, lend=2))
-
-# no re-ordering of musym
-trellis.par.set(tps)
-barchart(as.character(.id) ~ value, groups=nlcd.class, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$nlcd.class), rectangles = TRUE, points=FALSE))
-```
-
-```{r, echo=FALSE, eval=do.nlcd.classes}
-# print and truncate to 2 decimal places
-kable(x, digits = 2, caption = '')
-```
-
 
 ### Multivariate Summary
 
@@ -1008,13 +709,8 @@ write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE)
 mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
 names(mu)[-1] <- abbreviateNames(mu)
 
-## join geomorphon class stats to attribute table
-if(do.geomorphons)
-  mu <- merge(mu, geomorphon.spatial.summary, by='pID', all.x=TRUE)
-
 # remove internally-used MU ID
 mu$.id <- NULL
-
 
 # save to file
 shp.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
