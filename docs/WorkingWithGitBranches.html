@@ -122,10 +122,17 @@ $(document).ready(function () {
 <h2>Working with Git and Branches</h2>
 <div id="author-andrew-brown" class="section level4">
 <h4>@author: Andrew Brown</h4>
-<p>In the Git version control system, branches are a way to experiment with new features whilst maintaining a record of commit history. This allows you to make commits and progress within your branch without contaminating the “production” branch (for our purposes typically called <em>master</em>).</p>
-<p>Essentially, a branch keeps track of the changes that have occured since a common ancestor/parent commit. Subsequent changes to the repository result in divergence of the branches, depending on which branch those changes are committed to. But, because of the known parent-child relationships between commits, changes made on related branches can be merged with or rebased from other branches with relative ease.</p>
-<p>Some branching principles: * Branch early and branch often. Branches are cheap, so don’t be afraid to use them. * Don’t let branches diverge too much if you can avoid it (at least rebase to <em>master</em> periodically, see below). * Maintaining branches for individual projects allows issues of varying scale to be addressed and updated without affecting non-target components. Further, it allows one to quickly change gears and track progress in sub-projects within the repository.</p>
-<p>As with any version control system, care needs to be taken to not create conflicting changes in parallel branches (that is, editing the same code simultaneously in both branches) as these will have to be manually reconciled, which can be time-consuming. See the <code>git merge</code> documentation (link at bottom of page) for a much more indepth discussion of resolving conflicts.</p>
+<p>In the Git version control system, branches are a way to experiment with new features whilst maintaining a record of “commit” history. This allows you to make progress within your development branch without contaminating the “production” branch (for our purposes typically called <em>master</em>).</p>
+<p>Essentially, a “commit” describes the line-by-line changes in files tracked by the Git repository. A branch groups a set of commits that have occured since a common ancestor/parent commit. Subsequent commits to a particular branch cause that branch to step forward in the commit history, and results in divergence of branches. However, because of the known parent-child relationships between commits, the changes made on related branches can be merged with or rebased from other branches with relative ease.</p>
+</div>
+<div id="some-branching-principles" class="section level4">
+<h4>Some branching principles:</h4>
+<ul>
+<li>Branch early and branch often. Branches are cheap, so don’t be afraid to use them.</li>
+<li>Don’t let branches diverge too much if you can avoid it (at least rebase periodically, see below).</li>
+<li>Maintaining branches for individual projects allows issues of varying scale to be addressed and updated without affecting non-target components. Further, it allows one to quickly change gears and track progress in sub-projects within the repository.</li>
+</ul>
+<p><strong>Warning: </strong>Care needs to be taken to not create conflicting changes in parallel branches (that is, editing the same code simultaneously in both branches) as these will have to be manually reconciled, which can be time-consuming. See the <code>git merge</code> documentation (link at bottom of page) for a much more indepth discussion of resolving conflicts.</p>
 <p>This helpfile assumes that <code>git</code> is available via the command-line (by adding the git bin path to your USER %PATH% variable) or that you are using Git Shell. All the same functionality is also available through the GUI version of Git.</p>
 </div>
 <div id="creating-a-local-repository" class="section level3">
@@ -136,7 +143,7 @@ $(document).ready(function () {
 </div>
 <div id="saving-your-changes-to-the-local-repository" class="section level3">
 <h3>Saving your changes to the local repository</h3>
-<p>Use <code>git add</code> to add files that you have changed within your repository to the “staging area” for a commit. The <code>-a</code> parameter for <code>git add</code> will stage all unstaged changes (be careful!) within the repository. You can use a .gitignore file to specify files to never include in your unstaged changes list (.RData, temp files, large output, binaries etc. are all good candidates for gitignore).</p>
+<p>Use <code>git add</code> to add changes within your repository to the “staging area” for a commit. The <code>-a</code> parameter for <code>git add</code> will stage all unstaged changes and untracked files (be careful!) within the repository. You can use a .gitignore file to specify files to never include in your “untracked” list (.RData, temp files, large output, binaries etc. are all good candidates for .gitignore).</p>
 <p>Use <code>git commit</code> to save changes that are staged and assign them a unique commit hash code. The state of the repository at time of commit can be retreived and referenced based on this unique code.</p>
 <pre><code>git add *.R
 git commit -m &quot;Added all the R files. Some descriptive message about what you changed in this commit.&quot;</code></pre>
@@ -153,25 +160,24 @@ git commit -m &quot;Added all the R files. Some descriptive message about what y
 <pre><code>git checkout MyBranch</code></pre>
 <p>The above command will change the contents of your local repository (directory structure, files, file contents, etc.) to reflect the status of <em>MyBranch</em>.</p>
 <p>Once you have checked out your branch, proceed to make your edits. Experiment. Make regular commits with meaningful explanations. All the while, you are without fear of overwriting the HEAD of the <em>master</em> branch before your code is production ready. It is not wise to have significant uncommitted changes, and that is why you are using a branch other than <em>master</em>.</p>
-<p>You can swap to a different branches as needed. As with when working on the <em>master</em> branch, your changes will be kept in your local repository until you push.</p>
+<p>You can swap to a different branches as needed. As usual, your changes will be kept in your local repository until you push.</p>
 </div>
-<div id="pushing-branch-changes-to-the-remote-repository-for-the-first-time-from-a-new-branch" class="section level3">
-<h3>Pushing branch changes to the remote repository for the first time (from a new branch)</h3>
-<p>After creating a branch in your local repository and making some changes/commits, you have to set the upstream Git reference before you can push your changes to the remote repository. You can do this with an additional argument to <code>git push</code>.</p>
-<p>The below command will set your upstream reference to the origin and create the branch <em>MyBranch</em> on the remote repository. This assumes the origin is set in your local repository (which it will be if it was created from a clone of the remote). You will need to create a remote repository (for example on the GitHub website) to push to if the repository originated locally.</p>
+<div id="pushing-branch-changes-to-remote-repository-first-time-from-a-new-branch" class="section level3">
+<h3>Pushing branch changes to remote repository (first time from a new branch)</h3>
+<p>After creating a branch in your local repository and making some commits, you have to set the upstream Git reference before you can push your changes to the remote repository. You can do this with an additional argument to <code>git push</code>.</p>
+<p>The below command will set your upstream reference to <code>origin</code> and create the branch <em>MyBranch</em> on the remote repository. This assumes <code>origin</code> is set in your local repository (which it will be if it was created from a clone of the remote). You will need to create a remote repository (for example on the GitHub website) and set it as your origin if the repository was initiated locally.</p>
 <pre><code>git push --set-upstream origin MyBranch</code></pre>
 </div>
 <div id="rebasing-master-into-your-branch-update-your-branch-from-master" class="section level3">
 <h3>Rebasing <em>master</em> into your branch (update your branch from <em>master</em>)</h3>
 <p>Switch to the master branch with <code>git checkout</code> then make sure local copy is up to date with the remote using <code>git pull</code>. Then use <code>git rebase</code> to bring the new changes from <em>master</em> into <em>MyBranch</em>. This essentially moves the commit your branch “branches off from” to the most up-to-date commit in <em>master</em>.</p>
-<p>After applying the commits from your branch to the parent commit from the master branch, and assuming there are no conflicts with parallel changes in the master branch on same code, you will have your <em>MyBranch</em> changes plus any additional changes from <em>master</em>.</p>
 <pre><code>git checkout master 
 git pull
 git rebase MyBranch</code></pre>
 </div>
 <div id="merging-your-branch-into-master-update-master-from-your-branch" class="section level3">
 <h3>Merging your branch into <em>master</em> (update <em>master</em> from your branch)</h3>
-<p>Make sure you don’t have uncommitted changes. These may be hard to recover in case conflicts occur during the merge.</p>
+<p>Make sure you don’t have uncommitted changes in either repository. These may be hard to recover in case conflicts occur during the merge.</p>
 <pre><code>git checkout master
 git pull
 git merge MyBranch</code></pre>
