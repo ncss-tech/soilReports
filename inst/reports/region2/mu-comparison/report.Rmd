@@ -8,14 +8,6 @@ output:
     keep_md: no
 ---
 
-```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-## version number
-.report.version <- '2.5'
-
-## short description
-.report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
-```
-
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 # setup
 library(knitr, quietly=TRUE)
