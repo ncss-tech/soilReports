@@ -11,6 +11,18 @@
 ## packages from GH, no deps
 .gh.packages.to.get <- c()
 
+## report name
+.report.name <- 'mlra-comparison'
+## version number
+.report.version <- '0.4'
+## short description
+.report.description <- 'compare MLRA using pre-made, raster sample databases'
+
+.files.to.copy <- c('report.Rmd','config.R','NOTES.md','changes.txt')
+.update.files.to.copy <- c('report.Rmd','NOTES.md','changes.txt')
+.has.shiny.interface <- FALSE
+
+
 
 ## fixes, usually due to an older version of R
 
