@@ -173,7 +173,8 @@ git commit -m &quot;Added all the R files. Some descriptive message about what y
 <p>Switch to the master branch with <code>git checkout</code> then make sure local copy is up to date with the remote using <code>git pull</code>. Then use <code>git rebase</code> to bring the new changes from <em>master</em> into <em>MyBranch</em>. This essentially moves the commit your branch “branches off from” to the most up-to-date commit in <em>master</em>.</p>
 <pre><code>git checkout master 
 git pull
-git rebase MyBranch</code></pre>
+git checkout MyBranch
+git rebase master</code></pre>
 </div>
 <div id="merging-your-branch-into-master-update-master-from-your-branch" class="section level3">
 <h3>Merging your branch into <em>master</em> (update <em>master</em> from your branch)</h3>

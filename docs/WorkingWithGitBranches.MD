@@ -78,7 +78,8 @@ Switch to the master branch with `git checkout` then make sure local copy is up 
 ```
 git checkout master 
 git pull
-git rebase MyBranch
+git checkout MyBranch
+git rebase master
 ```
 
 ### Merging your branch into *master* (update *master* from your branch)
