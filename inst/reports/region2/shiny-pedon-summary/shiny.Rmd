@@ -127,7 +127,6 @@ renderLeaflet({
     peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list)
     pedon_locations <- as(peds,'SpatialPointsDataFrame')
     mapview(pedon_locations)@map 
-
 })
 ```
 
