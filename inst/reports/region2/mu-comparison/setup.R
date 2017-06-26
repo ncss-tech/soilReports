@@ -9,8 +9,6 @@
 
 .report.name <- 'mu-comparison'
 .report.version <- '2.5'
-
-## short description
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 
 .paths.to.copy <- c('report.Rmd','config.R','NOTES.md','changes.txt')
