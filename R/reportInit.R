@@ -74,6 +74,8 @@ copyPath <- function(fname, srcDir, outputDir, overwrite = F) {
       if(!dir.exists(dst)) {
         #create directory structure recursively
         dir.create(dst, recursive = T)
+      }
+      if(dir.exists(outputDir) {
         #copy files recursively
         file.copy(src, outputDir, recursive = T, overwrite = overwrite)
       }
