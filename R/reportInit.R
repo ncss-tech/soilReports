@@ -34,6 +34,7 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
     if(exists('.update.paths.to.copy', envir = env)) {
       pa <- get('.update.paths.to.copy', envir = env)
       lapply(pa, FUN=copyPath, base.dir, outputDir, overwrite=T)
+      #TODO: should there be a check
     } else stop("Failed to update report -- no update paths to copy specified in setup.R!")
   }
   
