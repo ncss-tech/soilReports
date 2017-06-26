@@ -135,8 +135,8 @@ lh_s <- c('texcl', 'stratextsflag', 'sandvc', 'sandco', 'sandmed', 'sandfine', '
 lh_d <- c('organicmatpct', 'carbonorganicpct', 'carbontotalpct', 'ph1to1h2o', 'ph01mcacl2', 'phnaf', 'phoxidized', 'resistivity', 'ec', 'esp', 'sar', 'cecsumcations', 'cec7', 'ecec', 'sumbases', 'basesatsumcations', 'basesatnh4oac', 'caco3equiv', 'caco3lt20', 'gypsumequiv', 'feoxalate', 'feextractable', 'fetotal', 'sioxalate', 'extracid', 'extral', 'aloxalate', 'altotal', 'pmehlich3', 'ph2osoluble', 'poxalate', 'polsen', 'ptotal', 'nzpretention', 'dbthirdbar', 'dbovendry', 'aggstabpct', 'wtenthbarclod', 'wtenthbarsieve', 'wthirdbarclod', 'wthirdbarsieve', 'wfifteenbar', 'wretentiondiffws', 'wfifteenbartoclay', 'awc', 'adod', 'lep', 'cole', 'liquidlimit', 'pi', 'cec7clay')
 
 # fig.height
-ssp_nh <- length(lh_s[lh_s %in% names(lh)]) / 4 * 2.5
-dsp_nh <- length(lh_d[lh_d %in% names(lh)]) / 4
+ssp_nh <- ceiling(length(lh_s[lh_s %in% names(lh)]) / 4) * 3
+dsp_nh <- ceiling(length(lh_d[lh_d %in% names(lh)]) / 4) * 3
 dsp_nh <- ifelse(dsp_nh < 1, 1, dsp_nh)
 ```
 
