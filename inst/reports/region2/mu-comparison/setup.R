@@ -1,7 +1,9 @@
 ##
-## setup file for report, be sure to use standardized variable names
+## setup.R file for soilReports report
+## 
+## required fields: .report.name, .report.version, .report.description, .paths.to.copy (vector), .update.paths.to.copy,
+## optional fields: .packages.to.get, .gh.packages.to.get, .has.shiny.interface
 ##
-
 
 ## note: this will not update installed packages... could lead to dependency-related errors
 ## packages + deps from CRAN
