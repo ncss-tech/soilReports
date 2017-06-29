@@ -13,15 +13,6 @@ params:
    series: !r as.character("Miami")
    genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/pedon_summary_by_taxonname/genhz_rules/Generic_rules.R"))
 ---
-
-```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE, include=FALSE}
-## version number
-.report.version <- 1.0
-
-## short description
-.report.description <- 'summarize field pedons from NASIS pedon table'
-```
-
 ```{r setup, echo=FALSE, warning=FALSE}
 # generic horizon rules
 source(params$genhz_rules)

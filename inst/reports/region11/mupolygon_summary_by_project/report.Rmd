@@ -14,16 +14,6 @@ params:
    project_data_file_path: !r as.character("M:/geodata/project_data/")
    ssoffice: !r as.character("11IND")
 ---
-
-```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-## version number
-.report.version <- 0.1
-
-## short description
-.report.description <- 'summarize mupolygon layer from a geodatabase'
-```
-
-
 # Report Description
 
 This report summarizes the geographic setting of a list of musym within a shapefile. It is intented to be used to compare and contrast map units, and suggest possible Low, RV, and High values for soil components. 
