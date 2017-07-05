@@ -40,26 +40,23 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
   }
   
   # Add HTML comment containing report name, version and instance creation date/time above YAML header at top of report.Rmd
+  metadat_vars <- c(".report.name",".report.version",".report.description")
   if(exists('.report.name', envir=env) & exists('.report.version', envir=env) & exists('.report.description', envir=env)) {
-    headtxt <- paste0("<!-- ", get('.report.name', env), " (v", get('.report.version', env), ") -- instance created ",Sys.time(), "-->  \n")
+    rname <- get('.report.name', env)
+    rvers <- get('.report.version', env)
+    rdesc <- get('.report.description', env)
+    headtxt <- paste0("<!-- ",  rname," (v", rvers, ") -- instance created ", Sys.time(), "-->  \n")
     report.file <- paste0(outputDir,'/report.Rmd')
-    appendToTopOfFile(report.file, headtxt)
+    
+    appendBelowYAML(report.file, headtxt)
+    defineInCodeChunk(report.file,metadat_vars,c(paste0("\'",rname,"\'"),paste0("\'",rvers,"\'"),paste0("\'",rdesc,"\'")))
     
     if(exists('.has.shiny.interface')) { #put note at top of shiny file if one is defined.
       shiny.file <- paste0(outputDir,'/shiny.Rmd')
-      appendToTopOfFile(shiny.file, headtxt)
+      appendBelowYAML(shiny.file, headtxt)
+      defineInCodeChunk(shiny.file,metadat_vars,c(paste0("\'",rname,"\'"),paste0("\'",rvers,"\'"),paste0("\'",rdesc,"\'")))
     }
   }
-}
-
-appendToTopOfFile <- function(filepath, what) {
-  if(file.exists(filepath)) {
-    fcon <- file(filepath, 'r+') 
-    linez <- c(what,readLines(fcon))
-    writeLines(linez, con = fcon) 
-    close(fcon)
-    return(TRUE)
-  } else return(FALSE)
 }
 
 copyPath <- function(fname, srcDir, outputDir, overwrite = F) { 
@@ -84,24 +81,26 @@ copyPath <- function(fname, srcDir, outputDir, overwrite = F) {
   }
 }
 
-defineInCodeChunk <- function(filepath, param.name, param.value) {
-  #NOTE: param values will be directly injected; need to include e.g. escaped quotes for strings
+appendBelowYAML <- function(filepath, what) {
   if(file.exists(filepath)) {
-    buf = c("```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}")
-    for(p in 1:length(param.name)) buf=c(buf, paste0("\t",param.name[p], " <- ",param.value[p]))
-    buf = c(buf, "```")
     fcon <- file(filepath, 'r+')
     l <- readLines(fcon)
     yaml_block <- grepl(l,pattern="^---$")
-    idx = 2
-    if(any(yaml_block)) {
-      idx = max(which(yaml_block))
-    }
-    l <- c(l[1:idx],buf,l[idx+1:length(l)]) #add below YAML but above everything else
+    idx = 1
+    if(any(yaml_block)) idx <- max(which(yaml_block))
+    l <- c(l[1:idx],what,l[idx+1:length(l)]) #add below YAML but above everything else
     writeLines(l,fcon)
     close(fcon)
     return(TRUE)
   } else return(FALSE)
+}
+
+defineInCodeChunk <- function(filepath, param.name, param.value) {
+  #NOTE: param values will be directly injected; need to include e.g. escaped quotes for strings
+  buf = c("```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}")
+  for(p in 1:length(param.name)) buf=c(buf, paste0("\t",param.name[p], " <- ",param.value[p]))
+  buf = c(buf, "```")
+  return(appendBelowYAML(filepath,buf))
 }
 
 defineInYAMLHeader <- function(filepath, param.name, param.value) {
