@@ -85,7 +85,6 @@ git rebase master
 ### Merging your branch into *master* (update *master* from your branch)
 
 Make sure you don't have uncommitted changes in either repository. These may be hard to recover in case conflicts occur during the merge.
-
 ```
 git checkout master
 git pull
