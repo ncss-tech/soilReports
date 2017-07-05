@@ -28,9 +28,10 @@ listReports <- function(showFullPaths=FALSE) {
   full.paths <- paste0(base.dir, '/', rmd.files)
   report.metadata <- lapply(full.paths, .getReportMetaData)
   report.metadata <- do.call('rbind', report.metadata)
-  #for now remove the name metadata since we derive the report "name" from the report.set / folder name, but in future might use metadata name
-  report.metadata[,-which(names(report.metadata) == 'name')]
   
+  #for now remove the name metadata since we derive the report "name" from the report.set / folder name, but in future might use metadata name
+  report.metadata <- report.metadata[,-which(names(report.metadata) == 'name')]
+
   # combine and return
   res <- data.frame(name=report.set, report.metadata, stringsAsFactors = FALSE)
   if(showFullPaths)
