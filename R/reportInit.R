@@ -48,13 +48,13 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
     headtxt <- paste0("<!-- ",  rname," (v", rvers, ") -- instance created ", Sys.time(), "-->  \n")
     report.file <- paste0(outputDir,'/report.Rmd')
     
-    appendBelowYAML(report.file, headtxt)
     defineInCodeChunk(report.file,metadat_vars,c(paste0("\'",rname,"\'"),paste0("\'",rvers,"\'"),paste0("\'",rdesc,"\'")))
+    appendBelowYAML(report.file, headtxt)
     
     if(exists('.has.shiny.interface')) { #put note at top of shiny file if one is defined.
       shiny.file <- paste0(outputDir,'/shiny.Rmd')
-      appendBelowYAML(shiny.file, headtxt)
       defineInCodeChunk(shiny.file,metadat_vars,c(paste0("\'",rname,"\'"),paste0("\'",rvers,"\'"),paste0("\'",rdesc,"\'")))
+      appendBelowYAML(shiny.file, headtxt)
     }
   }
 }
