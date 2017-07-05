@@ -10,7 +10,7 @@
 }
 
 # list available reports
-listReports <- function() {
+listReports <- function(showFullPaths=FALSE) {
   
   # get base directory where reports are stored within package
   base.dir <- system.file('reports/', package='soilReports')
@@ -28,10 +28,13 @@ listReports <- function() {
   full.paths <- paste0(base.dir, '/', rmd.files)
   report.metadata <- lapply(full.paths, .getReportMetaData)
   report.metadata <- do.call('rbind', report.metadata)
+  #for now remove the name metadata since we derive the report "name" from the report.set / folder name, but in future might use metadata name
+  report.metadata[,-which(names(report.metadata) == 'name')]
   
   # combine and return
-  res <- data.frame(name=report.set, report.metadata, file.path = full.paths, stringsAsFactors = FALSE)
-  
+  res <- data.frame(name=report.set, report.metadata, stringsAsFactors = FALSE)
+  if(showFullPaths)
+    res <- cbind(res, full.paths) #may want to know which version of report you're installing from... e.g. dev or stable??
   return(res)
 }
 
