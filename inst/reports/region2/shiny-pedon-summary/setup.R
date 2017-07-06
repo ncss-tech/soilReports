@@ -15,5 +15,5 @@
 .report.version <- '0.1'
 .report.description <- 'interactively subset and summarize pedon data from one or more map units'
 
-.files.to.copy <- c('report.Rmd','shiny.Rmd','utility_functions.R','main.R','config.R','NOTES.md','changes.txt')
-.update.files.to.copy <- c('report.Rmd','shiny.Rmd','utility_functions.R','main.R')
+.paths.to.copy <- c('report.Rmd','shiny.Rmd','utility_functions.R','main.R','config.R','NOTES.md','changes.txt')
+.update.paths.to.copy <- c('report.Rmd','shiny.Rmd','utility_functions.R','main.R')
