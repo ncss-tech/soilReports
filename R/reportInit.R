@@ -119,8 +119,8 @@ defineInYAMLHeader <- function(filepath, param.name, param.value) {
       idx <- max(which(params_block))
       l <- c(l[1:idx],buf,l[idx+1:length(l)])#add inside yaml, after params: if exists
     } else l <- c(l[1:(idx-1)],buf,l[idx:length(l)]) #add inside yaml, at end of yaml block
-    writeLines(l,fcon)
     l <- l[-is.na(l)]
+    writeLines(l,fcon)
     close(fcon)
     return(TRUE)
   } else return(FALSE)
