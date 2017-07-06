@@ -90,7 +90,7 @@ appendBelowYAML <- function(filepath, what) {
     if(any(yaml_block)) idx <- max(which(yaml_block))
     l <- c(l[1:idx],what,l[idx+1:length(l)]) #add below YAML but above everything else
     l <- l[-is.na(l)]
-    writeLines(l,fcon)
+    #writeLines(l,fcon)
     close(fcon)
     return(TRUE)
   } else return(FALSE)
