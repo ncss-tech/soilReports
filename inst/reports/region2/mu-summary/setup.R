@@ -8,8 +8,8 @@
 .report.name <- 'mu-summary'
 .report.version <- 1.0
 .report.description <- 'summarize raster data for a large collection of map unit polygons'
-.paths.to.copy <- c('report.Rmd','generate-samples.R','make-reports.R','config.R','README.md')
-.update.paths.to.copy <- c('report.Rmd','generate-samples.R','make-reports.R','README.md')
+.paths.to.copy <- c('report.Rmd','generate-samples.R','make-reports.R','config.R','NOTES.md')
+.update.paths.to.copy <- c('report.Rmd','generate-samples.R','make-reports.R','NOTES.md')
 .has.shiny.interface <- FALSE
 
 # packages + deps from CRAN
