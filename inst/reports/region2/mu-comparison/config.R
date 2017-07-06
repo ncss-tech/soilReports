@@ -5,7 +5,6 @@
 ### configuration file, edit as needed
 ###
 
-
 #########################
 ### Raster Data Sources #
 #########################
@@ -16,28 +15,32 @@
 
 raster.list <- list(
   continuous=list(
-    `Mean Annual Air Temperature (degrees C)`='E:/Workspace/geodata/PRISM_800m/final_MAAT_800m.tif', 
-    `Mean Annual Precipitation (mm)`='E:/Workspace/geodata/PRISM_800m/final_MAP_mm_800m.tif',
-    `Effective Precipitation (mm)`='E:/Workspace/geodata/PRISM_800m/effective_precipitation_800m.tif',
-    `Frost-Free Days`='E:/Workspace/geodata/PRISM_800m/ffd_mean_800m.tif',
-    `Growing Degree Days (degrees C)`='E:/Workspace/geodata/PRISM_800m/gdd_mean_800m.tif',
-    `Elevation (m)`='E:/Workspace/geodata/DEM_KLM_int_AEA.tif',
-    `Slope Gradient (%)`='E:/Workspace/geodata/Slope_KLM_int_AEA.tif'
-    #`Annual Beam Radiance (MJ/sq.m)`='E:/gis_data/ca630/beam_rad_sum_mj_30m.tif,
-    #`(Estimated) MAST (degrees C)`='E:/gis_data/ca630/mast-model.tif'
-    # `Compound Topographic Index`='E:/gis_data/ca630/tci30.tif',
-    # `MRVBF`='E:/gis_data/ca630/mrvbf_10.tif',
-    # `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
+    `Mean Annual Air Temperature (degrees C)`='L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAAT_800m.tif', 
+    `Mean Annual Precipitation (mm)`='L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAP_mm_800m.tif', 
+    `Effective Precipitation (mm)`='L:/NRCS/MLRAShared/Geodata/climate/raster/effective_precipitation_800m.tif',
+    `Frost-Free Days`='L:/NRCS/MLRAShared/Geodata/climate/raster/ffd_mean_800m.tif',
+    `Growing Degree Days (degrees C)`='L:/NRCS/MLRAShared/Geodata/climate/raster/gdd_mean_800m.tif',
+    `Elevation (m)`='L:/NRCS/MLRAShared/Geodata/elevation/10_meter/ca630_elev',
+    `Slope Gradient (%)`='L:/NRCS/MLRAShared/Geodata/elevation/10_meter/ca630_slope',
+    `Rain Fraction`='L:/NRCS/MLRAShared/Geodata/climate/raster/rain_fraction_mean_800m.tif',
+    `Annual Beam Radiance (MJ/sq.m)`='L:/NRCS/MLRAShared/Geodata/DEM_derived/beam_rad_sum_mj_30m.tif',
+    `(Estimated) MAST (degrees C)`='E:/geodata/ca630/soil_temperature/spatial_data/mast-model.tif',
+    `Compound Topographic Index`='L:/NRCS/MLRAShared/Geodata/DEM_derived/tci30.tif',
+    `SAGA TWI`='L:/NRCS/MLRAShared/Geodata/DEM_derived/saga_twi_10.tif',
+    `K40 percentage`='L:/NRCS/MLRAShared/Geodata/Radiometric/namrad_k_aea.tif'
   ),
   categorical=list(
-    `Geomorphon Landforms`='E:/Workspace/geodata/Geomorphons/forms10_region2.tif',
-    `Curvature Classes`='E:/Workspace/geodata/MU_Curvature/curvature_classes_10_class_region2.tif',
-    `NLCD 2011`='E:/Workspace/geodata/land_use_land_cover/nlcd_2011_cropped.tif'
+    `R1056ness`='E:/workspace/r1056ness_ras',
+    `Geomorphon Landforms`='L:/NRCS/MLRAShared/Geodata/DEM_derived/forms10.tif',
+    `Curvature Classes`='L:/NRCS/MLRAShared/Geodata/DEM_derived/curvature_classes_15.tif',
+    `NLCD`='L:/NRCS/MLRAShared/Geodata/NLCD/nlcd_ca630',
+    `Mesic Thermic Uncertainty`='S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model-mesic_thermic-uncertainty.tif'
   ),
   circular=list(
-    `Slope Aspect (degrees)`='E:/Workspace/geodata/Aspect_KLM_int_AEACopy.tif'
-    )
+    `Slope Aspect (degrees)`='L:/NRCS/MLRAShared/Geodata/DEM_derived/ca630_aspect'
+  )
 )
+
 
 
 ###################
@@ -58,7 +61,7 @@ raster.list <- list(
 # name of featureclass
 # mu.layer <- 'ca630_a'
 # map unit symbols / keys to extract
-# mu.set <- c('7011', '5012', '7089')
+ mu.set <- c('6072','6071','6205','6034')
 
 
 
@@ -67,9 +70,9 @@ raster.list <- list(
 ##
 
 # path to SHP
-mu.dsn <- 'E:/Workspace/Project_Folder/MUSum'
+mu.dsn <- 'L:/NRCS/MLRAShared/CA630/FG_CA630_OFFICIAL.gdb'
 # SHP name, without file extension
-mu.layer <- 'MUs_for_analysis'
+mu.layer <- 'ca630_a'
  
 
 
@@ -89,7 +92,7 @@ mu.col <- 'MUSYM'
 # increase if there are un-sampled polygons
 # delineations smaller than 5 ac. may require up to 5 points / ac.
 # values > 6-7 points / ac. will only slow things down
-pts.per.acre <- 1
+pts.per.acre <- 0.01
 
 
 
