@@ -1,6 +1,11 @@
 ---
 title: null
-output: html_document
+output:
+  html_document:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
 ---
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
