@@ -92,7 +92,6 @@ appendBelowYAML <- function(filepath, what) {
     l <- c(l[1:idx],what,l[idx+1:length(l)]) #add below YAML but above everything else
     l <- l[!is.na(l)]
     writeLines(l,fcon)
-    print(l)
     close(fcon)
     return(TRUE)
   } else return(FALSE)
