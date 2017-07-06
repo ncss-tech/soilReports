@@ -10,17 +10,6 @@ output:
       collapsed: yes
       smooth_scroll: no
 ---
-
-
-```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-## version number
-.report.version <- 0.1
-
-## short description
-.report.description <- 'summarize component data for an MLRA project'
-```
-
-
 ```{r setup, echo = FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE, fig.width = 8.5)
 
@@ -30,7 +19,7 @@ options(stringsAsFactors = FALSE)
 
 ```{r}
 library(soilDB)
-library(soilReports)
+library(soilReports) ##AB: Is this required?
 library(ggplot2)
 library(knitr)
 

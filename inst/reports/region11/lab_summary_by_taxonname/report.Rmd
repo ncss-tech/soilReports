@@ -14,16 +14,6 @@ params:
    series: !r as.character("Miami")
    genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/lab_summary_by_taxonname/genhz_rules/Generic_rules.R"))
 ---
-
-```{r report-metadata, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-## version number
-.report.version <- 1.0
-
-## short description
-.report.description <- 'summarize lab data from NASIS Lab Layer table'
-```
-
-
 ```{r setup, echo=FALSE, warning=FALSE}
 p <- c(0, 0.25, 0.5, 0.75, 1)
 

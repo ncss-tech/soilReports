@@ -1,28 +1,16 @@
 
 # extract the version number from a single report
 .getReportMetaData <- function(x) {
-  # scan through .Rmd file
-  f <- readLines(x)
-  
-  # locate the version string
-  idx <- grep('.report.version <- ', f)
-  v <- as.character(eval(parse(text=f[idx])))
-  if(length(v) < 1)
-    v <- NA
-  
-  # locate the description string
-  idx <- grep('.report.description <- ', f)
-  d <- as.character(eval(parse(text=f[idx])))
-  if(length(d) < 1)
-    d <- NA
-  
+  env <- new.env()
+  sys.source(paste0(dirname(x),"/setup.R"), env)
   # combine and return
-  res <- data.frame(version=v, description=d, stringsAsFactors = FALSE)
+  if(exists('.report.name',env) & exists('.report.version',env) & exists('.report.description',env))
+    res <- data.frame(name=get('.report.name',env), version=get('.report.version',env), description=get('.report.description',env), stringsAsFactors = FALSE)
   return(res)
 }
 
 # list available reports
-listReports <- function() {
+listReports <- function(showFullPaths=FALSE) {
   
   # get base directory where reports are stored within package
   base.dir <- system.file('reports/', package='soilReports')
@@ -40,10 +28,12 @@ listReports <- function() {
   full.paths <- paste0(base.dir, '/', rmd.files)
   report.metadata <- lapply(full.paths, .getReportMetaData)
   report.metadata <- do.call('rbind', report.metadata)
-  
+  #for now remove the name metadata since we derive the report "name" from the report.set / folder name, but in future might use metadata name
+  report.metadata <- report.metadata[,-which(names(report.metadata) == 'name')]
   # combine and return
-  res <- data.frame(name=report.set, report.metadata, file.path = full.paths, stringsAsFactors = FALSE)
-  
+  res <- data.frame(name=report.set, report.metadata, stringsAsFactors = FALSE)
+  if(showFullPaths)
+    res <- cbind(res, full.paths) #may want to know which version of report you're installing from... e.g. dev or stable??
   return(res)
 }
 
