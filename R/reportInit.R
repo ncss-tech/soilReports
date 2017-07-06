@@ -11,31 +11,27 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
   # source file into temp environment
   env <- new.env()
   sys.source(setup.file, envir = env)
+  if(missing(outputDir)) {
+    outputDir <- getwd()
+  } else {
+    # check for existing data
+    if(overwrite != TRUE & dir.exists(outputDir)) 
+      stop(paste0('there is already a folder named `', outputDir, '` in the current working directory'), call. = FALSE)
+    # create the specified output directory
+    dir.create(outputDir, recursive = TRUE)
+  }  
   
   if(!updateReport) {
-    if(missing(outputDir)) {
-      outputDir <- getwd()
-    } else {
-      # check for existing data
-      if(overwrite != TRUE & dir.exists(outputDir)) 
-        stop(paste0('there is already a folder named `', outputDir, '` in the current working directory'), call. = FALSE)
-      # create the specified output directory
-      dir.create(outputDir, recursive = TRUE)
-    }
-    
     if(exists('.paths.to.copy', envir = env)) { #copy everything if not in "update" mode
       pa <- get('.paths.to.copy', envir = env)
       lapply(pa, FUN=copyPath, base.dir, outputDir)
-      print("Successfully initiated report!")
     } else stop("Failed to instantiate report -- no paths to copy specified in setup.R!")
   } else {
-    #TODO: could try and infer which files are "config" and ignore those, requiring only the .paths.to.copy variable
-    #      but for now, just require reports to specify what gets updated when updateReport is called
     if(exists('.update.paths.to.copy', envir = env)) {
       pa <- get('.update.paths.to.copy', envir = env)
       lapply(pa, FUN=copyPath, base.dir, outputDir, overwrite=T)
-      print("Successfully updated report!")
       #TODO: should there be a check that required components are present? check against ".paths.to.copy"? only look for R/Rmds?
+      #      how about a check to verify correct (possibly vintage) versions of R packages are installed?
     } else stop("Failed to update report -- no update paths to copy specified in setup.R!")
   }
   
@@ -47,6 +43,8 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
     rdesc <- get('.report.description', env)
     headtxt <- paste0("<!-- ",  rname," (v", rvers, ") -- instance created ", Sys.time(), "-->  \n")
     report.file <- paste0(outputDir,'/report.Rmd')
+    
+    print(paste0(rname," (v", rvers, ") report instance created in ",outputDir,". [updateReport=", updateReport,"; overwrite=",overwrite,"]"))
     
     defineInCodeChunk(report.file,metadat_vars,c(paste0("\'",rname,"\'"),paste0("\'",rvers,"\'"),paste0("\'",rdesc,"\'")))
     appendBelowYAML(report.file, headtxt)
@@ -87,8 +85,10 @@ appendBelowYAML <- function(filepath, what) {
     l <- readLines(fcon)
     yaml_block <- grepl(l,pattern="^---$")
     idx = 1
-    if(any(yaml_block)) idx <- max(which(yaml_block))
+    if(any(yaml_block)) 
+      idx <- max(which(yaml_block))
     l <- c(l[1:idx],what,l[idx+1:length(l)]) #add below YAML but above everything else
+    l <- l[!is.na(l)]
     writeLines(l,fcon)
     close(fcon)
     return(TRUE)
@@ -118,6 +118,7 @@ defineInYAMLHeader <- function(filepath, param.name, param.value) {
       idx <- max(which(params_block))
       l <- c(l[1:idx],buf,l[idx+1:length(l)])#add inside yaml, after params: if exists
     } else l <- c(l[1:(idx-1)],buf,l[idx:length(l)]) #add inside yaml, at end of yaml block
+    l <- l[!is.na(l)]
     writeLines(l,fcon)
     close(fcon)
     return(TRUE)
