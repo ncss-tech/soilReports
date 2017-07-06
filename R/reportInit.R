@@ -87,10 +87,12 @@ appendBelowYAML <- function(filepath, what) {
     l <- readLines(fcon)
     yaml_block <- grepl(l,pattern="^---$")
     idx = 1
-    if(any(yaml_block)) idx <- max(which(yaml_block))
+    if(any(yaml_block)) 
+      idx <- max(which(yaml_block))
     l <- c(l[1:idx],what,l[idx+1:length(l)]) #add below YAML but above everything else
-    l <- l[-is.na(l)]
-    #writeLines(l,fcon)
+    l <- l[!is.na(l)]
+    writeLines(l,fcon)
+    print(l)
     close(fcon)
     return(TRUE)
   } else return(FALSE)
@@ -119,7 +121,7 @@ defineInYAMLHeader <- function(filepath, param.name, param.value) {
       idx <- max(which(params_block))
       l <- c(l[1:idx],buf,l[idx+1:length(l)])#add inside yaml, after params: if exists
     } else l <- c(l[1:(idx-1)],buf,l[idx:length(l)]) #add inside yaml, at end of yaml block
-    l <- l[-is.na(l)]
+    l <- l[!is.na(l)]
     writeLines(l,fcon)
     close(fcon)
     return(TRUE)
