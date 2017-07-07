@@ -1,0 +1,263 @@
+---
+title: "Interactive Component Report - static export"
+output:
+  html_document:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='center', fig.retina=2, dev='png', antialias='cleartype')
+```
+
+
+```{r}
+  #outside of reactive context only need to call these once
+  sourcemu <- input$s.mu 
+  comp <- s.comp
+  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list)
+  peds$genhzraw <- as.character(peds$genhz) #this plot function gets mad if name is a factor...
+  s <- summarize.component(peds)
+  
+  if(!dir.exists("output"))
+    dir.create("output")
+  
+  #also, save the R objects corresponding to the data for archive purposes as well as flat files with pedonids to support future NASIS queries etc.
+  save(comp, file=paste0("output/",paste0("report_",paste(levels(factor(s.pedons$MUSYM)),collapse="-"),"_",input$component_name,"_components.Rda")))
+  save(peds, file=paste0("output/",paste0("report_",paste(levels(factor(s.pedons$MUSYM)),collapse="-"),"_",input$component_name,"_pedons.Rda")))
+  save(s,    file=paste0("output/",paste0("report_",paste(levels(factor(s.pedons$MUSYM)),collapse="-"),"_",input$component_name,"_summary.Rda")))
+  
+  tabular=site(peds)
+  #TODO: calculate summaries of horizon level data and aggregate to site level? e.g. PSCS clay, sand, fragments, diagnostics?
+  pedmat <- data.frame(siteiid=tabular$siteiid,peiid=tabular$peiid,site_id=tabular$site_id,pedon_id=tabular$pedon_id,musym=tabular$MUSYM,taxon=toupper(tabular$taxonname),ppt=tabular$gis_ppt, maat=tabular$gis_tavg, ffd=tabular$gis_ffd, gdd=tabular$gis_gdd, elev=tabular$gis_elev, slope=tabular$gis_slope, geomorph=tabular$gis_geomorphons)
+  
+  #nice pedon list at top of reports
+  kable(pedmat)
+  
+  #this table should be appropriate for direct paste into nasis as a text note to show source of pedon data for compon ent
+  write.csv(x = pedmat[,1:6],file=paste0("output/report_",paste(levels(factor(s.pedons$MUSYM)),collapse="-"),"_",input$component_name,"_pedonlist.csv"))
+  
+  #extended output contains gis extracted data, should check this to verify nothin is too weird with the set before proceeding
+  write.csv(x = pedmat,file=paste0("output/report_",paste(levels(factor(s.pedons$MUSYM)),collapse="-"),"_",input$component_name,"_pedonlist_ex.csv"))
+```
+
+## MUSYM: `r input$s.mu`; Component: `r input$component_name`; Modal: `r input$modal_pedon`
+
+### Grouped Profile Plot
+```{r,fig.width=12, fig.height=8}
+#TODO: abstract these with "reactive" and "static" available as a toggle
+    groupedProfilePlot(peds,groups = 'taxonname', label='pedon_id', 
+                         print.id = TRUE, id.style = 'side', cex.id=1.2, 
+                         cex.names=1, cex.depth.axis=1.25,y.offset=7, 
+                         axis.line.offset=-3.0, group.name.cex=1, 
+                         group.name.offset = -6, color=input$thematic_field,
+                         width=0.1,shrink=T,shrink.cutoff=3)
+```
+
+### Slab-wise Profile plot
+Blue line shows the median slab value for the selected set of pedons, with the 25th to 75th percentile envelope shown in gray. Thick red line shows the values from selected modal pedon.
+```{r,fig.width=8, fig.height=8}
+    sl <- slab(peds, fm = as.formula(paste0(" ~ ",input$thematic_field)))
+    a <- xyplot(top ~ p.q50, data=sl, ylab='Depth',
+             xlab=paste0(input$thematic_field,'\nmedian bounded by 25th and 75th percentiles'),
+             lower=sl$p.q25, upper=sl$p.q75, ylim=c(250,-5),
+             panel=panel.depth_function, 
+             prepanel=prepanel.depth_function,
+             cf=sl$contributing_fraction, aspect = 1.5,
+             layout=c(1,1), scales=list(x=list(alternating=1)))
+    
+    if(!is.na(input$modal_pedon)) {
+      modalped <- horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),]) 
+      #TODO: select modal pedon, need to query additional component data? or use dropdown box of available peds
+      modalped$middepth <- modalped$hzdept + (modalped$hzdepb - modalped$hzdept)/2
+      
+      foo <- 1:(length(modalped$middepth)*3)
+      modalpedplot <- data.frame(foo)
+      modalpedplot$y <- 1:length(foo)
+      modalpedplot$y[which((foo %% 3)==1)] <- modalped$hzdept
+      modalpedplot$y[which((foo %% 3)==2)] <- modalped$middepth
+      modalpedplot$y[which((foo %% 3)==0)] <- modalped$hzdepb
+      modalpedplot$x <- rep(modalped[[input$thematic_field]],each=3)
+      b <- xyplot(y~x,data=modalpedplot, type="l", col="RED",lwd=2,ylim=c(250,-5),layout=c(1,1), scales=list(x=list(alternating=1)),par.settings = list(superpose.line = list(lwd=3)))
+      (a + as.layer(b))
+    } else {
+      a
+    }
+```
+
+### Generalized Grouped Profile Plot
+```{r,fig.width=12, fig.height=8}
+  groupedProfilePlot(peds,name='genhzraw',groups = 'taxonname', label='pedon_id', 
+                         print.id = TRUE, id.style = 'side', cex.id=1.2, 
+                         cex.names=1, cex.depth.axis=1.25,y.offset=7, 
+                         axis.line.offset=-3.0, group.name.cex=1, 
+                         group.name.offset = -6, color=input$thematic_field,
+                         width=0.1,shrink=T,shrink.cutoff=3)
+```
+
+### Generalized Horizon Probability
+```{r,fig.width=10, fig.height=8}
+  update(s$ml.hz.plot, aspect = 1.5)
+```
+
+### Geomorphology
+
+#### Hillslope position (2D)
+```{r}
+  df <- categorical.prop.table(peds$hillslope_pos)
+  kable(df)
+  
+  if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$hillslope_pos))
+  }
+```
+
+#### Geomorphic position - Hills (3D)
+```{r}
+  df <- categorical.prop.table(peds$geompos_hill)
+  kable(df)
+  
+  if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$geompos_hill))
+  }
+```
+
+#### Geomorphic position - Mountains (3D)
+```{r}
+  df <- categorical.prop.table(peds$geompos_mntn)
+  kable(df)
+  
+  if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$geompos_mntn))
+  }
+```
+
+#### Geomorphons
+```{r}
+  df <- categorical.prop.table(peds$gis_geomorphons)
+  kable(df)
+  
+  if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$gis_geomorphons))
+  }
+```
+
+#### Drainage class
+```{r}
+  df <- categorical.prop.table(peds$drainagecl)
+  kable(df)
+  
+  if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$drainagecl))
+  }
+```
+
+#### Surface Shape (DOWN/ACROSS)
+```{r}
+  down <- peds$shapedown
+  acro <- peds$shapeacross
+  levels(down) <- c("V","L","C")
+  levels(acro) <- c("V","L","C")
+  shape <- factor(paste(as.character(down),as.character(acro),sep="/"))
+  shape[grepl(shape,pattern="NA")] <- NA
+  shape <- factor(shape)
+  df <- categorical.prop.table(shape)
+  kable(df)
+  
+  if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$shapedown,modal$shapeacross))
+  }
+```
+
+### Aspect
+```{r,fig.width=8, fig.height=8}
+  aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
+
+  if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$aspect_field))
+  }
+```
+
+### Ecology
+
+#### Ecological site
+```{r}
+  df <-  categorical.prop.table(peds$ecositeid)
+  kable(df)
+  
+    if(!is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$ecositeid))
+  }
+```
+
+#### Plant list
+TODO: Print component plant data
+
+### Horizon
+
+#### Field-described versus Generalized Horizonation
+```{r} 
+  kable(table(peds$genhz,peds$hzname))
+```
+
+#### Horizonation Network Graph
+```{r,fig.width=6, fig.height=6}
+  m <- genhzTableToAdjMat(table(peds$genhz,peds$hzname))
+  plotSoilRelationGraph(m, graph.mode = 'directed', edge.arrow.size=0.5, vertex.label.family='sans')
+```
+
+### Texture
+```{r}
+  kable(s$tt)
+  #texture.triangle.low.rv.high(data.frame(sand=peds$sand,silt=peds$silt,clay=peds$clay), p=c(0.05, 0.5, 0.95))  
+```
+
+### Color
+```{r,fig.width=12, fig.height=8}
+  aggregateColorPlot(aggregateColor(peds, groups = 'genhz', col = 'soil_color'), label.font = 1, label.cex = 0.95, print.n.hz = TRUE)
+```
+
+### Morphology
+```{r}
+  kable(s$rt)
+```
+
+### Surface Fragments
+```{r}
+  kable(s$sf)
+```
+
+### Diagnostics
+```{r}
+  kable(s$dt)
+```
+
+### Diagnostics plot
+```{r,fig.width=12, fig.height=8}
+#TODO: why does this break with few pedons? are all relevant diagnostics in here? (NB redox)
+  # kk = 4
+  # if(length(peds) != 0) {
+  #   if(nrow(peds) < 4)
+  #     kk <- nrow(peds) - 2
+  #   if(nrow(peds) > 2)
+  #     diagnosticPropertyPlot2(peds, v=c('lithic.contact', 'paralithic.contact', 'argillic.horizon', 'cambic.horizon', 'ochric.epipedon', 'mollic.epipedon', 'very.shallow', 'shallow', 'mod.deep', 'deep', 'very.deep'), k=kk)
+  # }
+```
+  
+### Mapunit Summary
+```{r}
+  print(s$pmg,fig.width=12, fig.height=8)
+```
+
+-----------------------------------------
+This document is based on `aqp` version `r utils::packageDescription("aqp", field="Version")` and `soilDB` version `r utils::packageDescription("soilDB", field="Version")`. Interface based on `shiny` version `r utils::packageDescription("shiny", field="Version")` and `rmarkdown` version `r utils::packageDescription("rmarkdown", field="Version")`.
