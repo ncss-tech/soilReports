@@ -1,1 +1,2 @@
+2017-07-06: stable version merged into 'master' soilReports branch 
 2017-04-26: inital commit of cleanish copy; setup for working within soilReports package

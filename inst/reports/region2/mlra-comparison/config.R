@@ -15,6 +15,7 @@ prism.path <- 'mlra-prism-data.rda'
 geomorphons.path <- 'mlra-geomorphons-data.rda'
 nlcd.path <- 'mlra-nlcd-data.rda'
 soil.path <- 'mlra-soil-data.rda'
+namrad.path <- 'mlra-namrad-data.rda'
 
 ####################
 ### MLRA selection #

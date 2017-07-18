@@ -139,22 +139,26 @@ load(prism.path)
 load(geomorphons.path)
 load(nlcd.path)
 load(soil.path)
+load(namrad.path)
 
 # subset to requested MLRA
 mlra.prism.data <- subset(mlra.prism.data, subset=mlra %in% mu.set)
 mlra.geomorphons.data <- subset(mlra.geomorphons.data, subset=mlra %in% mu.set)
 mlra.nlcd.data <- subset(mlra.nlcd.data, subset=mlra %in% mu.set)
 mlra.soil.data <- subset(mlra.soil.data, subset=mlra %in% mu.set)
+mlra.namrad.data <- subset(mlra.namrad.data, subset=mlra %in% mu.set)
 
 # set factor levels to order in config.R
 mlra.prism.data$mlra <- factor(mlra.prism.data$mlra, levels=mu.set)
 mlra.geomorphons.data$mlra <- factor(mlra.geomorphons.data$mlra, levels=mu.set)
 mlra.nlcd.data$mlra <- factor(mlra.nlcd.data$mlra, levels=mu.set)
 mlra.soil.data$mlra <- factor(mlra.soil.data$mlra, levels=mu.set)
+mlra.namrad.data$mlra <- factor(mlra.namrad.data$mlra, levels=mu.set)
 
 # cast some data to long format for plotting
 mlra.prism.data.long <- melt(mlra.prism.data, id.vars = 'mlra')
 mlra.soil.data.long <- melt(mlra.soil.data, id.vars = 'mlra')
+mlra.namrad.data.long <- melt(mlra.namrad.data, id.vars = 'mlra')
 
 # nice colors
 # 7 or fewer classes, use high-constrast colors
@@ -166,6 +170,8 @@ if(length(mu.set) <= 7) {
   # otherwise, use 12 paired colors
   cols <- brewer.pal(12, 'Paired')
 }
+
+gc(reset = TRUE)
 ```
 
 <br>
@@ -229,6 +235,24 @@ bwplot(mlra ~ value | variable, data=mlra.soil.data.long,
        })
 ```
 
+```{r, echo=FALSE, fig.width=8, fig.height=10}
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+
+# NOTE: notches rely on effective sampling size
+bwplot(mlra ~ value | variable, data=mlra.namrad.data.long, 
+       scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
+       strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps,
+       layout=c(1, length(unique(mlra.namrad.data.long$variable))),
+       panel=function(...) {
+         
+         # make a grid
+         panel.grid(h=0, v=-1, col='grey', lty=3)
+         panel.abline(h=1:length(unique(mlra.namrad.data.long$mlra)), col='grey', lty=3)
+         
+         # boxplots
+         panel.bwplot(..., stats=custom.bwplot)
+       })
+```
 
 ### Density Plots
 These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
@@ -266,6 +290,20 @@ n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 density.plot.data <- ddply(mlra.soil.data.long, c('mlra', 'variable'), scaled.density)
 
 xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.soil.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+
+rm(density.plot.data)
+```
+
+```{r, echo=FALSE, fig.width=8, fig.height=9}
+tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
+
+# dynamic setting of columns in legend
+n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
+
+# compute densities and re-scale to {0,1}
+density.plot.data <- ddply(mlra.namrad.data.long, c('mlra', 'variable'), scaled.density)
+
+xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.namrad.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
 
 rm(density.plot.data)
 ```

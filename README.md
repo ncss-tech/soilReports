@@ -97,7 +97,7 @@ reportSetup(reportName='region2/mlra-comparison')
 reportInit(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
 ```
 
-Download the three raster sample databases into the directory created above.
+Download the raster sample databases into the directory created above.
 ```r
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-geomorphons-data.rda', 
 destfile='MLRA-comparison/mlra-geomorphons-data.rda')
@@ -110,6 +110,9 @@ destfile='MLRA-comparison/mlra-prism-data.rda')
 
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-soil-data.rda', 
 destfile='MLRA-comparison/mlra-soil-data.rda')
+
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-namrad-data.rda', 
+destfile='MLRA-comparison/mlra-namrad-data.rda')
 ```
 
 ### Component Summary by Project

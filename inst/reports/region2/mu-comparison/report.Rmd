@@ -57,9 +57,8 @@ if(exists('mu.set')) { #TODO: this type of if(exists(obj)) needs to wrap all ref
   # coerce mu.set to character just in integers were specified
   mu.set <- as.character(mu.set)
   mu <- mu[which(mu[[mu.col]] %in% mu.set), ] # if mu.set defined in config.R, only keep the items from set
-} else {
-  mu.set <- unique(mu[[mu.col]]) # keep only those records that made it through the filering step
 }
+mu.set <- unique(mu[[mu.col]]) # keep only those records that made it through the filering step
 
 # add a unique polygon ID
 mu$pID <- seq(from=1, to=length(mu))
