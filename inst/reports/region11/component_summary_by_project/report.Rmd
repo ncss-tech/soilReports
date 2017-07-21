@@ -58,12 +58,12 @@ s <- site(comp)
 h <- horizons(comp)
 
 n_coiid <- length(unique(subsetProfiles(comp, h = "!is.na(comp$hzdept_r)")$coiid))
-n_depthplots  <- ceiling(n_coiid / 4) * 3
+n_depthplots  <- ceiling(n_coiid / 4) * 4
 n_cosoilmoistiid <- length(unique(cosm$coiid))
-n_cosoilmoist <- ceiling(n_cosoilmoistiid / 2) * 3
+n_cosoilmoist <- ceiling(n_cosoilmoistiid / 2) * 4
 
 profile_idx <- pIndex(comp, 10)
-n_profile <- ceiling(length(unique(comp$coiid)) / 10) * 2
+n_profile <- ceiling(length(unique(comp$coiid)) / 10) * 4
 
 # component
 
