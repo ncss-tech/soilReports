@@ -179,7 +179,8 @@ Blue line shows the median slab value for the selected set of pedons, with the 2
 
 ### Aspect
 ```{r,fig.width=8, fig.height=8}
-  aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
+  if(nrow(site(peds)) > 2)
+    aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
 
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 

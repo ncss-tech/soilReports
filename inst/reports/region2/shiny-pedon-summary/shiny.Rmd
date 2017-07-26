@@ -332,7 +332,8 @@ renderUI( {
 renderPlot({
   sourcemu <- input$s.mu 
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list)
-  aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
+  if(nrow(site(peds)) > 2)
+    aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
 })
 
 renderUI( {
