@@ -76,6 +76,18 @@ reportSetup(reportName='region2/mu-comparison')
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
+To update an existing report instance (created with above reportInit() command), while retaining your configuration files:
+
+```r
+# overwrite report files in an existing report instance (does NOT overwrite config)
+reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison', updateReport=TRUE, overwrite=TRUE)
+```
+
+```r
+#alternately, to update you can use the wrapper function which automatically sets updateReport and overwrite to TRUE
+reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
+```
+
 ## Available Reports
 
 ### Map Unit Comparison/Summary Report.
@@ -174,6 +186,24 @@ render(input = reports$file.path,
                      project_data_file_path = "M:/geodata/project_data/",
                      ssoffice = "11IND"
                      ))
+```
+
+## R Upgrade Process
+Periodically we receive an updated version of R via an automated software installation process; typically without warning. The new version of R does not have access to previously installed packages, resulting in report failing to run. In the future regional staff will provide as much notice as possible on the timing of these upgrades. The following code should be run after an R upgrade completes.
+
+Copy the following lines of code into the R console and hit enter:
+```r
+# get devtools  
+install.packages('devtools', dep=TRUE)
+# get soilReports
+devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+
+# install packages required by reports
+library(soilReports)
+reportSetup(reportName='region2/mu-comparison')
+reportSetup(reportName='region2/mlra-comparison')
+
+# add region 11 reports here
 ```
 
 
