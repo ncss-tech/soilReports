@@ -80,11 +80,6 @@ To update an existing report instance (created with above reportInit() command),
 
 ```r
 # overwrite report files in an existing report instance (does NOT overwrite config)
-reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison', updateReport=TRUE, overwrite=TRUE)
-```
-
-```r
-#alternately, to update you can use the wrapper function which automatically sets updateReport and overwrite to TRUE
 reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
