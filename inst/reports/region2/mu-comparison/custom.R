@@ -211,7 +211,14 @@ subsetByPattern <- function(pattern) {
   subsetByName(getCategoricalVariableNameFromPattern(pattern))
 }
 
-sweepProportions <- function(i, drop.unused.levels=FALSE) {
+# i: data.frame with '.id' and 'value' columns
+# drop.unused.levels: this affects all unused levels
+# single.id: FALSE when summarizing all MUSYM, TRUE when specific to single MUSYM
+sweepProportions <- function(i, drop.unused.levels=FALSE, single.id=FALSE) {
+  # must drop missing .id factor levels when used with a single .id e.g. for spatial summaries
+  if(single.id)
+    i$.id <- factor(i$.id)
+  
   # tabulate and convert to proportions, retain all levels of ID
   foo <- xtabs(~ .id + value, data=i, drop.unused.levels=drop.unused.levels)
   return(sweep(foo, MARGIN = 1, STATS = rowSums(foo), FUN = '/'))

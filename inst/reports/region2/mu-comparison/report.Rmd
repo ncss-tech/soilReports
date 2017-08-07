@@ -376,7 +376,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
   names(x.sig) <- 'mapunit composition "signature" (most frequent classes that sum to 75% or more)'
   
   # get a signature for each polygon
-  spatial.summary <- ddply(dat, c( '.id','pID'), .fun=sweepProportions, drop.unused.levels=FALSE)
+  spatial.summary <- ddply(dat, c( '.id', 'pID'), .fun=sweepProportions, drop.unused.levels=FALSE, single.id=TRUE)
   
   ## consider supervised classification for QC at this stage:
   # r <- randomForest(factor(.id) ~ ., data=geomorphon.spatial.summary[, -1])
