@@ -35,6 +35,7 @@ library(cluster, quietly=TRUE)
 library(clhs, quietly=TRUE)
 library(randomForest, quietly=TRUE)
 library(spdep, quietly=TRUE)
+library(reshape2, quietly=TRUE)
 
 ## load report-specific functions
 source('custom.R') 

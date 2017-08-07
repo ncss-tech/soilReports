@@ -16,7 +16,7 @@
 .paths.to.copy <- c('report.Rmd','custom.R','config.R','categorical_definitions.R','NOTES.md','changes.txt')
 .update.paths.to.copy <- c('report.Rmd','custom.R','NOTES.md','changes.txt')
 
-.packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'raster', 'plyr', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071')
+.packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'reshape2', 'raster', 'plyr', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071')
 
 ## packages from GH, no deps
 .gh.packages.to.get <- c('ncss-tech/sharpshootR')
