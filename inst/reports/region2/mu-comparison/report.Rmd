@@ -116,7 +116,7 @@ if(nrow(d.circ) > 0) { ## TODO: could there ever be more than one type of circul
 ### SUBSET CATEGORICAL VARIABLEs
 #d.cat is derived from the sample object resulting from running cLHS_sample_by_polygon.R
 d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
-d.cat$.id <- factor(d.cat$.id,levels=mu.set)
+d.cat$.id <- factor(d.cat$.id, levels=mu.set)
 d.cat.sub <- list()
 categorical.defs <- list()#this defines the aliases and label:value:color sets for displaying categorical variables
 source("categorical_definitions.R") #this will load the structures that define value:label:color for categorical plot. 
@@ -340,13 +340,13 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
     cat(paste0("  \n",metadat$usage,"  \n  \n"))
   }
   
+  # convert counts into proportions
   x <- sweepProportions(dat)
   
-  # remove 0's
+  # tidy legend by removing "near-zero" proportions
   idx <- which(apply(x, 2, function(i) any(i > 0.001)))
-  # ensure that result is an object that can be converted to a data.frame: use drop=FALSE
   
-  #now remove the extra classes if we had to drop a class after determining proportions to be too small
+  # now remove the extra classes if we had to drop a class after determining proportions to be too small
   # this ensures that the correct color is used for each class
   bad.vars.flag <- (!lbls %in% colnames(x[, -idx]))
   lvls <- lvls[bad.vars.flag]
@@ -355,7 +355,8 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
   x <- x[, idx, drop=FALSE]
   x.long <- melt(x)
   names(x.long)[2] <- "label"
-  x.long[,1] <- factor(x.long[,1],levels=levels(factor(mu.set))) #what on earth why do i have to do this
+  # re-set MUSYM factor levels, have to do this because sweepProportions doesn't retain these levels
+  x.long$.id <- factor(x.long$.id, levels=levels(dat$.id))
   
   # create a signature of the most frequent classes that sum to 75% or
   x.sig <- apply(x, 1, function(i) {
@@ -381,12 +382,12 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
   # r <- randomForest(factor(.id) ~ ., data=geomorphon.spatial.summary[, -1])
   # geomorphon.spatial.summary$pred.id <- predict(r, geomorphon.spatial.summary)
   
-  ## most likely landform
+  ## most likely class
   most.likely.class.idx <- apply(spatial.summary[, -c(1:2)], 1, which.max)
-  spatial.summary[[paste0('ml_',variable.name)]] <- levels(dat$value)[most.likely.class.idx]
+  spatial.summary[[paste0('ml_', variable.name)]] <- levels(dat$value)[most.likely.class.idx]
   
   ## shannon H by polygon
-  spatial.summary[[paste0('shannon_h_',variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, function(i) {
+  spatial.summary[[paste0('shannon_h_', variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, function(i) {
     -sum(i * log(i, base=10), na.rm=TRUE)
   })
 
@@ -404,12 +405,12 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
     print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(factor(x.long$label)), rectangles = TRUE, points=FALSE),legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10)))))
     cat('  \n  \n')
   } else {
-    # re-order MU labels levels based on order()
-    x.long$.id <- factor(x.long$.id, levels=factor(x.long$.id))
+    # re-order MUSYM labels according to original ordering, specified in mu.set
+    x.long$.id <- factor(x.long$.id, levels=levels(dat$.id))
     
     trellis.par.set(tps)
     cat('  \n  \n')
-    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(factor(x.long$label)), rectangles = TRUE, points=FALSE)))
+    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$label), rectangles = TRUE, points=FALSE)))
     cat('  \n  \n')
   }  
   print(kable(x, digits = metadat$decimals))
@@ -421,7 +422,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
   }
   return(TRUE)
 }
-l <- lapply(split(d.cat, f=d.cat$variable),FUN=makeCategoricalOutput)
+l <- lapply(split(d.cat, f=d.cat$variable), FUN=makeCategoricalOutput)
 ```
 
 ### Multivariate Summary
