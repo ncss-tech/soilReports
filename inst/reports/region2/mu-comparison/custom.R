@@ -211,9 +211,8 @@ subsetByPattern <- function(pattern) {
   subsetByName(getCategoricalVariableNameFromPattern(pattern))
 }
 
-sweepProportions <- function(i,drop.unused.levels=F) {
+sweepProportions <- function(i, drop.unused.levels=FALSE) {
   # tabulate and convert to proportions, retain all levels of ID
-  i$.id <- factor(i$.id)
   foo <- xtabs(~ .id + value, data=i, drop.unused.levels=drop.unused.levels)
   return(sweep(foo, MARGIN = 1, STATS = rowSums(foo), FUN = '/'))
 }
