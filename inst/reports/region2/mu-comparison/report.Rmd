@@ -7,6 +7,13 @@ output:
     smart: no
     keep_md: no
 ---
+<!-- mu-comparison (v3.0) -- instance created 2017-08-07 12:11:58-->  
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'mu-comparison'
+	.report.version <- '3.0'
+	.report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
+```
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
@@ -126,7 +133,7 @@ id.height <- 0.25 * length(levels(d.continuous$.id))
 dynamic.fig.height <- min.height + panel.height + id.height
 
 # nice colors
-cols <- brewer.pal(length(mu.set), 'Spectral')#makeNiceColors()
+cols <- makeNiceColors(length(mu.set))
 
 #TODO: Null out raster samples to save memory TOGGLE
 ## http://adv-r.had.co.nz/memory.html#memory
