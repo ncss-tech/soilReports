@@ -298,9 +298,11 @@ kable(res, align = 'r', col.names=c(mu.col, names(res)[-1]))
 ```
 
 ```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis"}
-makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
-  variable.name = unique(dat$variable)[1] #this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
-  pat = variableNameToPattern(variable.name)
+makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
+  
+  # this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
+  variable.name <- unique(dat$variable)[1]
+  pat <- variableNameToPattern(variable.name)
   
   metadat <- lvls <- lbls <- list()
   
@@ -352,11 +354,21 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
   lvls <- lvls[bad.vars.flag]
   lbls <- lbls[bad.vars.flag]
   
+  # remove classes with near-zero proportions
+  # result is a table
   x <- x[, idx, drop=FALSE]
-  x.long <- melt(x)
+  
+  # convert table -> data.frame, factor levels are lost
+  # implicitly converted to long format
+  x.long <-as.data.frame.table(x, stringsAsFactors = FALSE)
+  # re-add factor levels for MUSYM and raster labels
+  x.long$.id <- factor(x.long$.id, levels = levels(dat$.id))
+  x.long$value <- factor(x.long$value, levels = lbls)
+  
+  # re-label long-format for plotting
   names(x.long)[2] <- "label"
-  # re-set MUSYM factor levels, have to do this because sweepProportions doesn't retain these levels
-  x.long$.id <- factor(x.long$.id, levels=levels(dat$.id))
+  names(x.long)[3] <- "value"
+  
   
   # create a signature of the most frequent classes that sum to 75% or
   x.sig <- apply(x, 1, function(i) {
