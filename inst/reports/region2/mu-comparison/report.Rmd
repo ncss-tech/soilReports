@@ -391,10 +391,22 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
     -sum(i * log(i, base=10), na.rm=TRUE)
   })
 
+  # setup plot styling
   colors=metadat$colors[metadat$levels %in% lvls]
   tps <- list(superpose.polygon=list(col=colors, lwd=2, lend=2))
   trellis.par.set(tps)
-
+  
+  # setup legend configuration
+  sK.levels <- levels(x.long$label)
+  if(length(sK.levels) < 3) {
+    sK.columns <- length(sK.levels)
+  } else {
+    sK.columns <- 3 # hard-coded for now, TODO: dynamically set for space-saving and readability (#66)
+  }
+  
+  # compose legend
+  sK <- simpleKey(space='top', columns=sK.columns, text=sK.levels, rectangles = TRUE, points=FALSE)
+  
   if(length(unique(x.long$.id)) > 1 & do.spatial.summary) {
     # cluster proportions
     x.d <- as.hclust(diana(daisy(x)))
@@ -402,7 +414,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
     x.long$.id <- factor(x.long$.id, levels=unique(x.long$.id)[x.d$order])
     # musym are re-ordered according to clustering
     cat('  \n  \n')
-    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(factor(x.long$label)), rectangles = TRUE, points=FALSE),legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10)))))
+    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK, legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10)))))
     cat('  \n  \n')
   } else {
     # re-order MUSYM labels according to original ordering, specified in mu.set
@@ -410,7 +422,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=T) {
     
     trellis.par.set(tps)
     cat('  \n  \n')
-    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=simpleKey(space='top', columns=3, text=levels(x.long$label), rectangles = TRUE, points=FALSE)))
+    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK))
     cat('  \n  \n')
   }  
   print(kable(x, digits = metadat$decimals))
