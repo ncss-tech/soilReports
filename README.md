@@ -76,9 +76,18 @@ reportSetup(reportName='region2/mu-comparison')
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
-To update an existing report instance (created with above reportInit() command), while retaining your configuration files:
+## Update an existing report (previously created with reportInit), while retaining configuration files:
 
 ```r
+# load this library
+library(soilReports)
+
+# list reports in the package
+listReports()
+
+# install required packages for a named report
+reportSetup(reportName='region2/mu-comparison')
+
 # overwrite report files in an existing report instance (does NOT overwrite config)
 reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
