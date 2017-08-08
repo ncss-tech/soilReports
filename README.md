@@ -1,23 +1,18 @@
 
 # soilReports
 
-Reports are a handy way to summarize large volumes of data, particularly with figures and tables. soilReports is an R package container and was developed to replicate NASIS's report repository. Currently soilReports contains a small collection of reports intended to assist with soil survey activities such as:
+Reports are a handy way to summarize large volumes of data, particularly with figures and tables. `soilReports` is an R package container and was developed to maintain, document, and distribute R-based reporting functionality.
 
-- populating soil components and developing official Series descriptions (OSD)
-- performing quality control and assurance
-- analyzing map unit polygons
+## Requirements
 
-
-**Requirements:**
-
-- [The user is familiar with Rstudio](http://ncss-tech.github.io/stats_for_soil_survey/chapters/1_introduction/1_introduction.html)
-- NASIS selected set is loaded with the necessary tables (e.g. "Project - legend/mapunit/dmu by sso, pname & uprojectid")
--	[ODBC connection to NASIS is setup](http://ncss-tech.github.io/AQP/soilDB/setup_local_nasis.html)
-- [custom .Rprofile exists](https://github.com/ncss-tech/soilReports#pre-installation-nrcs-only-this-is-only-required-once)
-- [necessary R packages are installed](http://ncss-tech.github.io/stats_for_soil_survey/chapters/0_pre-class-assignment/pre-class-assignment.html)
+ * [The user is familiar with Rstudio](http://ncss-tech.github.io/stats_for_soil_survey/chapters/1_introduction/1_introduction.html)
+ * NASIS selected set is loaded with the necessary tables (e.g. "Project - legend/mapunit/dmu by sso, pname & uprojectid")
+ * [ODBC connection to NASIS is setup](http://ncss-tech.github.io/AQP/soilDB/setup_local_nasis.html)
+ * [custom .Rprofile exists](https://github.com/ncss-tech/soilReports#pre-installation-nrcs-only-this-is-only-required-once)
+ * [necessary R packages are installed](http://ncss-tech.github.io/stats_for_soil_survey/chapters/0_pre-class-assignment/pre-class-assignment.html)
 
 
-**Example output:**
+## Example Output
   
   - [summary of select CA630 map units](http://ncss-tech.github.io/example-reports/mu-comparison/CA630-mu-comparison.html)
   - [summary of select MLRA polygons](http://ncss-tech.github.io/example-reports/mu-comparison/MLRA-comparison-report.html)
@@ -26,31 +21,23 @@ Reports are a handy way to summarize large volumes of data, particularly with fi
   - [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   - [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
   
- **Additional Instructions:**
- 
- - [Download the pdf files from the docs folder of this GitHub page](https://github.com/ncss-tech/soilReports/tree/master/docs), for background and instructions for the Map Unit Summary Report and instructions for the MLRA Comparison Report.
- 
-## Pre-Installation (NRCS only). This is only required once.
+
+## R Profile Setup
 
 On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/FirstName.LastName/Documents/R/` for installing R packages. Again, you only have to do this **once**.
 
 ```r
-# run this in the R console
+# determine your current $HOME directory
+path.expand('~')
+
+# install .Rprofile
 source('https://raw.githubusercontent.com/ncss-tech/soilReports/master/R/installRprofile.R')
 installRprofile()
 ```
 
-The following code can be used to "see" where the `$HOME` directory is. The result should look like "C:/Users/First.Last/Documents"
 
-```r
-# run this in the R console
-path.expand('~')
-```
-
-## Installation of the soilReports package. Only required for first-time use of soilReports and when a new version of soilReports is released.
-
-The current version of `soilReports` is installed with the following code:
-
+## soilReports Installation
+Run this code after a new version of R has been installed on your machine, or if you don't yet have the `soilReports` pacakge:
 ```r
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)
@@ -77,15 +64,10 @@ reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
 ## Update an existing report (previously created with reportInit), while retaining configuration files:
-
 ```r
-# load this library
 library(soilReports)
 
-# list reports in the package
-listReports()
-
-# install required packages for a named report
+# get any new packages that may be required by the latest version
 reportSetup(reportName='region2/mu-comparison')
 
 # overwrite report files in an existing report instance (does NOT overwrite config)
@@ -94,73 +76,16 @@ reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 
 ## Available Reports
 
- * Map Unit Comparison/Summary Report
+ * [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
  
  * [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
 
-This report was designed to assist with comparisons between map unit concepts via sampling of various raster data sources within map unit polygons. Configuration of data sources is done within `config.R`. Contact Dylan Beaudette (dylan.beaudette at ca.usda.gov) for questions or comments.
+ * [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
+ 
+ * [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/mupolygon_summary_by_project)
 
 
-### Component Summary by Project
 
-This report summarizes the components within an MLRA project. Several figures are generated to compare the component aomong several data mapunits.
-
-Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder.  
-
-```r
-# load the soilReports package
-library(soilReports)
-library(rmarkdown)
-
-# run the report manually
-## copy to your workspace2 folder
-
-copyReport(reportName = "region11/component_summary_by_project", outputDir = "C:/workspace2/component_summary")
-
-## open the "report.Rmd" file from "C:/workspace2/component_summary" in RStudio, and hit the "Knit HTML" button
-
-
-## run the report via commandline
-reports = listReports()
-reports = subset(reports, name == "region11/component_summary_by_project")
-render(input = reports$file.path, 
-       output_dir = "C:/workspace2", 
-       output_file = "C:/workspace2/comp_summary.html", 
-       envir = new.env()
-       )
-```
-
-### MUPOLYGON Summary by Project
-
-This report summarizes the zonal statistics for the MUPOLYGON layer from a file geodatabase. The spatial variables summarized include: elevation, slope, aspect, relief, preciptation, temperature, frost free period, and landcover. The report assumes the spatial data follows the proper folder hierachy and naming conventions (e.g. C:/geodata/project_data/11IND).
-
-Be sure to load your NASIS selected set using a query, such as "Project - legend/mapunit/dmu by sso, pname & uprojectid" from the Region 11 query folder. Check "Legend" and "Project" for National. Check "Project", "Mapunit", "DataMapunit", and "Legend Mapunit" for Local.
-
-```r
-# load the soilReports package
-library(soilReports)
-library(rmarkdown)
-
-# run the report manually
-## copy to your workspace2 folder
-
-copyReport(reportName = "region11/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
-
-## Open the "report.Rmd" file from "C:/workspace2/mupolygon_summary" in RStudio, and hit the "Knit HTML" drop down arrow and select "Knit with Paramters..." menu item. Modify the parameters accordingly. 
-
-
-## run the report via commandline
-reports = listReports()
-reports = subset(reports, name == "region11/mupolygon_summary_by_project")
-render(input = reports$file.path, 
-       output_dir = "C:/workspace2", 
-       output_file = "C:/workspace2/mupolygon_summary.html", 
-       envir = new.env(), 
-       params = list(geodatabase = "RTSD_R11-IND_FY16.gdb",
-                     project_data_file_path = "M:/geodata/project_data/",
-                     ssoffice = "11IND"
-                     ))
-```
 
 ## R Upgrade Process
 Periodically we receive an updated version of R via an automated software installation process; typically without warning. The new version of R does not have access to previously installed packages, resulting in report failing to run. In the future regional staff will provide as much notice as possible on the timing of these upgrades. The following code should be run after an R upgrade completes.
@@ -176,8 +101,6 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 library(soilReports)
 reportSetup(reportName='region2/mu-comparison')
 reportSetup(reportName='region2/mlra-comparison')
-
-# add region 11 reports here
 ```
 
 
@@ -191,7 +114,6 @@ reportSetup(reportName='region2/mlra-comparison')
 ## TODO
 See [issue tracker](https://github.com/ncss-tech/soilReports/issues) for TODO items.
 
-  
 
 ## Related Packages
  * [aqp](https://github.com/ncss-tech/aqp)
