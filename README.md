@@ -67,7 +67,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
  * [necessary R packages are installed](http://ncss-tech.github.io/stats_for_soil_survey/chapters/0_pre-class-assignment/pre-class-assignment.html)
 
 
-## Example Usage (Map Unit Comparison/SummaryReport)
+## Example Usage (mu-comparison)
 ```r
 # load this library
 library(soilReports)
@@ -82,7 +82,7 @@ reportSetup(reportName='region2/mu-comparison')
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
-## Example for Updating Existing Reports (Map Unit Comparison/Summary Report)
+## Example for Updating Existing Reports (mu-comparison)
 Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
 ```r
 # get latest version of package + report templates
