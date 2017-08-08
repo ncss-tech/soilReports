@@ -67,7 +67,7 @@ if(exists('mu.set')) { #TODO: this type of if(exists(obj)) needs to wrap all ref
   # if mu.set defined in config.R, only keep the features with musym matching set
   mu <- mu[which(mu[[mu.col]] %in% mu.set), ] 
 } else {
-  mu.set <- sort(unique(mu[[mu.col]])) #if mu.set is not predefined, ordering is determined by the order of musyms in the source file
+  mu.set <- sort(unique(mu[[mu.col]])) #if mu.set is not predefined, set is all musyms and ordering is alphanumeric
 }
 
 # add a unique polygon ID
