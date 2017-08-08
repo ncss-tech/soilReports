@@ -40,12 +40,10 @@ Run this code if you don't yet have the `soilReports` package or after a new ver
 install.packages('devtools', dep=TRUE)
 
 # get the latest version of the 'soilReports' package
-devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
-
-# choose a report 
+devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE) 
 ```
 
-## Available Reports
+## Choose an Available Report
 
  * [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
  * [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
@@ -60,14 +58,6 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
   * [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
-
-## Suggested Background Material
-
- * [The user is familiar with Rstudio](http://ncss-tech.github.io/stats_for_soil_survey/chapters/1_introduction/1_introduction.html)
- * NASIS selected set is loaded with the necessary tables (e.g. "Project - legend/mapunit/dmu by sso, pname & uprojectid")
- * [ODBC connection to NASIS is setup](http://ncss-tech.github.io/AQP/soilDB/setup_local_nasis.html)
- * [custom .Rprofile exists](https://github.com/ncss-tech/soilReports#pre-installation-nrcs-only-this-is-only-required-once)
- * [necessary R packages are installed](http://ncss-tech.github.io/stats_for_soil_survey/chapters/0_pre-class-assignment/pre-class-assignment.html)
 
 
 ## Run a Report - Example: Map Unit Comparison report
@@ -103,6 +93,8 @@ reportSetup(reportName='region2/mu-comparison')
 reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
+## Suggested Background Material
+ * [The user is familiar with Rstudio](http://ncss-tech.github.io/stats_for_soil_survey/chapters/1_introduction/1_introduction.html) * NASIS selected set is loaded with the necessary tables (e.g. "Project - legend/mapunit/dmu by sso, pname & uprojectid") * [ODBC connection to NASIS is setup](http://ncss-tech.github.io/AQP/soilDB/setup_local_nasis.html) * [custom .Rprofile exists](https://github.com/ncss-tech/soilReports#pre-installation-nrcs-only-this-is-only-required-once) * [necessary R packages are installed](http://ncss-tech.github.io/stats_for_soil_survey/chapters/0_pre-class-assignment/pre-class-assignment.html)
 
 ## Troubleshooting
  * Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
