@@ -107,6 +107,7 @@ Copy the following lines of code into the R console and hit enter:
 ```r
 # get devtools  
 install.packages('devtools', dep=TRUE)
+
 # get soilReports
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 
