@@ -1,13 +1,22 @@
 
 # soilReports
-Reports are a handy way to summarize large volumes of data, particularly with figures and tables. `soilReports` is an R package "container" designed to accommodate the maintenance, documentation, and distribution of [R-based reporting tools](http://rmarkdown.rstudio.com/). Inside the package are report templates, setup files, documentation, and example configuration files. The `soilReports` package provides a couple important helper functions that do most of the work:
+Reports are a handy way to summarize large volumes of data, particularly with figures and tables. `soilReports` is an R package "container" designed to accommodate the maintenance, documentation, and distribution of [R-based reporting tools](http://rmarkdown.rstudio.com/). Inside the package are report templates, setup files, documentation, and example configuration files. 
+
+The `soilReports` package provides a couple important helper functions that do most of the work:
 
  * `listReports()`: print a listing of the available reports, version numbers, and basic metadata
  * `reportSetup(...)`: download any R pacakges required by the named report, e.g. *"region2/mu-comparison"*
  * `reportInit(...)` | `reportCopy(...)`: copy a named report template into a specific directory
  * `reportUpdate(...)`: update a named report in a specific directory, replacing `report.Rmd` only
 
-See the [Typical Usage](https://github.com/ncss-tech/soilReports#Typical-Usage) section below for details.
+Each report contains several files:
+
+ * `report.Rmd`: an [R Markdown file](http://rmarkdown.rstudio.com/) that is "knit" into a final HTML or DOC report
+ * `README.md`: report-specific instructions
+ * `custom.R`: report-specific functions
+ * `categorical_definitions.R`: report-specific color mapping and metadata for categorical raster data (user-editable)
+ * `config.R`: configuration file to set report parameters (user-editable)
+ * `changes.txt`: notes on changes and associated version numbers
 
 
 ## R Profile Setup
@@ -59,8 +68,6 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 
 
 ## Typical Usage
-The `soilReports` package contains reports and associated configuration files. The following steps perform all required setup for the **region2/mu-comparison** report, then copies the configuration (config.R) and report (report.Rmd) files to a folder that it creates named 'MU-comparison' in the working directory. Edit the `config.R` file (or replace it with an existing config.R in the working directory) so that it points to the correct raster layers and map unit polygons. "Knit" the report file by opening `report.Rmd` and clicking on the "Knit HTML" button. The package will put a 'report.html' file in the MU-comparison folder and will create a folder named 'output' for report-generated shapefiles.
-
 ```r
 # load this library
 library(soilReports)
