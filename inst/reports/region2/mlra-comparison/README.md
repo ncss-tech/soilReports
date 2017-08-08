@@ -33,7 +33,8 @@ download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/
 destfile='MLRA-comparison/mlra-namrad-data.rda')
 ```
 
-## Example for Updating Existing Reports (Map Unit Comparison/Summary Report)Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
+## Example for Updating Existing Report
+Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mlra-comparison" report. Note that your existing configuration files will not be modified.
 
 
 ```r
