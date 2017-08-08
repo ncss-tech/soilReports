@@ -32,25 +32,19 @@ installRprofile()
 ```
 
 
-## soilReports Installation
-Run this code after a new version of R has been installed on your machine, or if you don't yet have the `soilReports` package:
+## soilReports Installation - First time or after R upgrade
+Run this code if you don't yet have the `soilReports` package or after a new version of R has been installed on your machine.
+
 ```r
 # need devtools to install packages from GitHub
 install.packages('devtools', dep=TRUE)
 
 # get the latest version of the 'soilReports' package
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+
+# choose a report 
 ```
 
-After an R upgrade, you will need to install packages for those reports you have been using like this:
-```r
-library(soilReports)
-
-# run for each report you are using
-reportSetup(reportName='region2/mu-comparison')
-```
-
- 
 ## Available Reports
 
  * [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
@@ -76,7 +70,8 @@ reportSetup(reportName='region2/mu-comparison')
  * [necessary R packages are installed](http://ncss-tech.github.io/stats_for_soil_survey/chapters/0_pre-class-assignment/pre-class-assignment.html)
 
 
-## Example Usage (mu-comparison)
+## Run a Report - Example: Map Unit Comparison report
+
 ```r
 # load this library
 library(soilReports)
@@ -91,8 +86,9 @@ reportSetup(reportName='region2/mu-comparison')
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
-## Example for Updating Existing Reports (mu-comparison)
+## Updating Existing Reports - Example: Map Unit Comparison report 
 Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
+
 ```r
 # get latest version of package + report templates
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
