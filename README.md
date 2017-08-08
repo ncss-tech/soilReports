@@ -94,6 +94,7 @@ reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
 ## Suggested Background Material
+
  * [The user is familiar with Rstudio](http://ncss-tech.github.io/stats_for_soil_survey/chapters/1_introduction/1_introduction.html) 
  * NASIS selected set is loaded with the necessary tables (e.g. "Project - legend/mapunit/dmu by sso, pname & uprojectid") 
  * [ODBC connection to NASIS is setup](http://ncss-tech.github.io/AQP/soilDB/setup_local_nasis.html) 
