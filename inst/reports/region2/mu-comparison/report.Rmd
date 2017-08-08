@@ -52,13 +52,23 @@ if(class(mu) == 'try-error')
 
 mu[[mu.col]] <- as.character(mu[[mu.col]]) # just in case, coerce mu.col to character
 
-# if no filter, then keep all map units
 if(exists('mu.set')) { #TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
   # coerce mu.set to character just in integers were specified
   mu.set <- as.character(mu.set)
-  mu <- mu[which(mu[[mu.col]] %in% mu.set), ] # if mu.set defined in config.R, only keep the items from set
+
+  #check to see if the mu.set specifies musyms that are not in the spatial layer
+  mu.set.bak <- mu.set
+  mu_nosp <- !(mu.set %in% mu[[mu.col]])
+  if(any(mu_nosp)) #check if any of the predefined musyms are absent from the spatial
+    mu.set <- mu.set[-which(mu_nosp)] #if so, remove them
+  if(length(mu.set) == 0) #if we removed everything (e.g. no musyms match due to wrong config file?), fail gracefully
+    stop(paste0("Cannot find map unit polygons with symbol: ",paste0(mu.set.bak,collapse=", ")))
+  
+  # if mu.set defined in config.R, only keep the features with musym matching set
+  mu <- mu[which(mu[[mu.col]] %in% mu.set), ] 
+} else {
+  mu.set <- unique(mu[[mu.col]]) #if mu.set is not predefined, ordering is determined by the order of musyms in the source file
 }
-mu.set <- unique(mu[[mu.col]]) # keep only those records that made it through the filering step
 
 # add a unique polygon ID
 mu$pID <- seq(from=1, to=length(mu))
