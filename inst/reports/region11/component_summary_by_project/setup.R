@@ -11,15 +11,15 @@
 .report.description <- 'summarize component data for an MLRA project'
 
 #report manifest
-.paths.to.copy <- c('report.Rmd') #on reportInit() or copyReport()
-.update.paths.to.copy <- c('report.Rmd')     #on reportInit(update.report=TRUE) or reportUpdate()
+.paths.to.copy <- c('report.Rmd', 'README.md') # on reportInit() or copyReport()
+.update.paths.to.copy <- c('report.Rmd', 'README.md')     # on reportInit(update.report=TRUE) or reportUpdate()
 
 #OPTIONAL
 .has.shiny.interface <- FALSE
 
 ## note: this will not update installed packages... could lead to dependency-related errors
 ## packages + deps installed from CRAN
-.packages.to.get <- c('knitr', 'ggplot2', 'soilDB') #, 'soilReports') # ? 
+.packages.to.get <- c('knitr', 'ggplot2', 'soilDB')
 
 #github packages to get (via devtools::install_github)
 #.gh.packages.to.get <- c('')
