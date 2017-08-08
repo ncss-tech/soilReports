@@ -11,7 +11,7 @@ library(soilReports)
 # install required packages for a named report
 reportSetup(reportName='region2/mlra-comparison')
 
-# copy default configuration file and report to 'MU-comparison' in current working directory
+# copy default configuration file and report to 'MLRA-comparison' in current working directory
 reportInit(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
 ```
 
@@ -32,19 +32,20 @@ destfile='MLRA-comparison/mlra-soil-data.rda')
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-namrad-data.rda', 
 destfile='MLRA-comparison/mlra-namrad-data.rda')
 ```
-## R Upgrade Process
-Periodically we receive an updated version of R via an automated software installation process. The new version of R does not have access to previously installed packages, resulting in report failing to run. In the future regional staff will provide as much notice as possible on the timing of these upgrades. The following code should be run after an R upgrade completes.
 
-Copy the following lines of code into the R console and hit enter:
+## Example for Updating Existing Reports (Map Unit Comparison/Summary Report)Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
+
+
 ```r
-
-# get devtools  
-install.packages('devtools', dep=TRUE)
-
-# get soilReports
+# get latest version of package + report templates
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 
-# install packages required by reports
+# load this library
 library(soilReports)
-reportSetup(reportName='region2/mlra-comparison')
+
+# get any new packages that may be required by the latest version
+reportSetup(reportName='region2/mu-comparison')
+
+# overwrite report files in an existing report instance (does NOT overwrite config.R files)
+reportUpdate(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
 ```
