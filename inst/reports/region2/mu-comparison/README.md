@@ -21,7 +21,8 @@ reportSetup(reportName='region2/mu-comparison')
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
-## Example for Updating Existing Reports (Map Unit Comparison/Summary Report)Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
+## Updating Existing Report
+Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mmlra-comparison" report. Note that your existing configuration files will not be modified.
 
 ```r
 # get latest version of package + report templates
