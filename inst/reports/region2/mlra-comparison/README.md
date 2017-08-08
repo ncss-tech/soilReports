@@ -44,7 +44,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 library(soilReports)
 
 # get any new packages that may be required by the latest version
-reportSetup(reportName='region2/mu-comparison')
+reportSetup(reportName='region2/mlra-comparison')
 
 # overwrite report files in an existing report instance (does NOT overwrite config.R files)
 reportUpdate(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
