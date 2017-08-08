@@ -36,7 +36,6 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 # install packages required by reports
 library(soilReports)
 reportSetup(reportName='region2/mu-comparison')
-reportSetup(reportName='region2/mlra-comparison')
 ```
 
 ## Troubleshooting
