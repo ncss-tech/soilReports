@@ -21,22 +21,22 @@ reportSetup(reportName='region2/mu-comparison')
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
-## R Upgrade Process
-Periodically we receive an updated version of R via an automated software installation process. The new version of R does not have access to previously installed packages, resulting in report failing to run. In the future regional staff will provide as much notice as possible on the timing of these upgrades. The following code should be run after an R upgrade completes.
-
-Copy the following lines of code into the R console and hit enter:
+## Example for Updating Existing Reports (Map Unit Comparison/Summary Report)Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
 
 ```r
-# get devtools  
-install.packages('devtools', dep=TRUE)
-
-# get soilReports
+# get latest version of package + report templates
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 
-# install packages required by reports
+# load this library
 library(soilReports)
+
+# get any new packages that may be required by the latest version
 reportSetup(reportName='region2/mu-comparison')
+
+# overwrite report files in an existing report instance (does NOT overwrite config.R files)
+reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
+
 
 ## Troubleshooting
 1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
