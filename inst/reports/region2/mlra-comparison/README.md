@@ -32,3 +32,19 @@ destfile='MLRA-comparison/mlra-soil-data.rda')
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-namrad-data.rda', 
 destfile='MLRA-comparison/mlra-namrad-data.rda')
 ```
+## R Upgrade Process
+Periodically we receive an updated version of R via an automated software installation process. The new version of R does not have access to previously installed packages, resulting in report failing to run. In the future regional staff will provide as much notice as possible on the timing of these upgrades. The following code should be run after an R upgrade completes.
+
+Copy the following lines of code into the R console and hit enter:
+```r
+
+# get devtools  
+install.packages('devtools', dep=TRUE)
+
+# get soilReports
+devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+
+# install packages required by reports
+library(soilReports)
+reportSetup(reportName='region2/mlra-comparison')
+```
