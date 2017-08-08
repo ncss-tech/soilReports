@@ -41,6 +41,13 @@ install.packages('devtools', dep=TRUE)
 # get the latest version of the 'soilReports' package
 devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 ```
+ 
+## Available Reports
+
+ * [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
+ * [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
+ * [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
+ * [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/mupolygon_summary_by_project)
 
 ## Example Output
   
@@ -50,13 +57,6 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
   * [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
-  
-## Available Reports
-
- * [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
- * [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
- * [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
- * [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/mupolygon_summary_by_project)
 
 ## Suggested Background Material
 
@@ -82,8 +82,13 @@ reportSetup(reportName='region2/mu-comparison')
 reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
 
-## Update an existing report (previously created with reportInit), while retaining configuration files:
+## Update Existing Reports
+Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
 ```r
+# get latest version of package + report templates
+devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+
+# load this library
 library(soilReports)
 
 # get any new packages that may be required by the latest version
@@ -92,6 +97,8 @@ reportSetup(reportName='region2/mu-comparison')
 # overwrite report files in an existing report instance (does NOT overwrite config)
 reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 ```
+
+
 
 ## R Upgrade Process
 Periodically we receive an updated version of R via an automated software installation process. The new version of R does not have access to previously installed packages, resulting in report failing to run. In the future regional staff will provide as much notice as possible on the timing of these upgrades. The following code should be run after an R upgrade completes.
