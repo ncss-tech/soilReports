@@ -96,7 +96,7 @@ reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 
  * Map Unit Comparison/Summary Report
  
- * MLRA Comparison/Summary Report
+ * [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
 
 This report was designed to assist with comparisons between map unit concepts via sampling of various raster data sources within map unit polygons. Configuration of data sources is done within `config.R`. Contact Dylan Beaudette (dylan.beaudette at ca.usda.gov) for questions or comments.
 
