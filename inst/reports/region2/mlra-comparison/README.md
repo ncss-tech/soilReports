@@ -1,5 +1,7 @@
 # MLRA Comparison/Summary Report
 
+Download the pdf files from the docs folder of [this GitHub page](https://github.com/ncss-tech/soilReports/tree/master/docs), for background and instructions for the MLRA Comparison Report.
+
 This report was designed to assist with comparisons between MLRA concepts using a [pre-made raster sample database](https://github.com/ncss-tech/mlra-raster-db). You will need to put these database files into the same folder as `report.Rmd`. MLRA selection is done within `config.R`. Contact Dylan Beaudette (dylan.beaudette at ca.usda.gov) for questions or comments.
 
 ```r
@@ -9,7 +11,7 @@ library(soilReports)
 # install required packages for a named report
 reportSetup(reportName='region2/mlra-comparison')
 
-# copy default configuration file and report to 'MU-comparison' in current working directory
+# copy default configuration file and report to 'MLRA-comparison' in current working directory
 reportInit(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
 ```
 
@@ -29,4 +31,22 @@ destfile='MLRA-comparison/mlra-soil-data.rda')
 
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-namrad-data.rda', 
 destfile='MLRA-comparison/mlra-namrad-data.rda')
+```
+
+## Example for Updating Existing Report
+Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mlra-comparison" report. Note that your existing configuration files will not be modified.
+
+
+```r
+# get latest version of package + report templates
+devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+
+# load this library
+library(soilReports)
+
+# get any new packages that may be required by the latest version
+reportSetup(reportName='region2/mlra-comparison')
+
+# overwrite report files in an existing report instance (does NOT overwrite config.R files)
+reportUpdate(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
 ```

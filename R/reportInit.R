@@ -17,20 +17,21 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
     # check for existing data
     if(overwrite != TRUE & dir.exists(outputDir)) 
       stop(paste0('there is already a folder named `', outputDir, '` in the current working directory'), call. = FALSE)
-    # create the specified output directory
-    dir.create(outputDir, recursive = TRUE)
+    # create the specified output directory, but only in "init" mode
+    if(!updateReport)
+      dir.create(outputDir, recursive = TRUE)
   }  
   
   if(!updateReport) {
-    if(exists('.paths.to.copy', envir = env)) { #copy everything if not in "update" mode
+    if(exists('.paths.to.copy', envir = env)) { # copy everything if not in "update" mode
       pa <- get('.paths.to.copy', envir = env)
       lapply(pa, FUN=copyPath, base.dir, outputDir)
     } else stop("Failed to instantiate report -- no paths to copy specified in setup.R!")
   } else {
     if(exists('.update.paths.to.copy', envir = env)) {
       pa <- get('.update.paths.to.copy', envir = env)
-      lapply(pa, FUN=copyPath, base.dir, outputDir, overwrite=T)
-      #TODO: should there be a check that required components are present? check against ".paths.to.copy"? only look for R/Rmds?
+      lapply(pa, FUN=copyPath, base.dir, outputDir, overwrite=TRUE)
+      # TODO: should there be a check that required components are present? check against ".paths.to.copy"? only look for R/Rmds?
       #      how about a check to verify correct (possibly vintage) versions of R packages are installed?
     } else stop("Failed to update report -- no update paths to copy specified in setup.R!")
   }
@@ -126,8 +127,8 @@ defineInYAMLHeader <- function(filepath, param.name, param.value) {
 }
 
 reportUpdate <- function(reportName, outputDir=NULL) {
-  #Uses report init, only with overwrite and updateReport default value override
-  reportInit(reportName, outputDir, overwrite = T, updateReport = T)
+  # Uses report init, only with overwrite and updateReport default value override
+  reportInit(reportName, outputDir, overwrite = TRUE, updateReport = TRUE)
 }
 
 # renaming reportInit(), more intuitive
