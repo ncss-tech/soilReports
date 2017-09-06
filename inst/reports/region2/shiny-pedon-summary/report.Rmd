@@ -48,7 +48,7 @@ knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='cente
 ### Grouped Profile Plot
 ```{r,fig.width=12, fig.height=8}
 #TODO: abstract these with "reactive" and "static" available as a toggle
-    groupedProfilePlot(peds,groups = 'taxonname', label='pedon_id', 
+groupedProfilePlot(peds,groups = 'taxonname', label='pedon_id', 
                          print.id = TRUE, id.style = 'side', cex.id=1.2, 
                          cex.names=1, cex.depth.axis=1.25,y.offset=7, 
                          axis.line.offset=-3.0, group.name.cex=1, 
