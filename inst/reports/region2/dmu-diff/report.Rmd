@@ -1,0 +1,114 @@
+---
+title: null
+output:
+  html_document:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
+    theme: null
+    css: style.css
+---
+
+
+
+
+```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(knitr, quietly=TRUE)
+
+# package options
+opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
+
+# chunk options
+
+# R session options
+options(width=100, stringsAsFactors=FALSE)
+
+## load dependencies
+library(daff, quietly=TRUE)
+library(soilDB, quietly=TRUE)
+
+## load report-specific functions
+source('custom.R') 
+
+## load local configuration 
+# TODO: allow entry of simple fields interactively if they are not specified?
+# TODO: allow for batching from a basic report.Rmd
+source('config.R')
+
+# must pre-load selected set with relevant DMU
+x <- fetchNASIS_component_data()
+
+## site-level diff
+s <- site(x)
+
+# remove IDs from diff
+exclude.vars <- c('coiid', 'dmuiid')
+site.vars <- which(! names(s) %in% exclude.vars)
+
+# extract 'old' vs. 'new' records
+a <- subset(s[, site.vars], subset=dmudesc == old.dmu)
+b <- subset(s[, site.vars], subset=dmudesc == new.dmu)
+
+
+## copmute and render diff
+# TODO: eval optimal arguments
+delta <- diff_data(a, b)
+site.diff <- render_diff(delta, fragment=TRUE, view = FALSE, title = 'Site Diff', summary = TRUE)
+
+
+## hz-level diff
+d <- as(x, 'data.frame')
+
+hz.vars <- c('dmudesc', 'compname', horizonNames(x))
+exclude.vars <- c('coiid', 'chiid')
+hz.vars <- hz.vars[which(! hz.vars %in% exclude.vars)]
+d <- d[, hz.vars]
+
+# split into lists
+comp.order <- names(sort(tapply(s$comppct_r, s$compname, mean), decreasing = TRUE))
+d$compname <- factor(d$compname, levels=comp.order)
+l <- split(d, d$compname)
+
+hz.diff <- lapply(l, function(i) {
+  
+  a <- subset(i, subset=dmudesc == old.dmu)
+  b <- subset(i, subset=dmudesc == new.dmu)
+  
+  # exclude vars used for grouping
+  a$compname <- NULL ; a$comppct_r <- NULL ; a$dmudesc <- NULL
+  b$compname <- NULL ; b$comppct_r <- NULL ; b$dmudesc <- NULL
+  
+  delta <- diff_data(a, b)
+  
+  diff.name <- paste0('Horizon Diff: ', unique(i$compname))
+  # fname <- paste0('hz-diff-', unique(i$compname), '.html')
+  
+  res <- render_diff(delta, fragment=TRUE, view = FALSE, title = diff.name, summary = TRUE)
+  return(res)
+  
+})
+```
+
+### XXXX
+
+**Suggested usage:**
+
+ * xxx
+
+```{r, results='asis', echo=FALSE}
+cat(site.diff)
+```
+
+```{r, results='asis', echo=FALSE}
+lapply(hz.diff, cat)
+```
+
+
+
+----------------------------
+This document is based on `soilDB` version `r utils::packageDescription("sharpshootR", field="Version")`.
+<br>
+Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
+
