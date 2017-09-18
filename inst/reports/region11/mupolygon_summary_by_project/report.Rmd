@@ -10,9 +10,9 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-   geodatabase: !r as.character("RTSD_R11-IND_FY16.gdb")
+   geodatabase: !r as.character("RTSD_R11-IND_FY17.gdb")
    project_data_file_path: !r as.character("M:/geodata/project_data/")
-   ssoffice: !r as.character("11IND")
+   ssoffice: !r as.character("R11-IND")
 ---
 # Report Description
 
@@ -76,7 +76,7 @@ project <- get_projectmapunit_from_NASIS()
   
 # folder paths
 office_folder <- paste0(dir, ssoffice, "/")
-region_folder <- paste0(dir, "11REGION/")
+region_folder <- paste0(dir, "R11/")
 
 # cache files
 sample_cache <- paste0(office_folder, "cache/", unique(project$uprojectid), "_", samplePercent, ".Rdata")
@@ -145,17 +145,37 @@ if (!file.exists(sample_cache)){
     })
   
   # Sample soil map unit
-  n <- ceiling(sum(mupolygon$shape_area) / 900 * samplePercent / 100)
+  # n <- ceiling(sum(mupolygon$shape_area) / 900 * samplePercent / 100)
+  # 
+  # mupolygon$idx <- 1:nrow(mupolygon)
+  # mupolygon_sp <- by(mupolygon, mupolygon$idx, function(x) as(st_sample(x, 10), "Spatial"))
+  # mupolygon_sp <- do.call(rbind, mupolygon_sp)
+  # proj4string(mupolygon_sp) <- CRS("+init=epsg:5070")
+  # mupolygon_sf <- st_as_sf(mupolygon_sp)
   
-  mupolygon$idx <- 1:nrow(mupolygon)
-  mupolygon_sp <- by(mupolygon, mupolygon$idx, function(x) as(st_sample(x, 10), "Spatial"))
-  mupolygon_sp <- do.call(rbind, mupolygon_sp)
-  proj4string(mupolygon_sp) <- CRS("+init=epsg:5070")
+  mupolygons <- within(mupolygon, {
+    idx    = 1:nrow(mupolygon)
+    acres  = shape_area * 0.000247
+    samp_n = ifelse(acres < 2, 1, round(acres / 2))
+    })
+  mupolygon_sp <- by(mupolygons, mupolygons$idx, function(x) {
+    mu_sp = spsample(as(x, "Spatial"), x$samp_n, type = "random", iter = 10)
+    if ("y" %in% names(as.data.frame(mu_sp))) {
+      test = data.frame(as.data.frame(mu_sp), idx = x$idx[1])
+      coordinates(test) = ~ x + y
+      proj4string(test) = "+init=epsg:5070"
+      return(test)
+      }
+    })
+  idx <- which(unlist(lapply(mupolygon_sp, function(x) is.null(x))))
+  mupolygon_sp <- mupolygon_sp[-idx]
+  mupolygon_sp <- do.call("rbind", mupolygon_sp)
   mupolygon_sf <- st_as_sf(mupolygon_sp)
+
   
   geodata <- raster_extract(mupolygon_sp)
   idx  <- st_intersects(mupolygon_sf, mupolygon)
-  mapunit.df <- mupolygon[unlist(idx), ]
+  mapunit.df <- mupolygon[unlist(lapply(idx, function(x) x[1])), ]
 
   data <- cbind(data.frame(mapunit.df[c("areasymbol", "musym")]), geodata)
   

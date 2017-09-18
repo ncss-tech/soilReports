@@ -24,9 +24,9 @@ raster_extract <- function(x){
     valley    = paste0(office_folder, "ned30m_", ssoffice, "_mvalleys.tif"),
     relief    = paste0(office_folder, "ned30m_", ssoffice, "_z2stream.tif"),
     lulc      = paste0(office_folder, "nlcd30m_", ssoffice, "_lulc2011.tif"),
-    ppt       = paste0(region_folder, "prism800m_11R_ppt_1981_2010_annual_mm.tif"),
-    temp      = paste0(region_folder, "prism800m_11R_tmean_1981_2010_annual_C.tif"),
-    ffp       = paste0(region_folder, "rmrs1000m_11R_ffp_1961_1990_annual_days.tif")
+    ppt       = paste0(region_folder, "prism800m_R11_ppt_1981_2010_annual_mm.tif"),
+    temp      = paste0(region_folder, "prism800m_R11_tmean_1981_2010_annual_C.tif"),
+    ffp       = paste0(region_folder, "rmrs1000m_R11_ffp_1961_1990_annual_days.tif")
   )
   
   # test for missing files
