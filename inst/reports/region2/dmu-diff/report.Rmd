@@ -1,16 +1,19 @@
 ---
 title: null
 output:
-  html_document:
+  html_vignette:
     mathjax: null
     jquery: null
     smart: no
     keep_md: no
-    theme: null
     css: style.css
 ---
 
-
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'dmu-diff'
+	.report.version <- '0.1'
+	.report.description <- 'Differences between select DMU'
+```
 
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
@@ -81,27 +84,42 @@ hz.diff <- lapply(l, function(i) {
   
   delta <- diff_data(a, b)
   
-  diff.name <- paste0('Horizon Diff: ', unique(i$compname))
+  diff.name <- paste0('Component/Horizon Diff:', unique(i$compname))
   # fname <- paste0('hz-diff-', unique(i$compname), '.html')
   
   res <- render_diff(delta, fragment=TRUE, view = FALSE, title = diff.name, summary = TRUE)
-  return(res)
+  return(list(title=diff.name, html=res))
   
 })
 ```
 
-### XXXX
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;">
+<span style="font-size: 200%; font-weight: bold;">DMU Differences</span>
+<span style="font-size: 100%;">
+<br>
+<br>
+`r old.dmu`<br>vs.<br>`r new.dmu`
+</span>
+<br><br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d")`</div>
 
-**Suggested usage:**
+<br>
+This report provides [text differencing](https://en.wikipedia.org/wiki/Diff_utility) capabilities, applied to DMU/component records and component/horizon records queried from the selected set. This type of analyis requires marking records as *old* (`r old.dmu`) and *new* (`r new.dmu`) in the associated `config.R` file. Differences are higlighted in blue, deletions are in red, and additions are in green.
 
- * xxx
 
 ```{r, results='asis', echo=FALSE}
-cat(site.diff)
+wrapDaffHTML(site.diff, "DMU/Component Diff")
 ```
 
 ```{r, results='asis', echo=FALSE}
-lapply(hz.diff, cat)
+f <- function(i) {
+  wrapDaffHTML(i$html, i$title)
+}
+
+dev.null <- lapply(hz.diff, f)
 ```
 
 
