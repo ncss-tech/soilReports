@@ -9,12 +9,6 @@ output:
     css: style.css
 ---
 
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-	.report.name <- 'dmu-diff'
-	.report.version <- '0.1'
-	.report.description <- 'Differences between select DMU'
-```
-
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
@@ -84,7 +78,7 @@ hz.diff <- lapply(l, function(i) {
   
   delta <- diff_data(a, b)
   
-  diff.name <- paste0('Component/Horizon Diff:', unique(i$compname))
+  diff.name <- paste0('Component/Horizon Diff: ', unique(i$compname))
   # fname <- paste0('hz-diff-', unique(i$compname), '.html')
   
   res <- render_diff(delta, fragment=TRUE, view = FALSE, title = diff.name, summary = TRUE)
@@ -125,7 +119,7 @@ dev.null <- lapply(hz.diff, f)
 
 
 ----------------------------
-This document is based on `soilDB` version `r utils::packageDescription("sharpshootR", field="Version")`.
+This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")`, and `daff` version `r utils::packageDescription("daff", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
 
