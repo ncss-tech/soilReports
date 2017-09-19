@@ -1,5 +1,5 @@
 # DMU Diff Report
-This report provides [text differencing](https://en.wikipedia.org/wiki/Diff_utility) capabilities, applied to DMU/component records and component/horizon records queried from the selected set. This type of analyis requires marking records as *old* (`r old.dmu`) and *new* (`r new.dmu`) in the associated `config.R` file. Differences are higlighted in blue, deletions are in red, and additions are in green.
+This report provides [text differencing](https://en.wikipedia.org/wiki/Diff_utility) capabilities, applied to DMU/component records and component/horizon records queried from the selected set. This type of analyis requires marking records as *old* (`old.dmu`) and *new* (`new.dmu`) in the associated `config.R` file. Differences are higlighted in blue, deletions are in red, and additions are in green.
 
 ## Typical Usage
 Load the local NASIS database with two DMU that represent "pre" and "post" SDJR/update work. It is essential that the `mapunit`, `correlation`, and `DMU` objects are loaded in the selected set.
