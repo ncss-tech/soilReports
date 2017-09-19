@@ -63,6 +63,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
   * [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
+  * [DMU differences](http://ncss-tech.github.io/example-reports/dmu-diff-example.html)
 
 
 ## Run a Report - Example: Map Unit Comparison report
