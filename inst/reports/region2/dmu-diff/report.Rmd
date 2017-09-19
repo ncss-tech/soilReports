@@ -33,8 +33,12 @@ source('custom.R')
 # TODO: allow for batching from a basic report.Rmd
 source('config.R')
 
+
+## TODO: better selection of "old" vs. "new"
+# https://github.com/ncss-tech/soilReports/issues/67
+
 # must pre-load selected set with relevant DMU
-x <- fetchNASIS_component_data()
+x <- fetchNASIS_component_data(rmHzErrors = FALSE)
 
 ## site-level diff
 s <- site(x)
