@@ -332,7 +332,9 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
     metadat$decimals = 2
     dat$value=factor(dat$value, levels=metadat$levels, labels=metadat$labels)
   } else {
-    metadat <- categorical.defs[[pat]] #get the metadata if defined
+    # get the metadata if defined
+    ## note: this object exists outside of the scope of this function
+    metadat <- categorical.defs[[pat]] 
     flag = FALSE
     if(!is.null(metadat$keep.all.classes)) #do not have to specify keep all classes, optional parameter. 
       if(metadat$keep.all.classes) 

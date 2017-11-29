@@ -1,4 +1,4 @@
-#Mapunit summary utility functions
+# Mapunit summary utility functions
 
 # remove NA from $value
 # compute density for $value, using 1.5x "default" bandwidth
