@@ -1,5 +1,28 @@
 # Mapunit summary utility functions
 
+classSignature <- function(i) {
+  # order the proportions of each row
+  o <- order(i, decreasing = TRUE)
+  
+  # determine a cut point for cumulative proportion >= threshold value
+  thresh.n <- which(cumsum(i[o]) >= 0.75)[1]
+  
+  # sanity check: if all classes are 0 then results are NA and we stop now
+  if(is.na(thresh.n))
+    return("NA")
+  
+  # if there is only a single class that dominates, then offset index as we subtract 1 next
+  if(thresh.n == 1)
+    thresh.n <- 2
+  
+  # get the top classes
+  top.classes <- i[o][1:(thresh.n-1)]
+  
+  # format for adding to a table
+  paste(names(top.classes), collapse = '/')
+}
+
+
 # remove NA from $value
 # compute density for $value, using 1.5x "default" bandwidth
 # re-scale to {0,1}
@@ -9,10 +32,11 @@ scaled.density <- function(d) {
   return(data.frame(x=res$x, y=scales::rescale(res$y)))
 }
 
-#TODO: this could be useful in soilReports? not really sharpshootR worthy since it has nothing to do with soil... might be best just left here
+# TODO: this could be useful in soilReports? not really sharpshootR worthy since it has nothing to do with soil... might be best just left here
 # abstracted this for use in the default symbology for "undefined" categoricals, made a call for the old use of defining mapunit colors for legends
 makeNiceColors <- function(n) {
-  if(n <= 7) {# 7 or fewer classes, use high-constrast colors
+  # 7 or fewer classes, use high-constrast colors
+  if(n <= 7) {
     cols <- brewer.pal(9, 'Set1') 
     # remove light colors
     cols <- cols[c(1:5,7,9)]
@@ -221,6 +245,12 @@ sweepProportions <- function(i, drop.unused.levels=FALSE, single.id=FALSE) {
   
   # tabulate and convert to proportions, retain all levels of ID
   foo <- xtabs(~ .id + value, data=i, drop.unused.levels=drop.unused.levels)
-  return(sweep(foo, MARGIN = 1, STATS = rowSums(foo), FUN = '/'))
+  res <- sweep(foo, MARGIN = 1, STATS = rowSums(foo), FUN = '/')
+  
+  # 2017-12-11: 0-samples result in NA, convert those back to 0
+  if(any(is.na(res)))
+    res[is.na(res)] <- 0
+  
+  return(res)
 }
 
