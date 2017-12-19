@@ -707,8 +707,10 @@ names(polygons.to.check)[1] <- mu.col
 #save a SHP file with prop.outside.range for each polygon and raster data source combination
 if(nrow(polygons.to.check) > 0) {
   shp.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
-  writeOGR(mu.check, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
-  write.csv(mu.check,file=paste0("output/", shp.fname, ".csv")) 
+  # BUG: this fails when mu.set contains illegal characters
+  # https://github.com/ncss-tech/soilReports/issues/75
+  try(writeOGR(mu.check, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
+  try(write.csv(mu.check,file=paste0("output/", shp.fname, ".csv")))
 }
 
 ## generates sample prop.outside.range table for documentation purposes
@@ -719,7 +721,9 @@ if(nrow(polygons.to.check) > 0) {
 # save SHP with any un-sampled polygons
 if(length(sampling.res$unsampled.ids) > 0) {
   shp.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
-  writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+  # BUG: this fails when mu.set contains illegal characters
+  # https://github.com/ncss-tech/soilReports/issues/75
+  try(writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 }
 
 # compute summaries
@@ -741,7 +745,9 @@ poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
 
 # save
 poly.stats.fname <- paste0('output/poly-stats-', paste(mu.set, collapse='_'), '.csv')
-write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE)
+# BUG: this fails when mu.set contains illegal characters
+# https://github.com/ncss-tech/soilReports/issues/75
+try(write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE))
 
 ## join stats to map unit polygon attribute table
 mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
@@ -752,7 +758,9 @@ mu$.id <- NULL
 
 # save to file
 shp.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
-writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+# BUG: this fails when mu.set contains illegal characters
+# https://github.com/ncss-tech/soilReports/issues/75
+try(writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 
 
 ## TODO: how do you trap warnings within a .Rmd knitting session?

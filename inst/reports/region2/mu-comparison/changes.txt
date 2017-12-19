@@ -1,3 +1,4 @@
+2017-12-19 (3.3.1): writing output files should now fail gracefully, more todo: https://github.com/ncss-tech/soilReports/issues/75
 2017-12-11 (3.3): bug fix for 0-samples returned from invalid geometry (https://github.com/ncss-tech/soilReports/issues/74)
 2017-11-29 (3.2): all columns except mu symbol column are removed from source data in order to prevent name collisions later on (https://github.com/ncss-tech/soilReports/issues/47)
 2017-08-08 (3.1): bug fixes and re-organization of report-specifc documentation
