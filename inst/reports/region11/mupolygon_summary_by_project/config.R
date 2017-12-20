@@ -1,32 +1,32 @@
 # Custom code, don't modify!!!
 
-ogr_extract <- function(pd, geodatabase, cache, project){
+ogr_extract <- function(pd, gdb_dsn, shp_dsn, mukey){
   ogr2ogr(
-    src_datasource_name = paste0(pd, geodatabase),
-    dst_datasource_name = cache,
-    layer = "MUPOLYGON",
-    where = paste0("MUKEY IN (", noquote(paste("'", project, "'", collapse=",", sep="")),")"),
-    s_srs = CRS("+init=epsg:5070"),
-    t_srs = CRS("+init=epsg:5070"),
-    overwrite = T,
-    simplify = 2,
-    verbose = TRUE)
-}
+    src_datasource_name = gdb_dsn,
+    dst_datasource_name = shp_dsn,
+    layer     = "MUPOLYGON",
+    where    = paste0("MUKEY IN (", noquote(paste("'", mukey, "'", collapse=",", sep="")),")"),
+    s_srs     = CRS("+init=epsg:5070"),
+    t_srs     = CRS("+init=epsg:5070"),
+    overwrite = TRUE,
+    simplify  = 2,
+    verbose   = TRUE)
+  }
 
 
 raster_extract <- function(x){
   # Load grids
   files <- c(
-    slope     = paste0(office_folder, "ned10m_", ssoffice, "_slope5.tif"),
-    aspect    = paste0(office_folder, "ned10m_", ssoffice, "_aspect5.tif"),
-    elev      = paste0(office_folder, "ned30m_", ssoffice, ".tif"),
-    wetness   = paste0(office_folder, "ned30m_", ssoffice, "_wetness.tif"),
-    valley    = paste0(office_folder, "ned30m_", ssoffice, "_mvalleys.tif"),
-    relief    = paste0(office_folder, "ned30m_", ssoffice, "_z2stream.tif"),
-    lulc      = paste0(office_folder, "nlcd30m_", ssoffice, "_lulc2011.tif"),
-    ppt       = paste0(region_folder, "prism800m_R11_ppt_1981_2010_annual_mm.tif"),
-    temp      = paste0(region_folder, "prism800m_R11_tmean_1981_2010_annual_C.tif"),
-    ffp       = paste0(region_folder, "rmrs1000m_R11_ffp_1961_1990_annual_days.tif")
+    slope     = paste0(office_folder, "ned10m_", mlrassoarea, "_slope5.tif"),
+    aspect    = paste0(office_folder, "ned10m_", mlrassoarea, "_aspect5.tif"),
+    elev      = paste0(office_folder, "ned30m_", mlrassoarea, ".tif"),
+    wetness   = paste0(office_folder, "ned30m_", mlrassoarea, "_wetness.tif"),
+    valley    = paste0(office_folder, "ned30m_", mlrassoarea, "_mvalleys.tif"),
+    relief    = paste0(office_folder, "ned30m_", mlrassoarea, "_z2stream.tif"),
+    lulc      = paste0(office_folder, "nlcd30m_", mlrassoarea, "_lulc2011.tif"),
+    ppt       = paste0(region_folder, "prism800m_11R_ppt_1981_2010_annual_mm.tif"),
+    temp      = paste0(region_folder, "prism800m_11R_tmean_1981_2010_annual_C.tif"),
+    ffp       = paste0(region_folder, "rmrs1000m_11R_ffp_1961_1990_annual_days.tif")
   )
   
   # test for missing files
