@@ -9,17 +9,17 @@
 ## packages + deps from CRAN
 ## version number
 
-.report.name <- 'mu-comparison'
-.report.version <- '3.3.1'
-.report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
+.report.name <- 'dmu-diff'
+.report.version <- '0.1'
+.report.description <- 'Differences between select DMU'
 
-.paths.to.copy <- c('report.Rmd','custom.R','config.R','categorical_definitions.R','README.md','changes.txt')
-.update.paths.to.copy <- c('report.Rmd','custom.R', 'categorical_definitions.R','README.md','changes.txt')
+.paths.to.copy <- c('report.Rmd', 'custom.R', 'config.R', 'categorical_definitions.R', 'README.md', 'changes.txt', 'style.css')
+.update.paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
 
-.packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'reshape2', 'raster', 'plyr', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071')
+.packages.to.get <- c('knitr', 'rmarkdown', 'daff', 'soilDB')
 
 ## packages from GH, no deps
-.gh.packages.to.get <- c('ncss-tech/sharpshootR')
+.gh.packages.to.get <- c()
 
 # flag to indicate that shiny.Rmd and not report.Rmd is the primary markdown file; convention should probably be that shiny.Rmd has option to generate a static report.Rmd-type output. 
 # currently the pedon summary demo using Shiny supports this option and uses a file called report.Rmd as the template for the static output

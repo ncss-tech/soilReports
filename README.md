@@ -45,10 +45,15 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 
 ## Choose an Available Report
 
- * [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
- * [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
- * [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
- * [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/mupolygon_summary_by_project)
+  * Region 2
+     + [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
+     + [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
+     + [DMU Difference Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/dmu-diff)
+
+  * Region 11
+     + [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
+     + [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/mupolygon_summary_by_project)
+
 
 ## Example Output
   
@@ -58,6 +63,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
   * [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
+  * [DMU differences](http://ncss-tech.github.io/example-reports/dmu-diff-example.html)
 
 
 ## Run a Report - Example: Map Unit Comparison report

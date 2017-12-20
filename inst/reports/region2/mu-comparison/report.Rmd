@@ -19,11 +19,13 @@ opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
 # R session options
 options(width=100, stringsAsFactors=FALSE)
 
-## load dependencies
+
 
 #TODO: verify that these have been installed and correct version. Just as a sanity check, should check version being compatible with report manifest
 # reportSetup should do this on creation of the report instance (see soilReports issue #45 on GH)
 
+## load dependencies
+library(aqp, quietly=TRUE)
 library(MASS, quietly=TRUE)
 library(rgdal, quietly=TRUE)
 library(rgeos, quietly=TRUE)
@@ -50,25 +52,35 @@ mu <- try(readOGR(dsn=mu.dsn, layer=mu.layer, stringsAsFactors = FALSE))
 if(class(mu) == 'try-error')
   stop(paste0('Cannot find map unit polygon file/feature: "', mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
 
-mu[[mu.col]] <- as.character(mu[[mu.col]]) # just in case, coerce mu.col to character
+# just in case, coerce mu.col to character
+mu[[mu.col]] <- as.character(mu[[mu.col]])
 
-if(exists('mu.set')) { #TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
+# TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
+if(exists('mu.set')) { 
   # coerce mu.set to character just in integers were specified
   mu.set <- as.character(mu.set)
 
-  #check to see if the mu.set specifies musyms that are not in the spatial layer
+  # check to see if the mu.set specifies musyms that are not in the spatial layer
   mu.set.bak <- mu.set
   mu_nosp <- !(mu.set %in% mu[[mu.col]])
-  if(any(mu_nosp)) #check if any of the predefined musyms are absent from the spatial
+  
+  # check if any of the predefined musyms are absent from the spatial
+  if(any(mu_nosp))
     mu.set <- mu.set[-which(mu_nosp)] #if so, remove them
-  if(length(mu.set) == 0) #if we removed everything (e.g. no musyms match due to wrong config file?), fail gracefully
+  
+  # if we removed everything (e.g. no musyms match due to wrong config file?), fail gracefully
+  if(length(mu.set) == 0) 
     stop(paste0("Cannot find map unit polygons with symbol: ",paste0(mu.set.bak,collapse=", ")))
   
   # if mu.set defined in config.R, only keep the features with musym matching set
   mu <- mu[which(mu[[mu.col]] %in% mu.set), ] 
 } else {
-  mu.set <- sort(unique(mu[[mu.col]])) #if mu.set is not predefined, set is all musyms and ordering is alphanumeric
+  # if mu.set is not predefined, ordering is determined by the order of musyms in the source file
+  mu.set <- sort(unique(mu[[mu.col]]))
 }
+
+# in order to avoid column name collisions due to DBF limitations, keep only the mu.col column
+mu <- mu[, mu.col, drop=FALSE]
 
 # add a unique polygon ID
 mu$pID <- seq(from=1, to=length(mu))
@@ -78,10 +90,10 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   .sampling.time <- 'using cached samples'
   load('cached-samples.Rda')
 } else {
-  #This script generates an Rda file (R object) containing samples from a set of rasters overlapping a polygon feature class.
-  #Samples are obtained from features of interest using constant density sampling. These data can then be used for summary of the variable space associated with mapunits, geologies, MLRAs, study areas, etc. Several reports have been designed to make use of these datasets. 
+  # This script generates an Rda file (R object) containing samples from a set of rasters overlapping a polygon feature class.
+  # Samples are obtained from features of interest using constant density sampling. These data can then be used for summary of the variable space associated with mapunits, geologies, MLRAs, study areas, etc. Several reports have been designed to make use of these datasets. 
   
-  #TODO: check for existence of parameter objects before using them... fail elegantly by asking for user input via knitr?
+  # TODO: check for existence of parameter objects before using them... fail elegantly by asking for user input via knitr?
   # Sourcing this script succesfully relies on a baseline definition of report parameters in the global environment. 
   # Needed params and names are based on config.R from v2.5 of mu summary report, though they may be defined in any way that is convenient
   # (i.e. batch/programattically, interactively, and via static config file)
@@ -97,7 +109,7 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   print(paste0("Completed sampling of raster stack for poly symbols (",paste(mu.set,collapse=","),") in ",.sampling.time,"."))
   
   sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels=mu.set)
-  #TODO: toggle for appending date/time to file name for Rda containing samnples; or take file name as param?
+  # TODO: toggle for appending date/time to file name for Rda containing samnples; or take file name as param?
   save(sampling.res, file=paste0("samples_",paste(mu.set,collapse="_"),"-",strftime(Sys.time(),format="%Y%m%d_%H%M%S"),".Rda"))
   print("DONE!")
   
@@ -138,9 +150,17 @@ dynamic.fig.height <- min.height + panel.height + id.height
 # nice colors
 cols <- makeNiceColors(length(mu.set))
 
-#TODO: Null out raster samples to save memory TOGGLE
+# TODO: Null out raster samples to save memory TOGGLE
 ## http://adv-r.had.co.nz/memory.html#memory
-#sampling.res$raster.samples <- NULL
+# sampling.res$raster.samples <- NULL
+
+
+# TODO / DEBUGGING: report on invalid geometries that could be interfering with sampling
+#    * https://github.com/ncss-tech/sharpshootR/commit/9ada343fea46d18f7c2e10c12a7dc1cbfb71679f
+#    * 
+# 
+# results in:
+# sampling.res$mu.validity.check
 ```
 
 <br>
@@ -185,7 +205,7 @@ tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=
 
 # NOTE: notches rely on effective sampling size
 bwplot(.id ~ value | variable, data=d.continuous, 
-       scales=list(y=list(alternating=3), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
+       scales=list(y=list(alternating=1), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
        strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, subscripts=TRUE, 
        layout=c(1, length(levels(d.continuous$variable))),
        panel=function(x, subscripts=subscripts, ...) {
@@ -230,7 +250,7 @@ n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 # compute densities and re-scale to {0,1}
 density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density)
 
-xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(levels(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(levels(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols, cex=0.8), par.settings=tps, type=c('l','g'))
 
 rm(density.plot.data)
 ```
@@ -321,7 +341,9 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
     metadat$decimals = 2
     dat$value=factor(dat$value, levels=metadat$levels, labels=metadat$labels)
   } else {
-    metadat <- categorical.defs[[pat]] #get the metadata if defined
+    # get the metadata if defined
+    ## note: this object exists outside of the scope of this function
+    metadat <- categorical.defs[[pat]] 
     flag = FALSE
     if(!is.null(metadat$keep.all.classes)) #do not have to specify keep all classes, optional parameter. 
       if(metadat$keep.all.classes) 
@@ -374,19 +396,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   
   
   # create a signature of the most frequent classes that sum to 75% or
-  x.sig <- apply(x, 1, function(i) {
-      # order the proportions of each row
-      o <- order(i, decreasing = TRUE)
-      # determine a cut point for cumulative proportion >= threshold value
-      thresh.n <- which(cumsum(i[o]) >= 0.75)[1]
-      # if there is only a single class that dominates, then offset index as we subtract 1 next
-      if(thresh.n == 1)
-        thresh.n <- 2
-      # get the top classes
-      top.classes <- i[o][1:(thresh.n-1)]
-      # format for adding to a table
-      paste(names(top.classes), collapse = '/')
-    })
+  x.sig <- apply(x, 1, classSignature)
   x.sig <- as.data.frame(x.sig)
   names(x.sig) <- 'mapunit composition "signature" (most frequent classes that sum to 75% or more)'
   
@@ -401,10 +411,9 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   most.likely.class.idx <- apply(spatial.summary[, -c(1:2)], 1, which.max)
   spatial.summary[[paste0('ml_', variable.name)]] <- levels(dat$value)[most.likely.class.idx]
   
-  ## shannon H by polygon
-  spatial.summary[[paste0('shannon_h_', variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, function(i) {
-    -sum(i * log(i, base=10), na.rm=TRUE)
-  })
+  ## implemented via aqp::shannonEntropy()
+  ## shannon entropy, log base 2 (bits) by polygon
+  spatial.summary[[paste0('shannon_h_', variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, aqp::shannonEntropy, b=2)
 
   # setup plot styling
   colors=metadat$colors[metadat$levels %in% lvls]
@@ -698,20 +707,23 @@ names(polygons.to.check)[1] <- mu.col
 #save a SHP file with prop.outside.range for each polygon and raster data source combination
 if(nrow(polygons.to.check) > 0) {
   shp.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
-  writeOGR(mu.check, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
-  write.csv(mu.check,file=paste0("output\\",shp.fname,".csv")) 
+  # BUG: this fails when mu.set contains illegal characters
+  # https://github.com/ncss-tech/soilReports/issues/75
+  try(writeOGR(mu.check, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
+  try(write.csv(mu.check,file=paste0("output/", shp.fname, ".csv")))
 }
 
 ## generates sample prop.outside.range table for documentation purposes
 #kable(head(mu.check[,c(1,2,14:20)],3), row.names = FALSE, digits = 2)
-
 ```
 
 ```{r echo=FALSE}
 # save SHP with any un-sampled polygons
 if(length(sampling.res$unsampled.ids) > 0) {
   shp.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
-  writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+  # BUG: this fails when mu.set contains illegal characters
+  # https://github.com/ncss-tech/soilReports/issues/75
+  try(writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 }
 
 # compute summaries
@@ -733,7 +745,9 @@ poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
 
 # save
 poly.stats.fname <- paste0('output/poly-stats-', paste(mu.set, collapse='_'), '.csv')
-write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE)
+# BUG: this fails when mu.set contains illegal characters
+# https://github.com/ncss-tech/soilReports/issues/75
+try(write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE))
 
 ## join stats to map unit polygon attribute table
 mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
@@ -744,7 +758,9 @@ mu$.id <- NULL
 
 # save to file
 shp.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
-writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE)
+# BUG: this fails when mu.set contains illegal characters
+# https://github.com/ncss-tech/soilReports/issues/75
+try(writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 
 
 ## TODO: how do you trap warnings within a .Rmd knitting session?

@@ -1,0 +1,130 @@
+---
+title: null
+output:
+  html_vignette:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
+    css: style.css
+---
+
+
+```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(knitr, quietly=TRUE)
+
+# package options
+opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
+
+# chunk options
+
+# R session options
+options(width=100, stringsAsFactors=FALSE)
+
+## load dependencies
+library(daff, quietly=TRUE)
+library(soilDB, quietly=TRUE)
+
+## load report-specific functions
+source('custom.R') 
+
+## load local configuration 
+# TODO: allow entry of simple fields interactively if they are not specified?
+# TODO: allow for batching from a basic report.Rmd
+source('config.R')
+
+
+## TODO: better selection of "old" vs. "new"
+# https://github.com/ncss-tech/soilReports/issues/67
+
+# must pre-load selected set with relevant DMU
+x <- fetchNASIS_component_data(rmHzErrors = FALSE)
+
+## site-level diff
+s <- site(x)
+
+# remove IDs from diff
+exclude.vars <- c('coiid', 'dmuiid')
+site.vars <- which(! names(s) %in% exclude.vars)
+
+# extract 'old' vs. 'new' records
+a <- subset(s[, site.vars], subset=dmudesc == old.dmu)
+b <- subset(s[, site.vars], subset=dmudesc == new.dmu)
+
+
+## copmute and render diff
+# TODO: eval optimal arguments
+delta <- diff_data(a, b)
+site.diff <- render_diff(delta, fragment=TRUE, view = FALSE, title = 'Site Diff', summary = TRUE)
+
+
+## hz-level diff
+d <- as(x, 'data.frame')
+
+hz.vars <- c('dmudesc', 'compname', horizonNames(x))
+exclude.vars <- c('coiid', 'chiid')
+hz.vars <- hz.vars[which(! hz.vars %in% exclude.vars)]
+d <- d[, hz.vars]
+
+# split into lists
+comp.order <- names(sort(tapply(s$comppct_r, s$compname, mean), decreasing = TRUE))
+d$compname <- factor(d$compname, levels=comp.order)
+l <- split(d, d$compname)
+
+hz.diff <- lapply(l, function(i) {
+  
+  a <- subset(i, subset=dmudesc == old.dmu)
+  b <- subset(i, subset=dmudesc == new.dmu)
+  
+  # exclude vars used for grouping
+  a$compname <- NULL ; a$comppct_r <- NULL ; a$dmudesc <- NULL
+  b$compname <- NULL ; b$comppct_r <- NULL ; b$dmudesc <- NULL
+  
+  delta <- diff_data(a, b)
+  
+  diff.name <- paste0('Component/Horizon Diff: ', unique(i$compname))
+  # fname <- paste0('hz-diff-', unique(i$compname), '.html')
+  
+  res <- render_diff(delta, fragment=TRUE, view = FALSE, title = diff.name, summary = TRUE)
+  return(list(title=diff.name, html=res))
+  
+})
+```
+
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;">
+<span style="font-size: 200%; font-weight: bold;">DMU Differences</span>
+<span style="font-size: 100%;">
+<br>
+<br>
+`r old.dmu`<br>vs.<br>`r new.dmu`
+</span>
+<br><br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d")`</div>
+
+<br>
+This report provides [text differencing](https://en.wikipedia.org/wiki/Diff_utility) capabilities, applied to DMU/component records and component/horizon records queried from the selected set. This type of analyis requires marking records as *old* (`r old.dmu`) and *new* (`r new.dmu`) in the associated `config.R` file. Differences are higlighted in blue, deletions are in red, and additions are in green.
+
+
+```{r, results='asis', echo=FALSE}
+wrapDaffHTML(site.diff, "DMU/Component Diff")
+```
+
+```{r, results='asis', echo=FALSE}
+f <- function(i) {
+  wrapDaffHTML(i$html, i$title)
+}
+
+dev.null <- lapply(hz.diff, f)
+```
+
+
+
+----------------------------
+This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")`, and `daff` version `r utils::packageDescription("daff", field="Version")`.
+<br>
+Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
+

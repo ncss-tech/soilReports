@@ -10,9 +10,10 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-   geodatabase: !r as.character("RTSD_R11-IND_FY16.gdb")
-   project_data_file_path: !r as.character("M:/geodata/project_data/")
-   ssoffice: !r as.character("11IND")
+   projectname: !r as.character("EVAL - MLRA 110 - Graymont silt loam, 0 to 2 percent slopes")
+   geodatabase:  !r as.character("RTSD_MLRA_11-AUR_FY18.gdb")
+   project_data: !r as.character("D:/geodata/project_data/")
+   mlrassoarea:  !r as.character("11-AUR")
 ---
 # Report Description
 
@@ -27,25 +28,22 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 source("config.R")
 
 # load packages
-library(plyr)
-library(reshape2)
-library(knitr)
-
-library(lattice)
-library(latticeExtra)
-# library(ggplot2)
-library(circular)
-
-library(maps)
-library(maptools)
-library(rgdal)
-library(gdalUtils)
-library(sp)
-library(sf)
-library(raster)
-
-library(soilDB)
-library(soilReports)
+suppressWarnings( {
+  library(plyr)
+  library(reshape2)
+  library(knitr)
+  library(lattice)
+  library(latticeExtra)# library(ggplot2)
+  library(circular)
+  library(maps)
+  library(maptools)
+  library(gdalUtils)
+  library(sp)
+  library(sf)
+  library(raster)
+  library(soilDB)
+  library(soilReports)
+  })
 
 opar <- trellis.par.get()
 trellis.par.set(theme = ggplot2like())
@@ -61,27 +59,25 @@ gdalUtils::gdal_setInstallation(search_path="C:/Program Files/QGIS Essen/bin", r
 ```{r map unit summary function}
 
 # report parameters
-geodatabase <- params$geodatabase
-dir <- params$project_data_file_path
-ssoffice <- params$ssoffice
-
-# sample percent (%)
+attach(params)
+mlrassoarea   <- gsub("-", "", mlrassoarea)
 samplePercent <- 15
- 
-# percentiles
-p <- c(0, 0.25, 0.5, 0.75, 1)
+p             <- c(0, 0.25, 0.5, 0.75, 1)
 
 # project data
-project <- get_projectmapunit_from_NASIS()
+project    <- get_mapunit_from_LIMS(projectname)
+projectiid <- unique(project$projectiid)[1]
   
 # folder paths
-office_folder <- paste0(dir, ssoffice, "/")
-region_folder <- paste0(dir, "11REGION/")
+office_folder <- paste0(project_data, mlrassoarea, "/")
+region_folder <- paste0(project_data, "11REGION/")
 
 # cache files
-sample_cache <- paste0(office_folder, "cache/", unique(project$uprojectid), "_", samplePercent, ".Rdata")
-gdb_cache <- gsub(".gdb", "", paste0(office_folder, geodatabase, "_cache.RData"))
-shp_cache <- paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".RData")
+sample_cache <- paste0(office_folder, "cache/", projectiid, "_", samplePercent, ".Rdata")
+gdb_dsn   <- paste0(office_folder, geodatabase)
+shp_dsn   <- paste0(office_folder, "cache/projectiid_", projectiid, ".shp")
+gdb_cache <- gsub(".gdb", "", gdb_dsn, "_cache.RData")
+shp_cache <- paste0(shp_dsn, ".RData")
 ```
 
 ```{r}
@@ -91,29 +87,25 @@ if (!file.exists(sample_cache)){
   # extract shapefile via gdalUtils if the geodatabase is > 1.5GB
   if (
     # geodatabase is > 1.5GB
-    sum(file.size(list.files(paste0(office_folder, geodatabase), full.names = TRUE))) / 1e+9 > 1.5 & 
+    sum(file.size(list.files(gdb_dsn, full.names = TRUE))) / 1e+9 > 1.5 & 
     # QGIS is installed
     file.exists("C:/Program Files/QGIS Essen/bin") &
     # shapefile of project doesn't already exist
     !file.exists(shp_cache)
     ){
     # extract polygons from geodatabase
-    ogr_extract(office_folder, geodatabase, 
-                paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".shp"), project$mukey)
-
-    mupolygon <- read_sf(dsn = paste0(office_folder, "cache/", unique(project$uprojectid)[1], ".shp"), layer = unique(project$uprojectid)[1])
+    ogr_extract(office_folder, gdb_dsn, shp_dsn, project$lmapunitiid)
+    mupolygon <- read_sf(dsn = shp_dsn, layer = projectiid)
     st_crs(mupolygon) <- "+init=epsg:5070"
 
-    sapolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "SAPOLYGON")
+    sapolygon <- read_sf(dsn = gdb_dsn, layer = "SAPOLYGON")
     st_crs(sapolygon) <- "+init=epsg:5070"
 
     save(mupolygon, sapolygon, file = shp_cache)
     }
   
   # shapefile cache
-  if (file.exists(shp_cache)) {
-    load(file = shp_cache)
-    }
+  if (file.exists(shp_cache)) load(file = shp_cache)
   
   # geodatabase cache
   if (
@@ -122,22 +114,23 @@ if (!file.exists(sample_cache)){
     # geodatabase cache exists?
     !file.exists(gdb_cache) &
     # geodatabase size
-    sum(file.size(list.files(paste0(office_folder, geodatabase), full.names = TRUE))) / 1e+9 <= 1.5) {
-    sapolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "SAPOLYGON")
+    sum(file.size(list.files(gdb_dsn, full.names = TRUE))) / 1e+9 <= 1.5 
+    ){
+    sapolygon <- read_sf(dsn = gdb_dsn, layer = "SAPOLYGON")
     st_crs(sapolygon) <- "+init=epsg:5070"
     
-    mupolygon <- read_sf(dsn = paste0(office_folder, geodatabase), layer = "MUPOLYGON")
+    mupolygon <- read_sf(dsn = gdb_dsn, layer = "MUPOLYGON")
     st_crs(mupolygon) <- "+init=epsg:5070"
     
     save(mupolygon, sapolygon, file = gdb_cache)
-    } else if (file.exists(gdb_cache)) load(file = gdb_cache)
+    } else load(file = gdb_cache)
   
   idx <- ! names(mupolygon) %in% c("Shape", "Geometry")
   names(mupolygon)[idx] <- tolower(names(mupolygon)[idx])
   idx2 <- grepl("shape_leng", names(mupolygon))
   names(mupolygon)[idx2] <- "shape_leng"
   
-  mupolygon <- mupolygon[mupolygon$mukey %in% project$mukey, ]
+  mupolygon <- mupolygon[mupolygon$mukey %in% project$lmapunitiid, ]
   
   mupolygon <- within(mupolygon, {
     Acres = shape_area * 0.000247105
@@ -145,17 +138,40 @@ if (!file.exists(sample_cache)){
     })
   
   # Sample soil map unit
-  n <- ceiling(sum(mupolygon$shape_area) / 900 * samplePercent / 100)
+  # n <- ceiling(sum(mupolygon$shape_area) / 900 * samplePercent / 100)
+  # 
+  # mupolygon$idx <- 1:nrow(mupolygon)
+  # mupolygon_sp <- by(mupolygon, mupolygon$idx, function(x) as(st_sample(x, 10), "Spatial"))
+  # mupolygon_sp <- do.call(rbind, mupolygon_sp)
+  # proj4string(mupolygon_sp) <- CRS("+init=epsg:5070")
+  # mupolygon_sf <- st_as_sf(mupolygon_sp)
   
-  mupolygon$idx <- 1:nrow(mupolygon)
-  mupolygon_sp <- by(mupolygon, mupolygon$idx, function(x) as(st_sample(x, 10), "Spatial"))
-  mupolygon_sp <- do.call(rbind, mupolygon_sp)
-  proj4string(mupolygon_sp) <- CRS("+init=epsg:5070")
+  mupolygons <- within(mupolygon, {
+    idx    = 1:nrow(mupolygon)
+    acres  = shape_area * 0.000247
+    samp_n = ifelse(acres < 2, 1, round(acres / 2))
+    })
+  
+  mupolygon_sp <- {
+    split(mupolygons, mupolygons$idx) ->.;
+    lapply(., function(x) {
+      mu_sp = spsample(as(x, "Spatial"), x$samp_n, type = "random", iter = 10)
+      if ("y" %in% names(as.data.frame(mu_sp))) {
+        test = data.frame(as.data.frame(mu_sp), idx = x$idx[1])
+        coordinates(test) = ~ x + y
+        proj4string(test) = "+init=epsg:5070"
+        return(test)
+        }
+      })}
+  idx <- which(unlist(lapply(mupolygon_sp, function(x) is.null(x))))
+  mupolygon_sp <- mupolygon_sp[-idx]
+  mupolygon_sp <- do.call("rbind", mupolygon_sp)
   mupolygon_sf <- st_as_sf(mupolygon_sp)
+
   
   geodata <- raster_extract(mupolygon_sp)
   idx  <- st_intersects(mupolygon_sf, mupolygon)
-  mapunit.df <- mupolygon[unlist(idx), ]
+  mapunit.df <- mupolygon[unlist(lapply(idx, function(x) x[1])), ]
 
   data <- cbind(data.frame(mapunit.df[c("areasymbol", "musym")]), geodata)
   
