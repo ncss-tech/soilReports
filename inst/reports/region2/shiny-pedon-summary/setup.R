@@ -12,8 +12,8 @@
 .gh.packages.to.get <- c('ncss-tech/soilDB','ncss-tech/sharpshootR')
 
 .report.name <- 'shiny-pedon-summary'
-.report.version <- '0.1'
-.report.description <- 'interactively subset and summarize pedon data from one or more map units'
+.report.version <- '0.2'
+.report.description <- 'interactively subset and summarize NASIS pedon data from one or more map units'
 
-.paths.to.copy <- c('report.Rmd','shiny.Rmd','utility_functions.R','main.R','config.R','NOTES.md','changes.txt')
+.paths.to.copy <- c('report.Rmd','shiny.Rmd','utility_functions.R','main.R','config.R','changes.txt')
 .update.paths.to.copy <- c('report.Rmd','shiny.Rmd','utility_functions.R','main.R')
