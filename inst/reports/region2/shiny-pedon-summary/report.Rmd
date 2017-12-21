@@ -7,7 +7,6 @@ output:
     smart: no
     keep_md: no
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='center', fig.retina=2, dev='png', antialias='cleartype')
 ```
@@ -106,34 +105,34 @@ Blue line shows the median slab value for the selected set of pedons, with the 2
 
 #### Hillslope position (2D)
 ```{r}
-  df <- categorical.prop.table(peds$hillslope_pos)
+  df <- categorical.prop.table(peds$hillslopeprof)
   kable(df)
   
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$hillslope_pos))
+      print(paste0("Modal pedon value: ",modal$hillslopeprof))
   }
 ```
 
 #### Geomorphic position - Hills (3D)
 ```{r}
-  df <- categorical.prop.table(peds$geompos_hill)
+  df <- categorical.prop.table(peds$geomposhill)
   kable(df)
   
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$geompos_hill))
+      print(paste0("Modal pedon value: ",modal$geomposhill))
   }
 ```
 
 #### Geomorphic position - Mountains (3D)
 ```{r}
-  df <- categorical.prop.table(peds$geompos_mntn)
+  df <- categorical.prop.table(peds$geomposmntn)
   kable(df)
   
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$geompos_mntn))
+      print(paste0("Modal pedon value: ",modal$geomposmntn))
   }
 ```
 
@@ -161,10 +160,8 @@ Blue line shows the median slab value for the selected set of pedons, with the 2
 
 #### Surface Shape (DOWN/ACROSS)
 ```{r}
-  down <- peds$shapedown
-  acro <- peds$shapeacross
-  levels(down) <- c("V","L","C")
-  levels(acro) <- c("V","L","C")
+  down <- factor(as.character(peds$shapedown),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
+  acro <- factor(as.character(peds$shapeacross),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
   shape <- factor(paste(as.character(down),as.character(acro),sep="/"))
   shape[grepl(shape,pattern="NA")] <- NA
   shape <- factor(shape)

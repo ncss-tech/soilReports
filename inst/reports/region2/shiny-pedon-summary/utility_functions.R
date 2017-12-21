@@ -10,11 +10,10 @@ getPedonsByPattern <- function(compname,upid,pedon_list,taxon_kind,phasename) {
   upidmatch <- grepl(pattern=upid,s.pedons$pedon_id)
   compmatch <- grepl(pattern=compname,s.pedons$taxonname)
   phasematch <- grepl(pattern=phasename,s.pedons$localphase)
-  
   if(taxon_kind == "any") {
     taxon_kind = ".*"
   }
-  taxkindmatch <- grepl(pattern=taxon_kind, s.pedons$taxon_kind)
+  taxkindmatch <- grepl(pattern=taxon_kind, s.pedons$taxonkind)
   
   idx.match=rep(TRUE, length(s.pedons$pedon_id))
   if(pedon_list != "." & pedon_list != "") { #If there has been a list of pedons specified, use that in lieu of all other patterns
@@ -25,7 +24,8 @@ getPedonsByPattern <- function(compname,upid,pedon_list,taxon_kind,phasename) {
   } else {
     idx.match <- upidmatch & compmatch & phasematch & taxkindmatch
   }
-
+  
+  
   peds <- s.pedons[idx.match,]
   peds$musym <- peds$MUSYM #TODO: trace this to see what functions rely on lowercase 'musym'
   
@@ -363,7 +363,7 @@ summarize.component <- function(f.i) {
   names(texture.table) <- c('Generalized HZ', 'Texture Classes')
   
   # diagnostic hz tables
-  diag.hz.table <- ddply(diagnostic_hz(f.i), c('diag_kind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
+  diag.hz.table <- ddply(diagnostic_hz(f.i), c('featkind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
   names(diag.hz.table) <- c('kind', 'N', 'top', 'bottom', 'thick')
   
   ## ML-horizonation

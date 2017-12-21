@@ -216,7 +216,6 @@ renderPlot(
     comp <- s.comp
     peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
     s <- summarize.component(peds)
-    
     s$ml.hz.plot
   }
 )
@@ -229,7 +228,7 @@ renderPlot(
 renderTable( {
   sourcemu <- input$s.mu 
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$hillslope_pos)
+  df <- categorical.prop.table(peds$hillslopeprof)
   df
 }, striped=T)
 
@@ -238,7 +237,7 @@ renderUI( {
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$hillslope_pos))
+      print(paste0("Modal pedon value: ",modal$hillslopeprof))
   }
 })
 ```
@@ -248,7 +247,7 @@ renderUI( {
 renderTable( {
   sourcemu <- input$s.mu 
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$geompos_hill)
+  df <- categorical.prop.table(peds$geomposhill)
   df
 }, striped=T)
 renderUI( {
@@ -256,7 +255,7 @@ renderUI( {
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$geompos_hill))
+      print(paste0("Modal pedon value: ",modal$geomposhill))
   }
 })
 ```
@@ -266,7 +265,7 @@ renderUI( {
 renderTable( {
   sourcemu <- input$s.mu 
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$geompos_mntn)
+  df <- categorical.prop.table(peds$geomposmntn)
   df
 }, striped=T)
 renderUI( {
@@ -274,7 +273,7 @@ renderUI( {
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$geompos_mntn))
+      print(paste0("Modal pedon value: ",modal$geomposmntn))
   }
 })
 ```
@@ -321,10 +320,8 @@ renderUI( {
 renderTable( {
   sourcemu <- input$s.mu 
   peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  down <- peds$shapedown
-  acro <- peds$shapeacross
-  levels(down) <- c("V","L","C")
-  levels(acro) <- c("V","L","C")
+  down <- factor(as.character(peds$shapedown),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
+  acro <- factor(as.character(peds$shapeacross),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
   shape <- factor(paste(as.character(down),as.character(acro),sep="/"))
   shape[grepl(shape,pattern="NA")] <- NA
   shape <- factor(shape)
