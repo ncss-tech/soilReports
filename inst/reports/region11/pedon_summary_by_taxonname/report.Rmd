@@ -102,7 +102,10 @@ if (nrow(d) == 0) {
                   featdepb = as.integer(NA)
                   )
   }
-d <- transform(d, thickness = featdepb - featdept)
+d <- transform(d, 
+               thickness = featdepb - featdept,
+               featkind = as.character(featkind)
+               )
 
 # modify site table
 # rename psc depths
@@ -142,7 +145,7 @@ if (dim(s)[1] != 0) {
 
 ```{r format site data, results='asis', echo=FALSE}
 # Site information
-kable(subset(s, select = c("pedon_id", "taxonname", "tax_subgroup", "part_size_class", "pedon_type", "describer")), caption = "Summary of data in the selected set")
+kable(subset(s, select = c("pedon_id", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "describer")), caption = "Summary of data in the selected set")
 ```
 
 
@@ -204,24 +207,25 @@ if (sum(srf$total_srf, na.rm = T) != 0) {
 ## Diagnostic horizons and soil characteristics
 
 ```{r diagnostics, echo=FALSE, results='asis', warning=FALSE}
-diag.lo <- melt(d, id.vars = "diag_kind", measure.vars = c("featdept", "featdepb", "thickness"))
-pscs.lo <- melt(s, id.vars = "peiid", measure.vars = c("featdept", "featdepb", "thickness"))
-pscs.lo <- data.frame(diag_kind = "particle size control section", 
+diag.lo <- melt(d, id.vars = "featkind", measure.vars = c("featdept", "featdepb", "thickness"), factorsAsStrings = FALSE)
+pscs.lo <- melt(s, id.vars = "peiid", measure.vars = c("featdept", "featdepb", "thickness"), factorsAsStrings = FALSE)
+pscs.lo <- data.frame(featkind = "particle size control section", 
                       variable = pscs.lo$variable, 
                       value = pscs.lo$value
                       )
+
 # combine diagnostic and particle size control section long tables
 diag.lo <- rbind(diag.lo, pscs.lo)
-diag.5n <- ddply(diag.lo, .(variable, diag_kind), summarize,
+diag.5n <- ddply(diag.lo, .(variable, featkind), summarize,
                 range = prettySummary(value)
                 )
-diag.wi <- dcast(diag.5n, diag_kind ~ variable, value.var = 'range')
+diag.wi <- dcast(diag.5n, featkind ~ variable, value.var = 'range')
 
 kable(diag.wi, align = "c", caption = "Depths and thickness of diagnostic horizons and features(min, 25th, median, 75th, max)(n)")
 
 
 if (!all(is.na(diag.lo$value))) {
-  bwplot(diag_kind ~ value | variable, data = diag.lo, 
+  bwplot(featkind ~ value | variable, data = diag.lo, 
          main = "Boxplots of diagnostic horizon and feature depths", 
          scales =list(x="free"), axis = axis.grid, 
          as.table = TRUE
@@ -347,9 +351,9 @@ bwplot(~ value | variable, data = morf.lo,
 ### Parent Material vs. Landform
 
 ```{r parent material}
-if (!all(is.na(s[c("pmorigin", "pmkind", "landform.string")]))) {
+if (!all(is.na(s[c("pmorigin", "pmkind", "landform_string")]))) {
   pm_comb <- factor(paste0(s$pmorigin, " ", s$pmkind))
-  pm_land <- factor(s$landform.string)
+  pm_land <- factor(s$landform_string)
   pm.lf <- addmargins(table(pm_comb, pm_land))
   kable(pm.lf, caption="Parent material vs landform (counts)")
   } else "The parent material and landform fields are empty."
@@ -366,7 +370,7 @@ if (!all(is.na(s[c("shapedown", "shapeacross")]))) {
 ### Hillslope Position vs. Drainage Class
 
 ```{r hillslope position}
-if (any(complete.cases(s[c("hillslope_pos", "drainagecl")]))) {
-  kable(addmargins(xtabs(~ drainagecl + hillslope_pos, data = s)), digits = 0, caption = "Drainage class vs hillslope position (counts)")
+if (any(complete.cases(s[c("hillslopeprof", "drainagecl")]))) {
+  kable(addmargins(xtabs(~ drainagecl + hillslopeprof, data = s)), digits = 0, caption = "Drainage class vs hillslope position (counts)")
   } else "The hillslope position and drainage class fields are empty."
 ```
