@@ -12,13 +12,42 @@ library(xtable)
 library(knitr)
 
 cache_data=F
-use_regex_ghz=F
+use_regex_ghz=T
 
-input <- data.frame(1)
-input$s.mu = '.'
-input$pedon_list=""
+#these are defaults to ensure that the report has inputs necessary to generate plots on startup
+input <- data.frame(1) #create input dataframe
+input$s.mu = '.' #all mapunits
+input$pedon_list="" #no pedon list specified (no initial filter)
 
-gen.hz.rules <- list()
+# "generic" gen.hz.rules for CA630 use
+#   TODO: handle caret, primes etc.
+gen.hz.rules <- list(list(
+  n = c('Oi',
+        'A',
+        'BA',
+        'Bt',
+        'Bw',
+        'Btqm',
+        'Btg',
+        'Bss',
+        'BC',
+        'BCg',
+        'C',
+        'Cr'),
+  p = c('O',
+        '^[2-9]?[AE]B?C?p?d?t?[1-9]?$',
+        '^[2-9]?BA?E?t?[1-9]?$',
+        '^[2-9]?Btb?[1-9]?$',
+        '^[2-9]?Bw[1-9]?$',
+        '^[2-9]?Btqc?m?[1-9]?$',
+        '^[2-9]?Bt?g[1-9]?$',
+        '^[2-9]?B.*ss.*[1-9]?$',
+        '^[2-9]?BCt?c?[1-9]?$',
+        '^[2-9]?BCt?c?g[1-9]?$',
+        '^[2-9]?C[^r]?t?[1-9]?$',
+        '^[2-9]?(C[dr]t?|Rt?)[1-9]?')
+))
+
 
 poly.dsn = "L:/NRCS/MLRAShared/CA630/FG_CA630_OFFICIAL.gdb"
 poly.layer = "ca630_a"

@@ -4,21 +4,28 @@ getMapunitPedons <- function(targetmu) {
   return(pedons[grepl(targetmu,pedons$MUSYM)]) #set of pedons from target MU
 }
 
-getPedonsByPattern <- function(compname,upid,pedon_list) {
+getPedonsByPattern <- function(compname,upid,pedon_list,taxon_kind,phasename) {
   peds <- data.frame()
   
-  upidmatch <- grepl(pattern=upid, s.pedons$pedon_id)
-  compmatch <- grepl(pattern=compname, s.pedons$taxonname)
+  upidmatch <- grepl(pattern=upid,s.pedons$pedon_id)
+  compmatch <- grepl(pattern=compname,s.pedons$taxonname)
+  phasematch <- grepl(pattern=phasename,s.pedons$localphase)
+  if(taxon_kind == "any") {
+    taxon_kind = ".*"
+  }
+  taxkindmatch <- grepl(pattern=taxon_kind, s.pedons$taxonkind)
   
   idx.match=rep(TRUE, length(s.pedons$pedon_id))
-  if(pedon_list != "." & pedon_list != "") { #If there has been a list of pedons specified, use that in lieu of compname/upid pattern
-    plist <- strsplit(pedon_list,",",fixed=T) #TODO use regex and handle whitespace before or after comma in list
+  if(pedon_list != "." & pedon_list != "") { #If there has been a list of pedons specified, use that in lieu of all other patterns
+    plist <- strsplit(pedon_list,",",fixed=T) #TODO use regex and handle whitespace before or after comma in list?
     if(length(plist[[1]]) >= 1) { #length should always be 1 or more?
-      idx.match = (s.pedons$pedon_id %in% plist[[1]]) #should this allow for regex too? would comma-delimited regex patterns be potentially ambiguous?
+      idx.match = (s.pedons$pedon_id %in% plist[[1]]) #should this allow for regex too? would comma-delimited regex patterns be potentially ambiguous? comma not a special char
     }
   } else {
-    idx.match <- upidmatch & compmatch
+    idx.match <- upidmatch & compmatch & phasematch & taxkindmatch
   }
+  
+  
   peds <- s.pedons[idx.match,]
   peds$musym <- peds$MUSYM #TODO: trace this to see what functions rely on lowercase 'musym'
   
@@ -26,11 +33,12 @@ getPedonsByPattern <- function(compname,upid,pedon_list) {
   #TODO: support interactive development of genhz pattern? 
   #TODO: support probabilistic assignment of GHZ?  using permutation of hz assignment and optimizing on "reliability" factor??
   
-  #SET NA genhz from NASIS to not used, to ensure report will run regardless of NASIS db status
+  #SET NA genhz from NASIS to not used, to ensure report will run regardless of NASIS db status 
   horizons(peds)$genhz[is.na(horizons(peds)$genhz)] <- "not-used"
   
   #NOTE: explicitly makes genhz a factor to preserve ordering so that alphabetical order does not take precedent?
-  #               would it be possible to infer genhz order based on how they are used in the modal pedon? for cases where non-regex ghz is applied
+  #       for cases where non-regex ghz is applied would it be possible to _infer_ genhz order based on a modal pedon?
+  
   if(use_regex_ghz) {
     newhz <- c(gen.hz.rules[[1]]$n,'not-used')
     horizons(peds)$genhz <- newhz[as.numeric(generalize.hz(x=peds$hzname,new=gen.hz.rules[[1]]$n,pat=gen.hz.rules[[1]]$p))]
@@ -307,6 +315,9 @@ summarize.component <- function(f.i) {
   ## surface fragment summary
   pedon.surface.frags.table <- summarise.pedon.surface.frags(site.i)
   
+  #make not-used placeholder values na
+  #h.i$genhz[h.i$genhz == 'not-used'] <- NA
+  
   # ## check for missing genhz labels by pedon
   missing.all.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) all(is.na(i$genhz)))
   missing.some.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) any(is.na(i$genhz)))
@@ -337,6 +348,7 @@ summarize.component <- function(f.i) {
   
   # drop values not associated with a generalized horizon label
   h.i.long <- subset(h.i.long, subset=!is.na(genhz))
+  h.i.long <- subset(h.i.long, subset=!(genhz=='not-used'))
   
   # summary by variable / generalized hz label
   s.i <- ddply(h.i.long, c('variable', 'genhz'), .fun=conditional.l.rv.h.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
@@ -351,7 +363,7 @@ summarize.component <- function(f.i) {
   names(texture.table) <- c('Generalized HZ', 'Texture Classes')
   
   # diagnostic hz tables
-  diag.hz.table <- ddply(diagnostic_hz(f.i), c('diag_kind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
+  diag.hz.table <- ddply(diagnostic_hz(f.i), c('featkind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
   names(diag.hz.table) <- c('kind', 'N', 'top', 'bottom', 'thick')
   
   ## ML-horizonation
@@ -361,6 +373,9 @@ summarize.component <- function(f.i) {
   
   # extract original horizon designations and order
   original.levels <- attr(gen.hz.aggregate, 'original.levels')
+  
+  #drop not-used level
+   original.levels <- original.levels[original.levels != 'not-used']
   
   # melt into long format, accomodating illegal column names (e.g. 2Bt)
   gen.hz.aggregate.long <- melt(gen.hz.aggregate, id.vars='top', measure.vars=make.names(original.levels))
@@ -392,7 +407,7 @@ summarize.component <- function(f.i) {
   
   
   # generate ML hz table
-  gen.hz.ml <- get.ml.hz(gen.hz.aggregate)
+  gen.hz.ml <- get.ml.hz(gen.hz.aggregate, original.levels)
   
   # combine all genhz levels with those in the ML hz table
   gzml <- data.frame(hz=factor(original.levels, levels=original.levels))	

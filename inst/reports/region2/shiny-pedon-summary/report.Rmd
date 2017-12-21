@@ -7,7 +7,6 @@ output:
     smart: no
     keep_md: no
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='center', fig.retina=2, dev='png', antialias='cleartype')
 ```
@@ -17,7 +16,7 @@ knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='cente
   #outside of reactive context only need to call these once
   sourcemu <- input$s.mu 
   comp <- s.comp
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list)
+  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
   peds$genhzraw <- as.character(peds$genhz) #this plot function gets mad if name is a factor...
   s <- summarize.component(peds)
   
@@ -48,11 +47,11 @@ knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='cente
 ### Grouped Profile Plot
 ```{r,fig.width=12, fig.height=8}
 #TODO: abstract these with "reactive" and "static" available as a toggle
-groupedProfilePlot(peds,groups = 'taxonname', label='pedon_id', 
+    groupedProfilePlot(peds,groups = 'taxonname', label='pedon_id', 
                          print.id = TRUE, id.style = 'side', cex.id=1.2, 
                          cex.names=1, cex.depth.axis=1.25,y.offset=7, 
                          axis.line.offset=-3.0, group.name.cex=1, 
-                         group.name.offset = -6, color=input$thematic_field,
+                         group.name.offset = c(-6,-10), color=input$thematic_field,
                          width=0.1,shrink=T,shrink.cutoff=3)
 ```
 
@@ -93,7 +92,7 @@ Blue line shows the median slab value for the selected set of pedons, with the 2
                          print.id = TRUE, id.style = 'side', cex.id=1.2, 
                          cex.names=1, cex.depth.axis=1.25,y.offset=7, 
                          axis.line.offset=-3.0, group.name.cex=1, 
-                         group.name.offset = -6, color=input$thematic_field,
+                         group.name.offset = c(-6,-10), color=input$thematic_field,
                          width=0.1,shrink=T,shrink.cutoff=3)
 ```
 
@@ -106,34 +105,34 @@ Blue line shows the median slab value for the selected set of pedons, with the 2
 
 #### Hillslope position (2D)
 ```{r}
-  df <- categorical.prop.table(peds$hillslope_pos)
+  df <- categorical.prop.table(peds$hillslopeprof)
   kable(df)
   
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$hillslope_pos))
+      print(paste0("Modal pedon value: ",modal$hillslopeprof))
   }
 ```
 
 #### Geomorphic position - Hills (3D)
 ```{r}
-  df <- categorical.prop.table(peds$geompos_hill)
+  df <- categorical.prop.table(peds$geomposhill)
   kable(df)
   
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$geompos_hill))
+      print(paste0("Modal pedon value: ",modal$geomposhill))
   }
 ```
 
 #### Geomorphic position - Mountains (3D)
 ```{r}
-  df <- categorical.prop.table(peds$geompos_mntn)
+  df <- categorical.prop.table(peds$geomposmntn)
   kable(df)
   
   if(!is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$geompos_mntn))
+      print(paste0("Modal pedon value: ",modal$geomposmntn))
   }
 ```
 
@@ -161,10 +160,8 @@ Blue line shows the median slab value for the selected set of pedons, with the 2
 
 #### Surface Shape (DOWN/ACROSS)
 ```{r}
-  down <- peds$shapedown
-  acro <- peds$shapeacross
-  levels(down) <- c("V","L","C")
-  levels(acro) <- c("V","L","C")
+  down <- factor(as.character(peds$shapedown),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
+  acro <- factor(as.character(peds$shapeacross),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
   shape <- factor(paste(as.character(down),as.character(acro),sep="/"))
   shape[grepl(shape,pattern="NA")] <- NA
   shape <- factor(shape)
