@@ -9,7 +9,10 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
+params:
+   projectname: !r as.character("EVAL - MLRA 110 - Graymont silt loam, 0 to 2 percent slopes")
 ---
+
 ```{r setup, echo = FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE)
 
@@ -31,11 +34,13 @@ library(knitr)
 
 # project mapunits
 
-pm <- get_projectmapunit_from_NASIS()
+f    <- fetchLIMS_component(params$projectname, fill = FALSE)
+pm   <- f$mapunit
+comp <- f$spc
 
-kable(pm[1, 1:3])
+kable(pm[1, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")])
 
-kable(pm[4:ncol(pm)])
+kable(pm[c("areasymbol", "musym", "nationalmusym", "muname", "muacres")])
 
 ```
 
@@ -45,7 +50,6 @@ kable(pm[4:ncol(pm)])
 ```{r component data, fig.width=8.5, fig.height=6}
 
 # load component data
-comp <- fetchNASIS_component_data(fill = TRUE)
 
 lev <- site(comp)[, c("compname", "comppct_r")]
 lev <- lev[order(-lev$comppct_r), ]
@@ -60,8 +64,9 @@ site(comp) <- within(site(comp), {
   })
 comp$dep <- comp$hzdept_r
   
-cosm <- get_cosoilmoist_from_NASIS()
-cosm <- subset(cosm, !is.na(dept_r) & status == "wet")
+cosm <- get_cosoilmoist_from_LIMS(params$projectname)
+idx <- with(cosm, {!is.na(cosm$dept_r) & cosm$status == "wet"})
+if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
 cosm <- within(cosm, {
   dmuiid = factor(dmuiid, sort(unique(dmuiid),  decreasing = TRUE))
   compname = factor(compname, levels = lev)
@@ -73,23 +78,22 @@ s <- site(comp)
 h <- horizons(comp)
 
 n_coiid <- length(unique(subsetProfiles(comp, h = "!is.na(comp$hzdept_r)")$coiid))
-n_depthplots_h  <- ceiling(n_coiid / 4) * 2.5
+n_depthplots_h  <- ceiling(n_coiid / 4) * 3.5
 # n_depthplots_w  <- length(unique(s$coiid)) * 4
 n_cosoilmoist_h <- ceiling(length(unique(cosm$coiid)) / 4) * 3.5  
 # n_cosoilmoist_w <- length(unique(cosm$dmuiid)) * 6 
 profile_idx <- pIndex(comp, 10)
-n_profile <- ceiling(length(unique(comp$coiid)) / 10) * 3
+n_profile <- ceiling(length(unique(comp$coiid)) / 10) * 2
 
 # component
 
-kable(with(s, data.frame(
+kable(with(s, { data.frame(
   dmudesc_short, compname, comppct_r, majcompflag, localphase, drainagecl, 
-  slope_l, slope_r, slope_h,
-  taxpartsize, taxsubgrp))
-  )
+  slope_l, slope_r, slope_h, taxpartsize, taxsubgrp
+  )}))
 
 # parent material and landform
-kable(with(s, data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, landform.string)))
+kable(with(s, { data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, landscape, landform)}))
 ```
 
 
@@ -131,7 +135,7 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
 
 ## Soil Profile Plots
 
-```{r horizon data, fig.height=7}
+```{r horizon data, fig.height=n_depthplots_h*0.75}
 # profile plot
 
 # plot no more than 15 soil profiles on each row
