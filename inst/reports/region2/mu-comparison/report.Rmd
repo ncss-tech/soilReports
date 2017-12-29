@@ -7,6 +7,14 @@ output:
     smart: no
     keep_md: no
 ---
+<!-- mu-comparison (v3.3.2) -- instance created 2017-12-29 10:41:30-->  
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'mu-comparison'
+	.report.version <- '3.3.2'
+	.report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
+```
+
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
@@ -19,24 +27,28 @@ opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
 options(width=100, stringsAsFactors=FALSE)
 
 
+### -----
+### SANITY CHECK #1 - make sure user has run reportSetup recently :)
+### TODO: verify they are not running an old report version that might rely on outdated packages?
 
-#TODO: verify that these have been installed and correct version. Just as a sanity check, should check version being compatible with report manifest
-# reportSetup should do this on creation of the report instance (see soilReports issue #45 on GH)
+### check if needed CRAN packages are installed
+packz <- c("MASS","rgdal","rgeos","raster","plyr","latticeExtra","cluster","clhs","randomForest","spdep","reshape2","aqp","sharpshootR")
+newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
 
-## load dependencies
-library(aqp, quietly=TRUE)
-library(MASS, quietly=TRUE)
-library(rgdal, quietly=TRUE)
-library(rgeos, quietly=TRUE)
-library(raster, quietly=TRUE)
-library(plyr, quietly=TRUE)
-library(sharpshootR, quietly=TRUE)
-library(latticeExtra, quietly=TRUE)
-library(cluster, quietly=TRUE)
-library(clhs, quietly=TRUE)
-library(randomForest, quietly=TRUE)
-library(spdep, quietly=TRUE)
-library(reshape2, quietly=TRUE)
+# Last two (aqp and sharpshootR) are (in general) installed from GitHub. Maybe in the future (when more stable) we will rely more heavily on CRAN.
+# TODO: Check installed package against latest remote commit (requires devtools) to provide warning if there is a newer version?
+# TODO: should the report install CRAN packages if it discovers they are missing? or should this only be done via reportSetup?
+#      and what about dependencies? and GitHub packages? report doesn't know how to distinguish package source, but setup does.
+#      currently, scheme is to load packs if you have 'em and fails if you don't. If it fails, tells you to run reportSetup.
+#if(length(newpackz)) 
+#  install.packages(newpackz)
+
+loaded <- lapply(packz, FUN=require, character.only=TRUE, quietly=TRUE)
+if(sum(as.numeric(loaded)) != length(packz)) {
+  stop("Failed to load one or more required packages! Be sure you have the latest version of the soilReports package from GitHub. Then run `soilReports::reportSetup('region2/mu-comparison')` to install all required packages. Use reportUpdate() to ensure you have the latest version of report.", call. = FALSE)
+  geterrmessage()
+}
+### -----
 
 ## load report-specific functions
 source('custom.R') 
@@ -46,10 +58,45 @@ source('custom.R')
 #TODO: allow for batching from a basic report.Rmd
 source('config.R')
 
+### -----
+### Sanity check #2 - make sure the shapefile to be summarized exists,can be read and has the specified column
 ## load map unit polygons from OGR data source
 mu <- try(readOGR(dsn=mu.dsn, layer=mu.layer, stringsAsFactors = FALSE))
 if(class(mu) == 'try-error')
-  stop(paste0('Cannot find map unit polygon file/feature: "', mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
+  stop(paste0('Cannot read map unit polygon/feature file: "', mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
+if(!(mu.col %in% names(mu)))
+  stop(paste0('Cannot find map unit column (',mu.col,') in attribute table of: "', mu.dsn, ' / ', mu.layer,'"'), call. = FALSE)
+### -----
+
+### -----
+### Sanity check #3 - make sure all raster/input file paths exist and are readable
+###                   NB: this might not give correct results for parallel computation. Actual file read calls will also be wrapped in try()
+accessible.inputs <- file.access(as.character(unlist(raster.list)), mode = 4) + 1 #file.access returns 0 for success and -1 for failure
+if(any(!accessible.inputs)) {
+  stop(paste0("The following input files either do not exist or are unreadable: ",paste0(unlist(raster.list[!accessible.inputs]), collapse=", ")))
+}
+### -----
+
+### -----
+### Sanity check #4 - make sure output paths are valid (no illegal characters)
+###
+# make an output directory if it doesn't exist
+if(!dir.exists('output')) 
+  dir.create('./output')
+
+#shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
+if(!exists('shp.unsampled.fname')) shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
+if(!exists('shp.stats.fname')) shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
+if(!exists('shp.qc.fname')) shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
+
+if(!exists('csv.qc.fname')) csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'),'.csv')
+if(!exists('csv.stats.fname')) csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse='_'), '.csv')
+
+outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
+if(any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
+  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames or remove  [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
+}
+### -----
 
 # just in case, coerce mu.col to character
 mu[[mu.col]] <- as.character(mu[[mu.col]])
@@ -689,9 +736,6 @@ Assuming one has sufficient polygons and samples to characterize the data distri
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
 
-# make an output dir if it doesn't exist
-if(!dir.exists('output')) dir.create('./output')
-
 #calculates prop outside range for _all_ polys
 polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons) #, p.crit = 0) 
 
@@ -712,11 +756,10 @@ names(polygons.to.check)[1] <- mu.col
 
 #save a SHP file with prop.outside.range for each polygon and raster data source combination
 if(nrow(polygons.to.check) > 0) {
-  shp.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
   # BUG: this fails when mu.set contains illegal characters
   # https://github.com/ncss-tech/soilReports/issues/75
-  try(writeOGR(mu.check, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
-  try(write.csv(mu.check,file=paste0("output/", shp.fname, ".csv")))
+  try(writeOGR(mu.check, dsn='output', layer=shp.qc.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
+  try(write.csv(mu.check, paste0('output/',csv.qc.fname)))
 }
 
 ## generates sample prop.outside.range table for documentation purposes
@@ -726,10 +769,10 @@ if(nrow(polygons.to.check) > 0) {
 ```{r echo=FALSE}
 # save SHP with any un-sampled polygons
 if(length(sampling.res$unsampled.ids) > 0) {
-  shp.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
+  shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
   # BUG: this fails when mu.set contains illegal characters
   # https://github.com/ncss-tech/soilReports/issues/75
-  try(writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
+  try(writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.unsampled.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 }
 
 # compute summaries
@@ -750,10 +793,9 @@ poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
 # poly.stats.wide <- poly.stats.wide.1
 
 # save
-poly.stats.fname <- paste0('output/poly-stats-', paste(mu.set, collapse='_'), '.csv')
 # BUG: this fails when mu.set contains illegal characters
 # https://github.com/ncss-tech/soilReports/issues/75
-try(write.csv(poly.stats.wide, file=poly.stats.fname, row.names=FALSE))
+try(write.csv(poly.stats.wide, file=paste0('output/',csv.stats.fname), row.names=FALSE))
 
 ## join stats to map unit polygon attribute table
 mu <- merge(mu, poly.stats.wide, by='pID', all.x=TRUE)
@@ -763,11 +805,9 @@ names(mu)[-1] <- abbreviateNames(mu)
 mu$.id <- NULL
 
 # save to file
-shp.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
 # BUG: this fails when mu.set contains illegal characters
 # https://github.com/ncss-tech/soilReports/issues/75
-try(writeOGR(mu, dsn='output', layer=shp.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
-
+try(writeOGR(mu, dsn='output', layer=shp.stats.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 
 ## TODO: how do you trap warnings within a .Rmd knitting session?
 # save warnings to log file

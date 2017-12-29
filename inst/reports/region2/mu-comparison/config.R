@@ -88,9 +88,7 @@ mu.col <- 'MUSYM'
 # increase if there are un-sampled polygons
 # delineations smaller than 5 ac. may require up to 5 points / ac.
 # values > 6-7 points / ac. will only slow things down
-pts.per.acre <- 1
-
-
+pts.per.acre <- 3
 
 ###########################
 ### quantiles of interest #
@@ -98,8 +96,18 @@ pts.per.acre <- 1
 
 # the most important quantiles (percentiles / 100) are: 0.1, 0.5 (median), and 0.9
 # optionally reduce the number of quantiles for narrower tables
-p.quantiles <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
+p.quantiles <- c(0, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1)
 
+####################################################################################
+### output file names (OPTIONAL; uncomment to override defaults)                   #
+### default will include a file-specific prefix and full list of MUSYMs summarized #
+####################################################################################
+# shp.unsampled.fname <- 'un-sampled-polygons' #do not include .shp extension for shapefiles; automatically added by writeOGR()
+# shp.stats.fname <- 'polygons-with-stats'
+# shp.qc.fname <- 'poly-qc'
+
+# csv.qc.fname <- 'poly-qc.csv'
+# csv.stats.fname <- 'poly-stats.csv'
 
 ########################################################
 ### Add estimate of confidence to box and whisker plots ###
