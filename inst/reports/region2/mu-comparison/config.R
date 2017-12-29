@@ -98,16 +98,17 @@ pts.per.acre <- 3
 # optionally reduce the number of quantiles for narrower tables
 p.quantiles <- c(0, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1)
 
-####################################################################################
-### output file names (OPTIONAL; uncomment to override defaults)                   #
-### default will include a file-specific prefix and full list of MUSYMs summarized #
-####################################################################################
-# shp.unsampled.fname <- 'un-sampled-polygons' #do not include .shp extension for shapefiles; automatically added by writeOGR()
-# shp.stats.fname <- 'polygons-with-stats'
-# shp.qc.fname <- 'poly-qc'
+#####################################################################################
+### output file names (OPTIONAL; uncomment to override defaults)                    #
+### default will include a file-specific prefix and full list of MUSYMs summarized  #
+### do not include .shp extension for shapefiles; automatically added by writeOGR() #
+#####################################################################################
+# shp.unsampled.fname <- 'un-sampled-polygons'# shapefile containing any unsampled polygons (usually too small or odd shape)
+# shp.stats.fname <- 'polygons-with-stats' # shapefile containing median values / most likely classes by delineation
+# shp.qc.fname <- 'poly-qc' # shapefile containing "proportion of samples outside 5-95% quantile range" by delineation
 
-# csv.qc.fname <- 'poly-qc.csv'
-# csv.stats.fname <- 'poly-stats.csv'
+# csv.stats.fname <- 'poly-stats.csv' # comma-separated value file containing median values / most likely classes by delineation
+# csv.qc.fname <- 'poly-qc.csv' # comma-separated value file containing "proportion of samples outside 5-95% quantile range" by delineation
 
 ########################################################
 ### Add estimate of confidence to box and whisker plots ###
