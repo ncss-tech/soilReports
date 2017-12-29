@@ -7,13 +7,6 @@ output:
     smart: no
     keep_md: no
 ---
-<!-- mu-comparison (v3.3.2) -- instance created 2017-12-29 10:41:30-->  
-
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-	.report.name <- 'mu-comparison'
-	.report.version <- '3.3.2'
-	.report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
-```
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
