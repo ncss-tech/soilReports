@@ -87,7 +87,7 @@ if(!exists('csv.stats.fname')) csv.stats.fname <- paste0('poly-stats-', paste(mu
 
 outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
 if(any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
-  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames or remove  [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
+  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
 }
 ### -----
 
@@ -129,14 +129,6 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   .sampling.time <- 'using cached samples'
   load('cached-samples.Rda')
 } else {
-  # This script generates an Rda file (R object) containing samples from a set of rasters overlapping a polygon feature class.
-  # Samples are obtained from features of interest using constant density sampling. These data can then be used for summary of the variable space associated with mapunits, geologies, MLRAs, study areas, etc. Several reports have been designed to make use of these datasets. 
-  
-  # TODO: check for existence of parameter objects before using them... fail elegantly by asking for user input via knitr?
-  # Sourcing this script succesfully relies on a baseline definition of report parameters in the global environment. 
-  # Needed params and names are based on config.R from v2.5 of mu summary report, though they may be defined in any way that is convenient
-  # (i.e. batch/programattically, interactively, and via static config file)
-  
   # suppressing warnings: these have to do with conversion of CRS of points
   # iterate over map units and sample rasters
   # result is a list
@@ -148,8 +140,13 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   print(paste0("Completed sampling of raster stack for poly symbols (",paste(mu.set,collapse=","),") in ",.sampling.time,"."))
   
   sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels=mu.set)
-  # TODO: toggle for appending date/time to file name for Rda containing samnples; or take file name as param?
-  save(sampling.res, file=paste0("samples_",paste(mu.set,collapse="_"),"-",strftime(Sys.time(),format="%Y%m%d_%H%M%S"),".Rda"))
+  
+  # Nobody (other than AGB) cares about having this output :) -- sorry for filling up your folders with timestamped sample Rdata files.
+  #if(archive_samples) {
+  #  rda.sample.fname <- paste0("output/samples_",paste(mu.set,collapse="_"),"-",strftime(Sys.time(),format="%Y%m%d_%H%M%S"),".Rda"
+  #  save(sampling.res, file=rda.sample.fname)
+  #}
+  
   print("DONE!")
   
   if(cache.samples)
@@ -163,7 +160,6 @@ d.circ <- subset(sampling.res$raster.samples, variable.type == 'circular')
 
 # subset and enable aspect summary
 if(nrow(d.circ) > 0) { ## TODO: could there ever be more than one type of circular variable? 
-#AB: direction of gradient could be determined for basically any raster... but obv. we don't use anything other than direction of slope gradient
   do.aspect <- TRUE
 } else do.aspect <- FALSE
 
