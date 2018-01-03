@@ -184,15 +184,15 @@ h4 <- {
   split(h, h[vars], drop = TRUE) ->.;
   lapply(., function(x) data.frame(
     x[1, vars],
-    hzdep_m = mean(c(x$hzdept_r, x$hzdepb_r)),
-    claytotal_min2 = min(x$claytotal_l),
-    fragvoltot_min2 = min(x$fragvoltot_l),
-    om_min2 = min(x$om_l),
-    dbthirdbar_min2 = min(x$dbthirdbar_l),
-    ksat_min2 = min(x$ksat_l),
-    awc_min2 = min(x$awc_l),
-    ph1to1h2o_min2 = min(x$ph1to1h2o_l),
-    caco3_min2 = min(x$caco3_l)
+    hzdep_m         = mean(c(x$hzdept_r, x$hzdepb_r)),
+    claytotal_min2  = min(c(x$claytotal_l, x$claytotal_r),   na.rm = TRUE),
+    fragvoltot_min2 = min(c(x$fragvoltot_l, x$fragvoltot_r), na.rm = TRUE),
+    om_min2         = min(c(x$om_l, x$om_r),                 na.rm = TRUE),
+    dbthirdbar_min2 = min(c(x$dbthirdbar_l, x$dbthirdbar_r), na.rm = TRUE),
+    ksat_min2       = min(c(x$ksat_l, x$ksat_r),             na.rm = TRUE),
+    awc_min2        = min(c(x$awc_l, x$awc_r),               na.rm = TRUE),
+    ph1to1h2o_min2  = min(c(x$ph1to1h2o_l, x$ph1to1h2o_r),   na.rm = TRUE),
+    caco3_min2      = min(c(x$caco3_l, x$caco3),             na.rm = TRUE)
     )) ->.;
     do.call("rbind", .) ->.;
 }
