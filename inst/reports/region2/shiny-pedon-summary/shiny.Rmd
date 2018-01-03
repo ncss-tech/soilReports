@@ -38,24 +38,24 @@ Inputs {.sidebar}
 ```{r, echo=FALSE}  
 inputPanel(
     #selectInput("s.mu", label = "Select target map unit: ",choices = c("",levels(factor(site(pedons)$MUSYM))), selectize=T)
-    textInput("s.mu",label="Enter pattern for matching MUSYM",value=".") 
+    textInput("s.mu",label="Enter pattern for matching MUSYM",value=".*") 
 )
 
 renderUI( {
   #s.comp <<- getMapunitComponents(input$s.mu)
   s.pedons <<- getMapunitPedons(input$s.mu)
-  inputPanel( {textInput("component_name",label="Component name:",value=".") })
+  inputPanel( {textInput("component_name",label="Component name:",value="") })
 })
 
 renderUI( {
   inputPanel( {
-    textInput("pedon_pattern",label="Pattern for matching pedon taxonname:",value=".") 
+    textInput("pedon_pattern",label="Pattern for matching pedon taxonname:",value=".*") 
   })
 })
 
 renderUI( {
   inputPanel( {
-    textInput("phase_pattern",label="Pattern for matching pedon local phase:",value=".") 
+    textInput("phase_pattern",label="Pattern for matching pedon local phase:",value="*") 
   })
 })
 
@@ -69,13 +69,13 @@ renderUI( {
 
 renderUI( {  
   inputPanel( {
-    textInput("upid_pattern",label="Pattern for matching userpedonid:",value=".") 
+    textInput("upid_pattern",label="Pattern for matching userpedonid:",value="*") 
   })
 })
 
 renderUI( {  
   inputPanel( {
-    textInput("pedon_list",label="Comma-delimited list of pedons (in lieu of above):",value=".") 
+    textInput("pedon_list",label="Comma-delimited list of pedons (in lieu of above):",value="") 
   })
 })
 
