@@ -758,7 +758,6 @@ if(nrow(polygons.to.check) > 0) {
 ```{r echo=FALSE}
 # save SHP with any un-sampled polygons
 if(length(sampling.res$unsampled.ids) > 0) {
-  shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
   # BUG: this fails when mu.set contains illegal characters
   # https://github.com/ncss-tech/soilReports/issues/75
   try(writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.unsampled.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
