@@ -10,13 +10,13 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-   projectname: !r as.character("EVAL - MLRA 110 - Graymont silt loam, 0 to 2 percent slopes")
+   projectname: !r as.character("SDJR - MLRA 111A - Eel silt loam, 0 to 2 percent slopes, frequently flooded")
 ---
 
 ```{r setup, echo = FALSE}
+
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE)
 
-options(stringsAsFactors = FALSE, max.print = 50)
 ```
 
 
@@ -25,6 +25,7 @@ library(soilDB)
 library(soilReports) ##AB: Is this required?
 library(ggplot2)
 library(knitr)
+library(Cairo)
 ```
 
 
@@ -40,27 +41,27 @@ comp <- f$spc
 
 kable(pm[1, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")])
 
-kable(pm[c("areasymbol", "musym", "nationalmusym", "muname", "muacres")])
+kable(rbind(
+  pm[c("areasymbol", "musym", "nationalmusym", "muname", "muacres")],
+  data.frame(areasymbol = "SUM", musym = "", nationalmusym = "", muname = "", muacres = sum(pm$muacres, na.rm = TRUE))
+  ))
 
 ```
 
 
 # Component Data
 
-```{r component data, fig.width=8.5, fig.height=6}
+```{r component data}
 
 # load component data
 
-lev <- site(comp)[, c("compname", "comppct_r")]
-lev <- lev[order(-lev$comppct_r), ]
-lev <- lev[!duplicated(lev$compname), "compname"]
-
 site(comp) <- within(site(comp), {
-  dmuiid2   = factor(dmuiid, sort(unique(dmuiid),  decreasing = TRUE))
+  dmuiid2   = factor(dmuiid, levels = sort(unique(dmuiid),  decreasing = TRUE))
   dmudesc_short = abbreviate(dmudesc, 20)
-  compname2 = factor(compname, levels = lev)
-  comp_id  = paste(dmuiid, "\n", comppct_r, "%", "\n", compname)
-  comp_id  = factor(comp_id, levels = sort(unique(comp_id), decreasing = TRUE))
+  compname2 = reorder(factor(compname), comppct_r, max)
+  compname2 = factor(compname2, levels = rev(levels(compname2)))
+  comp_id   = paste(dmuiid, "\n", comppct_r, "%", "\n", compname)
+  comp_id   = factor(comp_id, levels = sort(unique(comp_id), decreasing = TRUE))
   })
 comp$dep <- comp$hzdept_r
   
@@ -69,7 +70,9 @@ idx <- with(cosm, {!is.na(cosm$dept_r) & cosm$status == "wet"})
 if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
 cosm <- within(cosm, {
   dmuiid = factor(dmuiid, sort(unique(dmuiid),  decreasing = TRUE))
-  compname = factor(compname, levels = lev)
+  #comppct_r = ifelse(is.na(comppct_r), 0, comppct_r)
+  compname2 = reorder(factor(compname), comppct_r, max)
+  compname = factor(compname2, levels = rev(levels(compname2)))
   comp_id  = paste(dmuiid, "\n", comppct_r, "%", "\n", compname)
   comp_id  = factor(comp_id, levels = sort(unique(comp_id), decreasing = TRUE))
   })
@@ -77,13 +80,15 @@ cosm <- within(cosm, {
 s <- site(comp)
 h <- horizons(comp)
 
-n_coiid <- length(unique(subsetProfiles(comp, h = "!is.na(comp$hzdept_r)")$coiid))
-n_depthplots_h  <- ceiling(n_coiid / 4) * 3.5
-# n_depthplots_w  <- length(unique(s$coiid)) * 4
-n_cosoilmoist_h <- ceiling(length(unique(cosm$coiid)) / 4) * 3.5  
-# n_cosoilmoist_w <- length(unique(cosm$dmuiid)) * 6 
+n_coiid     <- length(unique(s$coiid))
 profile_idx <- pIndex(comp, 10)
-n_profile <- ceiling(length(unique(comp$coiid)) / 10) * 2
+
+h_wtables  <- ceiling(n_coiid / 3)  * 2.67
+h_profiles <- ceiling(n_coiid / 10) * 3.5
+h_dplots   <- ceiling(n_coiid / 3)  * 2.67
+
+png_dplots <- function(file, width, height) Cairo(file, type = "png", width = width, height = height, units = "in", res=200, pointsize = 15)
+
 
 # component
 
@@ -99,7 +104,7 @@ kable(with(s, { data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, la
 
 ## Component Soil Moisture Month
 
-```{r soil moisture, fig.height=n_cosoilmoist_h, fig.width=12}
+```{r soil moisture, fig.dim = c(8, h_wtables), fig.ext = "png", dev = "png_dplots"}
 # component soil moisture month
 
 ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppct_r)) +
@@ -112,8 +117,9 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
   ylim(max(cosm$depb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
   scale_x_continuous(breaks = 1:12) + #, labels = month.abb, name="Month") +
-  facet_wrap(~ comp_id, ncol = 4) +
-  ggtitle("Water Table Levels from Component Soil Moisture Month Data")
+  facet_wrap(~ comp_id, ncol = 3) +
+  ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
+  theme(legend.position="bottom")
 
 ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppct_r)) +
   geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
@@ -125,8 +131,9 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
   ylim(max(cosm$depb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
   scale_x_continuous(breaks = 1:12) + #, labels = month.abb, name="Month") +
-  facet_wrap(~ comp_id, ncol = 4) +
-  ggtitle("Water Table Levels from Component Soil Moisture Month Data")
+  facet_wrap(~ comp_id, ncol = 3) +
+  ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
+  theme(legend.position="bottom")
 
 ```
 
@@ -135,15 +142,15 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
 
 ## Soil Profile Plots
 
-```{r horizon data, fig.height=n_depthplots_h*0.75}
+```{r horizon data, , fig.dim = c(8, h_profiles), fig.ext = "png", dev = "png_dplots"}
 # profile plot
 
 # plot no more than 15 soil profiles on each row
-for (i in unique(profile_idx)){
-  plot(comp[which(profile_idx == i)], name = 'hzname', label = 'comp_id', id.style = "top")
+for (i in seq_along(unique(profile_idx))) {
+  plot(comp[which(profile_idx == i)], name = 'hzname', label = 'comp_id', color = "claytotal_r", id.style = "top")
   }
 
-#plot(comp, label = "comp_id", id.style = "top")
+#plot(comp, label = "comp_id", id.style = "bottom")
 
 # temp <- merge(s[c("coiid", "dmudesc")], h, by = "coiid", all.y = TRUE)
 # temp <- temp[with(temp, order(dmudesc, -comppct_r, compname)), ]
@@ -151,9 +158,11 @@ for (i in unique(profile_idx)){
 vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h2o", "caco3")
 ```
 
+
 ## Horizon Depth Plots
 
-```{r, depth plots, fig.height=n_depthplots_h, fig.width=10}
+```{r, depth plots, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+
 comp <- subsetProfiles(comp, h = "!is.na(hzdept_r)")
 
 # convert the data for depth plot
@@ -168,41 +177,59 @@ vars_slice = horizons(slice(comp, seq(0, 200, 2) ~ hzname + dep +
                               caco3_l + caco3_r + caco3_h
                             ))
 
-h3 <- merge(vars_slice, site(comp)[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r")], by = "coiid", all.x = TRUE)
+h3 <- merge(vars_slice, site(comp)[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase")], by = "coiid", all.x = TRUE)
 
 vars <- c("coiid", "hzname")
-h4 <- by(h, apply(h[vars], 1, paste, collapse ="_"), function(x) data.frame(
-  x[1, vars],
-  hzdep_m = mean(c(x$hzdept_r, x$hzdepb_r)),
-  claytotal_min2 = min(x$claytotal_l),
-  fragvoltot_min2 = min(x$fragvoltot_l),
-  om_min2 = min(x$om_l),
-  dbthirdbar_min2 = min(x$dbthirdbar_l),
-  ksat_min2 = min(x$ksat_l),
-  awc_min2 = min(x$awc_l),
-  ph1to1h2o_min2 = min(x$ph1to1h2o_l),
-  caco3_min2 = min(x$caco3_l)
-))
-h4 <- do.call("rbind", h4)
+h4 <- {
+  split(h, h[vars], drop = TRUE) ->.;
+  lapply(., function(x) data.frame(
+    x[1, vars],
+    hzdep_m = mean(c(x$hzdept_r, x$hzdepb_r)),
+    claytotal_min2 = min(x$claytotal_l),
+    fragvoltot_min2 = min(x$fragvoltot_l),
+    om_min2 = min(x$om_l),
+    dbthirdbar_min2 = min(x$dbthirdbar_l),
+    ksat_min2 = min(x$ksat_l),
+    awc_min2 = min(x$awc_l),
+    ph1to1h2o_min2 = min(x$ph1to1h2o_l),
+    caco3_min2 = min(x$caco3_l)
+    )) ->.;
+    do.call("rbind", .) ->.;
+}
 h5 <- merge(h3, h4, by = c("coiid", "hzname"), all.x = TRUE)
 
 # depth plot of clay content by soil component
 gg_comp <- function(x, var) {
-  ggplot(x, aes(group = comppct_r)) +
+  ggplot(x) +
   geom_line(aes(y = r, x = hzdept_r)) +
   geom_ribbon(aes(ymin = l, ymax = h, x = hzdept_r), alpha = 0.2) +
   geom_text(aes(y = min2, x = hzdep_m, label = hzname), cex = 3) +
   xlim(200, 0) +
   xlab("depth (cm)") +
-  facet_wrap(~ comp_id, ncol = 4) + 
+  facet_wrap(~ comp_id, ncol = 3) + 
   # facet_grid(dmuiid2 ~ compname2) +
   coord_flip() +
+  # theme_gray(base_size=rev(1.5)) +
   ggtitle(var)
-  }
+}
+
+l_comp <- function(x, var) {
+  xyplot(data = x, hzdept_r ~ r | comp_id,
+         lower = x$l, upper = x$h,
+         type = c("l", "g"),
+         panel=panel.depth_function, alpha = 0.75,
+         layout = c(ncol = c(4, ceiling(n_coiid / 4))),
+         layout.heights = list(strip = 10),
+         as.table = TRUE,
+         ylim = c(200, 0),
+         main = var, ylab = "depth (cm)"
+         )
+}
+
 
 vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h2o", "caco3")
 gg_list <- lapply(vars, function(x) {
-  h_sub = h5[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "hzname", "dep", "hzdept_r", "hzdepb_r", "hzdep_m",
+  h_sub = h5[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase", "hzname", "dep", "hzdept_r", "hzdepb_r", "hzdep_m",
                  paste0(x, c("_l", "_r", "_h", "_min2")))]
   names(h_sub) = gsub(paste0(x, "_"), "", names(h_sub))
   
