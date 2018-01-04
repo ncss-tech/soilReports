@@ -91,11 +91,13 @@ if (!file.exists(sample_cache)){
     # QGIS is installed
     file.exists("C:/Program Files/QGIS Essen/bin") &
     # shapefile of project doesn't already exist
-    !file.exists(shp_cache)
+    !file.exists(shp_cache) &
+    # geodatabase cache doesn't exist
+    !file.exists(gdb_cache)
     ){
     # extract polygons from geodatabase
     ogr_extract(office_folder, gdb_dsn, shp_dsn, project$lmapunitiid)
-    mupolygon <- read_sf(dsn = shp_dsn, layer = projectiid)
+    mupolygon <- read_sf(dsn = shp_dsn, layer = paste0("projectiid_", projectiid))
     st_crs(mupolygon) <- "+init=epsg:5070"
 
     sapolygon <- read_sf(dsn = gdb_dsn, layer = "SAPOLYGON")
@@ -163,8 +165,8 @@ if (!file.exists(sample_cache)){
         return(test)
         }
       })}
-  idx <- which(unlist(lapply(mupolygon_sp, function(x) is.null(x))))
-  mupolygon_sp <- mupolygon_sp[-idx]
+  idx <- which(unlist(lapply(mupolygon_sp, function(x) !is.null(x))))
+  mupolygon_sp <- mupolygon_sp[idx]
   mupolygon_sp <- do.call("rbind", mupolygon_sp)
   mupolygon_sf <- st_as_sf(mupolygon_sp)
 
