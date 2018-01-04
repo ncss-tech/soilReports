@@ -125,7 +125,7 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
   scale_x_continuous(breaks = 1:12) + #, labels = month.abb, name="Month") +
   facet_wrap(~ comp_id, ncol = 3) +
   ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
-  theme(legend.position="bottom")
+  theme(legend.position="top")
 
 ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppct_r)) +
   geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
@@ -139,7 +139,7 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
   scale_x_continuous(breaks = 1:12) + #, labels = month.abb, name="Month") +
   facet_wrap(~ comp_id, ncol = 3) +
   ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
-  theme(legend.position="bottom")
+  theme(legend.position="top")
 
 ```
 
