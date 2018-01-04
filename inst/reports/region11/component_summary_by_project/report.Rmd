@@ -35,7 +35,7 @@ library(Cairo)
 
 # project mapunits
 
-f    <- fetchLIMS_component(params$projectname, fill = FALSE)
+f    <- fetchLIMS_component(params$projectname, fill = TRUE, stringsAsFactors = TRUE)
 pm   <- f$mapunit
 comp <- f$spc
 
@@ -83,9 +83,13 @@ h <- horizons(comp)
 n_coiid     <- length(unique(s$coiid))
 profile_idx <- pIndex(comp, 10)
 
-h_wtables  <- ceiling(n_coiid / 3)  * 2.67
-h_profiles <- ceiling(n_coiid / 10) * 3.5
-h_dplots   <- ceiling(n_coiid / 3)  * 2.67
+n_wtables  <- length(unique(cosm$coiid))
+h_wtables  <- (ceiling(n_wtables / 3)  * 3) + 0.25
+
+h_profiles <- ceiling(n_coiid / 10) * 7
+
+n_dplots   <- length(unique(site(subsetProfiles(comp, h = "!is.na(hzdept_r)"))$coiid))
+h_dplots   <- (ceiling(n_dplots / 3)  * 3) + 0.25
 
 png_dplots <- function(file, width, height) Cairo(file, type = "png", width = width, height = height, units = "in", res=200, pointsize = 15)
 
@@ -99,12 +103,14 @@ kable(with(s, { data.frame(
 
 # parent material and landform
 kable(with(s, { data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, landscape, landform)}))
+
 ```
 
 
 ## Component Soil Moisture Month
 
 ```{r soil moisture, fig.dim = c(8, h_wtables), fig.ext = "png", dev = "png_dplots"}
+
 # component soil moisture month
 
 ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppct_r)) +
