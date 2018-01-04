@@ -65,7 +65,7 @@ samplePercent <- 15
 p             <- c(0, 0.25, 0.5, 0.75, 1)
 
 # project data
-project    <- get_mapunit_from_LIMS(projectname)
+project    <- get_mapunit_from_LIMS(projectname, stringsAsFactors = TRUE)
 projectiid <- unique(project$projectiid)[1]
   
 # folder paths
@@ -76,7 +76,7 @@ region_folder <- paste0(project_data, "11REGION/")
 sample_cache <- paste0(office_folder, "cache/", projectiid, "_", samplePercent, ".Rdata")
 gdb_dsn   <- paste0(office_folder, geodatabase)
 shp_dsn   <- paste0(office_folder, "cache/projectiid_", projectiid, ".shp")
-gdb_cache <- gsub(".gdb", "", gdb_dsn, "_cache.RData")
+gdb_cache <- gsub(".gdb", "_cache.RData", gdb_dsn)
 shp_cache <- paste0(shp_dsn, ".RData")
 ```
 
