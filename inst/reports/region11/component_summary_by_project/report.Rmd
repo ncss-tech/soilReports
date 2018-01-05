@@ -10,7 +10,7 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-   projectname: !r as.character("SDJR - MLRA 111A - Eel silt loam, 0 to 2 percent slopes, frequently flooded")
+  projectname: !r as.character("EVAL - MLRA 114A - Hickory silt loam, Illinoian Till Plain, 12 to 18 percent slopes, eroded;EVAL - MLRA 114A - Hickory silt loam, Muscatatuck Plateau, 12 to 18 percent slopes, eroded")
 ---
 
 ```{r setup, echo = FALSE}
@@ -23,8 +23,10 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE)
 ```{r packages}
 library(soilDB)
 library(soilReports) ##AB: Is this required?
+library(aqp)
 library(ggplot2)
 library(knitr)
+library(RColorBrewer)
 library(Cairo)
 ```
 
@@ -34,12 +36,13 @@ library(Cairo)
 ```{r project data}
 
 # project mapunits
-
-f    <- fetchLIMS_component(params$projectname, fill = TRUE, stringsAsFactors = TRUE)
+projectname <- unlist(strsplit(params$projectname, ";"))
+f    <- fetchLIMS_component(projectname, fill = TRUE, stringsAsFactors = TRUE)
 pm   <- f$mapunit
 comp <- f$spc
 
-kable(pm[1, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")])
+idx <- !duplicated(pm$projectname)
+kable(pm[idx, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")])
 
 kable(rbind(
   pm[c("areasymbol", "musym", "nationalmusym", "muname", "muacres")],
@@ -55,6 +58,37 @@ kable(rbind(
 
 # load component data
 
+horizons(comp) <- within(horizons(comp), {
+  dep   = hzdept_r
+  hzdepm_r = (hzdept_r + hzdepb_r) / 2
+  genhz = generalize.hz(hzname, 
+                        new = c("O", 
+                                "A", 
+                                "E", 
+                                "B", 
+                                "Bt", 
+                                "Btg",
+                                "x",
+                                "C", 
+                                "Cr", 
+                                "R", 
+                                "H"), 
+                        pat = c("O", 
+                                "^A", 
+                                "E|^A2", 
+                                "^B", 
+                                "t", 
+                                "g",
+                                "x",
+                                "C", 
+                                "r", 
+                                "R", 
+                                "H"),
+                        hzdepm = hzdepm_r
+                        )
+  color = brewer.pal(nlevels(genhz), "RdYlBu")[as.numeric(genhz)]
+})
+
 site(comp) <- within(site(comp), {
   dmuiid2   = factor(dmuiid, levels = sort(unique(dmuiid),  decreasing = TRUE))
   dmudesc_short = abbreviate(dmudesc, 20)
@@ -63,9 +97,8 @@ site(comp) <- within(site(comp), {
   comp_id   = paste(dmuiid, "\n", comppct_r, "%", "\n", compname)
   comp_id   = factor(comp_id, levels = sort(unique(comp_id), decreasing = TRUE))
   })
-comp$dep <- comp$hzdept_r
   
-cosm <- get_cosoilmoist_from_LIMS(params$projectname)
+cosm <- get_cosoilmoist_from_LIMS(projectname)
 idx <- with(cosm, {!is.na(cosm$dept_r) & cosm$status == "wet"})
 if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
 cosm <- within(cosm, {
@@ -86,7 +119,7 @@ profile_idx <- pIndex(comp, 10)
 n_wtables  <- length(unique(cosm$coiid))
 h_wtables  <- (ceiling(n_wtables / 3)  * 3) + 0.25
 
-h_profiles <- ceiling(n_coiid / 10) * 7
+h_profiles <- 8 # ceiling(n_coiid / 10) * 4
 
 n_dplots   <- length(unique(site(subsetProfiles(comp, h = "!is.na(hzdept_r)"))$coiid))
 h_dplots   <- (ceiling(n_dplots / 3)  * 3) + 0.25
@@ -153,7 +186,7 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
 
 # plot no more than 15 soil profiles on each row
 for (i in seq_along(unique(profile_idx))) {
-  plot(comp[which(profile_idx == i)], name = 'hzname', label = 'comp_id', color = "claytotal_r", id.style = "top")
+  plot(comp[which(profile_idx == i)], name = 'hzname', label = 'comp_id', color = 'color', id.style = "top")
   }
 
 #plot(comp, label = "comp_id", id.style = "bottom")
