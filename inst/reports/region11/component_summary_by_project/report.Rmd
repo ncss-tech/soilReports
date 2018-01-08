@@ -245,7 +245,7 @@ gg_comp <- function(x, var) {
   geom_text(aes(y = min2, x = hzdep_m, label = hzname), cex = 3) +
   xlim(200, 0) +
   xlab("depth (cm)") +
-  facet_wrap(~ comp_id, ncol = 3) + 
+  facet_wrap(~ comp_id, ncol = 3) +
   # facet_grid(dmuiid2 ~ compname2) +
   coord_flip() +
   # theme_gray(base_size=rev(1.5)) +
@@ -279,11 +279,25 @@ gg_list <- lapply(vars, function(x) {
  
   if (x == "ksat") {
     brks = c(0, 0.01, 0.1, 1, 10, 100, 1000)
-    gg_temp = gg_temp + scale_y_log10(breaks = brks) + ylab("micrometers / second")
+    gg_temp = gg_temp + scale_y_log10(breaks = brks) + 
+      ylab("micrometers / second") + 
+      scale_y_continuous(sec.axis = dup_axis())
     }
-  if (x %in% c("claytotal", "fragvoltot", "om", "caco3")) {gg_temp = gg_temp + ylab("%")}
-  if (x == "dbthirdbar") gg_temp = gg_temp + ylab("grams / cubic centimeter")
-  if (x == "awc") gg_temp = gg_temp + ylab("centimeters / centimeter")
+  if (x %in% c("claytotal", "fragvoltot", "om", "caco3")) {
+    gg_temp = gg_temp + 
+      ylab("%")  +
+      scale_y_continuous(sec.axis = dup_axis())
+    }
+  if (x == "dbthirdbar") {
+    gg_temp = gg_temp + 
+      ylab("grams / cubic centimeter") +
+      scale_y_continuous(sec.axis = dup_axis())
+    }
+  if (x == "awc") {
+    gg_temp = gg_temp + 
+      ylab("centimeters / centimeter") +
+      scale_y_continuous(sec.axis = dup_axis())
+    }
   
   return(gg_temp)
   })
