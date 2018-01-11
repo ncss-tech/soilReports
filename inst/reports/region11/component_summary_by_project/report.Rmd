@@ -10,7 +10,7 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-  projectname: !r as.character("EVAL - MLRA 114A - Hickory silt loam, Illinoian Till Plain, 12 to 18 percent slopes, eroded;EVAL - MLRA 114A - Hickory silt loam, Muscatatuck Plateau, 12 to 18 percent slopes, eroded")
+  projectname: !r as.character("EVAL - MLRA 111A - Ross loam, 0 to 2 percent slopes, frequently flooded;EVAL - MLRA 111A - Ross silt loam, 0 to 2 percent slopes, frequently flooded;EVAL - MLRA 111A - Ross silt loam, 0 to 2 percent slopes, occasionally flooded")
 ---
 
 ```{r setup, echo = FALSE}
@@ -25,9 +25,9 @@ library(soilDB)
 library(soilReports) ##AB: Is this required?
 library(aqp)
 library(ggplot2)
-library(knitr)
 library(RColorBrewer)
 library(Cairo)
+library(DT)
 ```
 
 
@@ -42,12 +42,16 @@ pm   <- f$mapunit
 comp <- f$spc
 
 idx <- !duplicated(pm$projectname)
-kable(pm[idx, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")])
+datatable(pm[idx, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")],
+          options = list(pageLength = length(pm))
+          )
 
-kable(rbind(
+datatable(rbind(
   pm[c("areasymbol", "musym", "nationalmusym", "muname", "muacres")],
   data.frame(areasymbol = "SUM", musym = "", nationalmusym = "", muname = "", muacres = sum(pm$muacres, na.rm = TRUE))
-  ))
+  ),
+  options = list(pageLength = nrow(pm) + 1)
+  )
 
 ```
 
@@ -62,28 +66,8 @@ horizons(comp) <- within(horizons(comp), {
   dep   = hzdept_r
   hzdepm_r = (hzdept_r + hzdepb_r) / 2
   genhz = generalize.hz(hzname, 
-                        new = c("O", 
-                                "A", 
-                                "E", 
-                                "B", 
-                                "Bt", 
-                                "Btg",
-                                "x",
-                                "C", 
-                                "Cr", 
-                                "R", 
-                                "H"), 
-                        pat = c("O", 
-                                "^A", 
-                                "E|^A2", 
-                                "^B", 
-                                "t", 
-                                "g",
-                                "x",
-                                "C", 
-                                "r", 
-                                "R", 
-                                "H"),
+                        new = c("O", "A",  "E",     "B",  "Bt", "Btg", "2Btx", "C", "Cr", "R", "H"), 
+                        pat = c("O", "^A", "E|^A2", "^B", "t",  "g",   "x",    "C", "r",  "R", "H"),
                         hzdepm = hzdepm_r
                         )
   color = brewer.pal(nlevels(genhz), "RdYlBu")[as.numeric(genhz)]
@@ -92,10 +76,10 @@ horizons(comp) <- within(horizons(comp), {
 site(comp) <- within(site(comp), {
   dmuiid2   = factor(dmuiid, levels = sort(unique(dmuiid),  decreasing = TRUE))
   dmudesc_short = abbreviate(dmudesc, 20)
-  compname2 = reorder(factor(compname), comppct_r, max)
-  compname2 = factor(compname2, levels = rev(levels(compname2)))
-  comp_id   = paste(dmuiid, "\n", comppct_r, "%", "\n", compname)
-  comp_id   = factor(comp_id, levels = sort(unique(comp_id), decreasing = TRUE))
+  comppct_r2 = ifelse(is.na(comppct_r), 0, comppct_r)
+  compname2 = reorder(compname, comppct_r2, max)
+  comp_id   = paste(compname, "\n", dmuiid ,"\n" , comppct_r, "%")
+  comp_id   = factor(comp_id, levels = sort(unique(comp_id), decreasing = FALSE))
   })
   
 cosm <- get_cosoilmoist_from_LIMS(projectname)
@@ -104,22 +88,28 @@ if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
 cosm <- within(cosm, {
   dmuiid = factor(dmuiid, sort(unique(dmuiid),  decreasing = TRUE))
   #comppct_r = ifelse(is.na(comppct_r), 0, comppct_r)
-  compname2 = reorder(factor(compname), comppct_r, max)
-  compname = factor(compname2, levels = rev(levels(compname2)))
-  comp_id  = paste(dmuiid, "\n", comppct_r, "%", "\n", compname)
-  comp_id  = factor(comp_id, levels = sort(unique(comp_id), decreasing = TRUE))
+  comppct_r2 = ifelse(is.na(comppct_r), 0, comppct_r)
+  compname2 = reorder(compname, comppct_r2, max)
+  comp_id   = paste(compname, "\n", dmuiid ,"\n" , comppct_r, "%")
+  comp_id   = factor(comp_id, levels = sort(unique(comp_id), decreasing = FALSE))
   })
 
 s <- site(comp)
-h <- horizons(comp)
+s <- s[order(- s$dmuiid, - s$comppct_r, s$compname), ]
+h <- merge(horizons(comp), s[c("coiid", "comp_id")], by = "coiid", all.x = TRUE)
+h <- h[order(h$comp_id, decreasing = TRUE), ]
 
+idx <- names(h) %in% "coiid"
+comp <- h[!idx]
+depths(comp) <- comp_id ~  hzdept_r + hzdepb_r
+site(comp) <- s
+
+
+# set figure heights
 n_coiid     <- length(unique(s$coiid))
-profile_idx <- pIndex(comp, 10)
 
 n_wtables  <- length(unique(cosm$coiid))
 h_wtables  <- (ceiling(n_wtables / 3)  * 3) + 0.25
-
-h_profiles <- 8 # ceiling(n_coiid / 10) * 4
 
 n_dplots   <- length(unique(site(subsetProfiles(comp, h = "!is.na(hzdept_r)"))$coiid))
 h_dplots   <- (ceiling(n_dplots / 3)  * 3) + 0.25
@@ -129,13 +119,17 @@ png_dplots <- function(file, width, height) Cairo(file, type = "png", width = wi
 
 # component
 
-kable(with(s, { data.frame(
+datatable(with(s, { data.frame(
   dmudesc_short, compname, comppct_r, majcompflag, localphase, drainagecl, 
   slope_l, slope_r, slope_h, taxpartsize, taxsubgrp
-  )}))
+  )}), 
+  options = list(pageLength = nrow(s))
+  )
 
 # parent material and landform
-kable(with(s, { data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, landscape, landform)}))
+datatable(with(s, { data.frame(dmudesc_short, compname, taxpartsize, pmgroupname, landscape, landform)}),
+          options = list(pageLength = nrow(s))
+          )
 
 ```
 
@@ -181,12 +175,20 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
 
 ## Soil Profile Plots
 
-```{r horizon data, , fig.dim = c(8, h_profiles), fig.ext = "png", dev = "png_dplots"}
+```{r horizon data, , fig.dim = c(8, 8), fig.ext = "png", dev = "png_dplots"}
 # profile plot
+
+comp2 <- subsetProfiles(comp, h = "!is.na(hzdept_r)")
+profile_idx <- pIndex(comp2, 10)
 
 # plot no more than 15 soil profiles on each row
 for (i in seq_along(unique(profile_idx))) {
-  plot(comp[which(profile_idx == i)], name = 'hzname', label = 'comp_id', color = 'color', id.style = "top")
+  plot(comp2[which(profile_idx == i)], 
+       name = 'hzname', 
+       label = 'comp_id',
+       color = 'color', 
+       id.style = "top"
+       )
   }
 
 #plot(comp, label = "comp_id", id.style = "bottom")
@@ -216,7 +218,7 @@ vars_slice = horizons(slice(comp, seq(0, 200, 2) ~ hzname + dep +
                               caco3_l + caco3_r + caco3_h
                             ))
 
-h3 <- merge(vars_slice, site(comp)[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase")], by = "coiid", all.x = TRUE)
+h3 <- merge(vars_slice, site(comp)[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase")], by = "comp_id", all.x = TRUE)
 
 vars <- c("coiid", "hzname")
 h4 <- {
@@ -233,7 +235,7 @@ h4 <- {
     ph1to1h2o_min2  = min(c(x$ph1to1h2o_l, x$ph1to1h2o_r),   na.rm = TRUE),
     caco3_min2      = min(c(x$caco3_l, x$caco3),             na.rm = TRUE)
     )) ->.;
-    do.call("rbind", .) ->.;
+    unsplit(., vars) ->.;
 }
 h5 <- merge(h3, h4, by = c("coiid", "hzname"), all.x = TRUE)
 
