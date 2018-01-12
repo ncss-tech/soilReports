@@ -70,27 +70,6 @@ if(any(!accessible.inputs)) {
 }
 ### -----
 
-### -----
-### Sanity check #4 - make sure output paths are valid (no illegal characters)
-###
-# make an output directory if it doesn't exist
-if(!dir.exists('output')) 
-  dir.create('./output')
-
-#shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
-if(!exists('shp.unsampled.fname')) shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
-if(!exists('shp.stats.fname')) shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
-if(!exists('shp.qc.fname')) shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
-
-if(!exists('csv.qc.fname')) csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'),'.csv')
-if(!exists('csv.stats.fname')) csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse='_'), '.csv')
-
-outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
-if(any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
-  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
-}
-### -----
-
 # just in case, coerce mu.col to character
 mu[[mu.col]] <- as.character(mu[[mu.col]])
 
@@ -117,6 +96,30 @@ if(exists('mu.set')) {
   # if mu.set is not predefined, ordering is determined by the order of musyms in the source file
   mu.set <- sort(unique(mu[[mu.col]]))
 }
+
+
+### -----
+### Sanity check #4 - make sure output paths are valid (no illegal characters)
+###
+# make an output directory if it doesn't exist
+if(!dir.exists('output')) 
+  dir.create('./output')
+
+#shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
+if(!exists('shp.unsampled.fname')) shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
+if(!exists('shp.stats.fname')) shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
+if(!exists('shp.qc.fname')) shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
+
+if(!exists('csv.qc.fname')) csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'),'.csv')
+if(!exists('csv.stats.fname')) csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse='_'), '.csv')
+
+outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
+if(any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
+  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
+}
+### -----
+
+
 
 # in order to avoid column name collisions due to DBF limitations, keep only the mu.col column
 mu <- mu[, mu.col, drop=FALSE]
