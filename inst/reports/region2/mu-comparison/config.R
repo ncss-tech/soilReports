@@ -57,7 +57,7 @@ raster.list <- list(
 # name of featureclass
 # mu.layer <- 'ca630_a'
 # map unit symbols / keys to extract
- mu.set <- c('5012','5013','7011')
+# mu.set <- c('5012','5013','7011')
 
 
 
