@@ -227,7 +227,7 @@ vars_slice = horizons(slice(comp, seq(0, 200, 2) ~ hzname + dep +
                               caco3_l + caco3_r + caco3_h
                             ))
 
-h3 <- merge(vars_slice, site(comp)[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase", "taxpartsize")], by = "comp_id", all.x = TRUE)
+h3 <- merge(vars_slice, site(comp)[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase", "taxgrtgroup", "taxpartsize", "hydgrp")], by = "comp_id", all.x = TRUE)
 
 vars <- c("coiid", "hzname")
 h4 <- {
@@ -256,7 +256,11 @@ gg_comp <- function(x, var) {
   geom_text(aes(y = min2, x = hzdep_m, label = hzname), cex = 3) +
   xlim(200, 0) + xlab("depth (cm)") +
   scale_y_continuous(sec.axis = dup_axis()) +
-  facet_wrap(~ paste(comp_id, "\n", taxpartsize), ncol = 3) +
+  facet_wrap(~ paste(comp_id, "\n", 
+                     ifelse(var %in% c("om", "dbthirdbar", "ph1to1h2o", "caco3", "ksat"), 
+                            as.character(taxgrtgroup),
+                            as.character(taxpartsize))
+                     ), ncol = 3) +
   coord_flip() +
   ggtitle(var)
 }
@@ -277,7 +281,7 @@ l_comp <- function(x, var) {
 
 vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h2o", "caco3")
 gg_list <- lapply(vars, function(x) {
-  h_sub = h5[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase", "taxpartsize", "hzname", "dep", "hzdept_r", "hzdepb_r", "hzdep_m",
+  h_sub = h5[c("dmuiid2", "comp_id", "coiid", "compname2", "comppct_r", "localphase", "taxgrtgroup", "hydgrp", "taxpartsize", "hzname", "dep", "hzdept_r", "hzdepb_r", "hzdep_m",
                  paste0(x, c("_l", "_r", "_h", "_min2")))]
   names(h_sub) = gsub(paste0(x, "_"), "", names(h_sub))
   
