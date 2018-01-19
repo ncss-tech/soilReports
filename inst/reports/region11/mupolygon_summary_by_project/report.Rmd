@@ -10,10 +10,10 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-   projectname: !r as.character("EVAL - MLRA 114A - Hickory silt loam, Illinoian Till Plain, 12 to 18 percent slopes, eroded;EVAL - MLRA 114A - Hickory silt loam, Muscatatuck Plateau, 12 to 18 percent slopes, eroded")
-   geodatabase:  !r as.character("RTSD_MLRA_11-IND_FY18.gdb")
+   projectname: !r as.character("MLRA 104 - Readlyn soils texture and slope phases")
+   geodatabase:  !r as.character("RTSD_MLRA_11-WAV_FY18.gdb")
    project_data: !r as.character("M:/geodata/project_data/")
-   mlrassoarea:  !r as.character("11-IND")
+   mlrassoarea:  !r as.character("11-WAV")
 ---
 # Report Description
 
@@ -118,7 +118,7 @@ if (!file.exists(sample_cache)){
     !file.exists(gdb_cache) &
     # geodatabase size
     sum(file.size(list.files(gdb_dsn, full.names = TRUE))) / 1e+9 <= 1.5 
-    ){
+    ) {
     sapolygon <- read_sf(dsn = gdb_dsn, layer = "SAPOLYGON")
     st_crs(sapolygon) <- "+init=epsg:5070"
     
@@ -126,7 +126,10 @@ if (!file.exists(sample_cache)){
     st_crs(mupolygon) <- "+init=epsg:5070"
     
     save(mupolygon, sapolygon, file = gdb_cache)
-    } else load(file = gdb_cache)
+    }
+  
+  # geodatabase cache
+  if (file.exists(gdb_cache)) load(file = gdb_cache)
   
   idx <- ! names(mupolygon) %in% c("Shape", "Geometry")
   names(mupolygon)[idx] <- tolower(names(mupolygon)[idx])
