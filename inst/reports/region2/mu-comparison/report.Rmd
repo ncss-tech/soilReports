@@ -47,8 +47,8 @@ if(sum(as.numeric(loaded)) != length(packz)) {
 source('custom.R') 
 
 ## load local configuration 
-#TODO: allow entry of simple fields interactively if they are not specified?
-#TODO: allow for batching from a basic report.Rmd
+# TODO: allow entry of simple fields interactively if they are not specified?
+# TODO: allow for batching from a basic report.Rmd
 source('config.R')
 
 ### -----
@@ -65,8 +65,9 @@ if(!(mu.col %in% names(mu)))
 ### Sanity check #3 - make sure all raster/input file paths exist and are readable
 ###                   NB: this might not give correct results for parallel computation. Actual file read calls will also be wrapped in try()
 accessible.inputs <- file.access(as.character(unlist(raster.list)), mode = 4) + 1 #file.access returns 0 for success and -1 for failure
-if(any(!accessible.inputs)) {
-  stop(paste0("The following input files either do not exist or are unreadable: ",paste0(unlist(raster.list[!accessible.inputs]), collapse=", ")))
+if(any( accessible.inputs == 0 )) {
+  unreadable.files <- names(which(accessible.inputs == 0))
+  stop(paste0("The following input files either do not exist or are unreadable: \n", paste0(unreadable.files, collapse=", ")))
 }
 ### -----
 
