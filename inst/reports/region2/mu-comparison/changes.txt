@@ -1,3 +1,4 @@
+2018-01-24 (3.3.4): new sanity check for mis-specification of categorical raster in config.R
 2017-12-29 (3.3.3): bug fix for SDJR-style invocation and file name sanity check
 2017-12-29 (3.3.2): bug fix for MUs with zero-variance with respect to categorical variable; added file I/O sanity tests and options for output file naming
 2017-12-19 (3.3.1): writing output files should now fail gracefully, more todo: https://github.com/ncss-tech/soilReports/issues/75
