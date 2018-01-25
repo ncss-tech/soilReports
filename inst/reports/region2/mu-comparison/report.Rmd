@@ -360,6 +360,7 @@ kable(res, align = 'r', col.names=c(mu.col, names(res)[-1]))
 ```
 
 ```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis"}
+## TODO: consider moving this to custom.R ??
 makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   
   # this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
@@ -404,6 +405,13 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   if(!is.null(metadat$usage))  {
     cat("  \n  **Suggested usage:**  \n")
     cat(paste0("  \n",metadat$usage,"  \n  \n"))
+  }
+  
+  
+  ## sanity check: if the wrong raster is specified in the config file, levels will not match codes
+  ##               and all values with be NA
+  if(all(is.na(dat$value))){
+    stop(sprintf('all samples for "%s" are NA, perhaps the wrong raster file was specified?', variable.name))
   }
   
   # convert counts into proportions
@@ -504,7 +512,10 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   }
   return(TRUE)
 }
-l <- lapply(split(d.cat, f=d.cat$variable), FUN=makeCategoricalOutput)
+
+# make categorical summaries for all categorical variables
+d.cat.list <- split(d.cat, f=d.cat$variable)
+l <- lapply(d.cat.list, FUN=makeCategoricalOutput)
 ```
 
 ### Multivariate Summary
