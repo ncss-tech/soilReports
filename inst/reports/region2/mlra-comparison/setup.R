@@ -16,7 +16,7 @@
 ## report name
 .report.name <- 'mlra-comparison'
 ## version number
-.report.version <- '0.4'
+.report.version <- '0.5'
 ## short description
 .report.description <- 'compare MLRA using pre-made, raster sample databases'
 

@@ -140,6 +140,7 @@ load(geomorphons.path)
 load(nlcd.path)
 load(soil.path)
 load(namrad.path)
+load(pop2015.path)
 
 # subset to requested MLRA
 mlra.prism.data <- subset(mlra.prism.data, subset=mlra %in% mu.set)
@@ -147,6 +148,7 @@ mlra.geomorphons.data <- subset(mlra.geomorphons.data, subset=mlra %in% mu.set)
 mlra.nlcd.data <- subset(mlra.nlcd.data, subset=mlra %in% mu.set)
 mlra.soil.data <- subset(mlra.soil.data, subset=mlra %in% mu.set)
 mlra.namrad.data <- subset(mlra.namrad.data, subset=mlra %in% mu.set)
+mlra.pop2015.data <- subset(mlra.pop2015.data, subset=mlra %in% mu.set)
 
 # set factor levels to order in config.R
 mlra.prism.data$mlra <- factor(mlra.prism.data$mlra, levels=mu.set)
@@ -154,6 +156,7 @@ mlra.geomorphons.data$mlra <- factor(mlra.geomorphons.data$mlra, levels=mu.set)
 mlra.nlcd.data$mlra <- factor(mlra.nlcd.data$mlra, levels=mu.set)
 mlra.soil.data$mlra <- factor(mlra.soil.data$mlra, levels=mu.set)
 mlra.namrad.data$mlra <- factor(mlra.namrad.data$mlra, levels=mu.set)
+mlra.pop2015.data$mlra <- factor(mlra.pop2015.data$mlra, levels=mu.set)
 
 # cast some data to long format for plotting
 mlra.prism.data.long <- melt(mlra.prism.data, id.vars = 'mlra')
@@ -248,6 +251,26 @@ bwplot(mlra ~ value | variable, data=mlra.namrad.data.long,
          # make a grid
          panel.grid(h=0, v=-1, col='grey', lty=3)
          panel.abline(h=1:length(unique(mlra.namrad.data.long$mlra)), col='grey', lty=3)
+         
+         # boxplots
+         panel.bwplot(..., stats=custom.bwplot)
+       })
+```
+
+```{r, echo=FALSE, fig.width=8, fig.height=10}
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+
+# NOTE: notches rely on effective sampling size
+bwplot(mlra ~ pop2015, data=mlra.pop2015.data, subset=pop2015 > 0,
+       xlab='People / 1km Grid Cell\nNASA 2015',
+       scales=list(y=list(alternating=3), x=list(log=10)), col='black',
+       par.settings=tps,
+       xscale.components=xscale.components.log10ticks,
+       panel=function(...) {
+         
+         # make a grid
+         panel.grid(h=0, v=-1, col='grey', lty=3)
+         panel.abline(h=1:length(unique(mlra.pop2015.data$mlra)), col='grey', lty=3)
          
          # boxplots
          panel.bwplot(..., stats=custom.bwplot)
