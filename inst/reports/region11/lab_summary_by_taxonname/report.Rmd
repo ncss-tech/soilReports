@@ -71,7 +71,7 @@ s <- site(f)
 lh_names <- names(lh)
 h_vars <- c("labsampnum", "hzdept", "hzdepb", "fragvoltot", "total_frags_pct")
 lp_vars <- c("peiid", "labpeiid")
-s_vars <- c("peiid", "coverkind_1")
+s_vars <- c("peiid", "earthcovkind1")
 
 lh <- merge(lh, h[h_vars], by = c("labsampnum", "hzdept", "hzdepb"), all.x = TRUE, sort = FALSE)
 lh <- merge(lh, lp[lp_vars], by = "labpeiid", all.x = TRUE, sort = FALSE)
@@ -87,9 +87,9 @@ lh <- within(lh, {
   thickness = hzdepb - hzdept
   hzdepm = (hzdept + hzdepb) / 2
   genhz = generalize.hz(hzname, ghr$n, ghr$p, hzdepm = hzdepm)
-  coverkind_1[!grepl("^A", genhz)] = ""
+  earthcovkind1[!grepl("^A", genhz)] = ""
   genhz_nlcd = ifelse(grepl("^A", genhz), 
-                      paste(genhz, abbreviate(coverkind_1, 10), sep = " - "),
+                      paste(genhz, abbreviate(earthcovkind1, 10), sep = " - "),
                       as.character(genhz)
                       )
   genhz_nlcd = factor(genhz_nlcd,
@@ -153,7 +153,7 @@ if (dim(s)[1] != 0) {
 ## Site Data
 
 ```{r site data}
-kable(s[, c("pedon_id", "taxonname", "tax_subgroup", "part_size_class", "pedon_type", "describer")], cation = "Site Data")
+kable(s[, c("pedon_id", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "describer")], cation = "Site Data")
 ```
 
 
