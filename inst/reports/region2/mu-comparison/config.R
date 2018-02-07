@@ -88,7 +88,7 @@ mu.col <- 'MUSYM'
 # increase if there are un-sampled polygons
 # delineations smaller than 5 ac. may require up to 5 points / ac.
 # values > 6-7 points / ac. will only slow things down
-pts.per.acre <- 3
+pts.per.acre <- 1
 
 ###########################
 ### quantiles of interest #
@@ -97,6 +97,17 @@ pts.per.acre <- 3
 # the most important quantiles (percentiles / 100) are: 0.1, 0.5 (median), and 0.9
 # optionally reduce the number of quantiles for narrower tables
 p.quantiles <- c(0, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1)
+
+
+##################################
+### scale density plots to {0,1} #
+##################################
+
+# typically scaling density curves to the interval of {0,1} is helpful: patterns are more clear
+# this can cause problems when comparing map units of drastically different areas
+# in that case, it might be useful to disable scaling
+scaleDensityCurves <- TRUE
+
 
 #####################################################################################
 ### output file names (OPTIONAL; uncomment to override defaults)                    #

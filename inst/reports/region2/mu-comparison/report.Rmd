@@ -231,7 +231,7 @@ kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r
 
 
 ### Modified Box and Whisker Plots
-Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
+Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Box width is proportional to the number of samples per map unit (e.g. total map unit area). Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
 
 **Suggested usage:**
 
@@ -247,6 +247,7 @@ bwplot(.id ~ value | variable, data=d.continuous,
        scales=list(y=list(alternating=1), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
        strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, subscripts=TRUE, 
        layout=c(1, length(levels(d.continuous$variable))),
+       varwidth=TRUE,
        panel=function(x, subscripts=subscripts, ...) {
          
          # extract the current raster name
@@ -270,7 +271,7 @@ bwplot(.id ~ value | variable, data=d.continuous,
 
 
 ### Density Plots
-These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
+These plots are a smooth alternative ([density estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
 
 **Suggested usage:**
 
@@ -281,13 +282,21 @@ These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.
    + short vs. long "tails"
 
 ```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
+## TODO: consider variable line width proportional to area
+## https://github.com/ncss-tech/soilReports/issues/81
+# var.lwd <- scales::rescale(log(sampling.res$area.stats$`Total Area`), to=c(0.5, 2.5))
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 
 # dynamic setting of columns in legend
 n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 
-# compute densities and re-scale to {0,1}
-density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density)
+# scaling of density curves
+# just in case this isn't in the config file, set a default value here
+if( ! exists('scaleDensityCurves'))
+  scaleDensityCurves <- TRUE
+
+# compute densities and optionally re-scale to {0,1}
+density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density, constantScaling=scaleDensityCurves)
 
 xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(levels(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols, cex=0.8), par.settings=tps, type=c('l','g'))
 

@@ -27,9 +27,12 @@ classSignature <- function(i) {
 # compute density for $value, using 1.5x "default" bandwidth
 # re-scale to {0,1}
 # return x,y values
-scaled.density <- function(d) {
+scaled.density <- function(d, constantScaling=TRUE) {
   res <- stats::density(na.omit(d$value), kernel='gaussian', adjust=1.5)
-  return(data.frame(x=res$x, y=scales::rescale(res$y)))
+  if(constantScaling)
+    res$y <- scales::rescale(res$y)
+    
+  return(data.frame(x=res$x, y=res$y))
 }
 
 # TODO: this could be useful in soilReports? not really sharpshootR worthy since it has nothing to do with soil... might be best just left here
