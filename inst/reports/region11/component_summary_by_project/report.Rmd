@@ -88,7 +88,7 @@ cosm <- within(cosm, {
   comppct_r2 = ifelse(is.na(comppct_r), 0, comppct_r)
   compname2 = reorder(compname, comppct_r2, max)
   comp_id   = factor(paste(compname, "\n", dmuiid ,"\n" , comppct_r, "%", "\n", drainagecl))
-  comp_id   = factor(comp_id, levels = unique(comp_id[order(compname, - dmuiid)]))
+  comp_id   = factor(comp_id, levels = unique(comp_id[order(- as.numeric(compname2), - dmuiid)]))
   })
 
 s <- s[order(- s$dmuiid, - s$comppct_r, s$compname), ]
@@ -166,7 +166,7 @@ datatable(with(s, { data.frame(dmudesc_short, compname, drainagecl, slope_r, pmg
           )
 ```
 
-```{r sm_pmkind, fig.height= h_cplots_pm, fig.ext = "png", dev = "png_dplots"}
+```{r sm_pmkind, fig.dim = c(8, h_cplots_pm), fig.ext = "png", dev = "png_dplots"}
 # landform vs 3-D morphometry
 s <- within(s, {
   dmu_type = ifelse(!grepl("MLRA", s$dmudesc), "nonmlra_dmu", "mlra_dmu")
@@ -180,40 +180,40 @@ s <- within(s, {
 ggplot(., aes(x = landform, y = pmkind_grp, fill = dmu_type)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
-  theme(legend.position="top", aspect.ratio = 1, axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   ggtitle("Parent Material Kind vs Landform by Component")
 ```
 
-```{r sm_3d, fig.height = h_cplots_lf, fig.ext = "png", dev = "png_dplots"}
+```{r sm_3d, fig.dim = c(8, h_cplots_lf), fig.ext = "png", dev = "png_dplots"}
 # landform vs 3-D morphometry
 . <- subset(s, ! is.na(landform) | ! is.na(geompos)) 
 .$comp_sort <- droplevels(.$comp_sort)
 ggplot(., aes(x = geompos, y = landform, fill = dmu_type)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
-  theme(legend.position="top", aspect.ratio = 1, axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   ggtitle("Landform vs 3-D Morphometry by Component")
 ```
 
-```{r sm_2d, fig.height = h_cplots_2d, fig.ext = "png", dev = "png_dplots"}
+```{r sm_2d, fig.dim = c(8, h_cplots_2d), fig.ext = "png", dev = "png_dplots"}
 # 2-D vs 3-D morphometry
 . <- subset(s, !is.na(hillslopeprof) | ! is.na(geompos)) 
 .$comp_sort <- droplevels(.$comp_sort)
 ggplot(., aes(x = geompos, y = hillslopeprof, fill = dmu_type)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
-  theme(legend.position="top", aspect.ratio = 1, axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   ggtitle("2-D vs 3-D Morphometry by Component")
 ```
 
-```{r sm_ss, fig.height = h_cplots_ss, fig.ext = "png", dev = "png_dplots"}
+```{r sm_ss, fig.dim = c(8, h_cplots_ss), fig.ext = "png", dev = "png_dplots"}
 # 2-D vs slope shape
 . <- subset(s, !is.na(hillslopeprof) | ! is.na(slopeshape))
 .$comp_sort <- droplevels(.$comp_sort)
 ggplot(., aes(x = slopeshape, y = hillslopeprof, fill = dmu_type)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
-  theme(legend.position="top", aspect.ratio = 1) +
+  theme(legend.position="top") +
   ggtitle("Hillslope Position vs Slope Shape by Component")
 ```
 
@@ -232,8 +232,8 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
   geom_ribbon(aes(ymin = dept_l, ymax = dept_h), alpha = 0.2) +
   ylim(max(cosm$depb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
-  scale_x_continuous(breaks = 1:12, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
-  facet_wrap(~ comp_id, ncol = 3) +
+  scale_x_continuous(breaks = 1:12) + #, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
+  facet_wrap(~ comp_id, ncol = 3, scales = "free_x") +
   ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
   theme(legend.position="top")
 
