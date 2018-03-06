@@ -105,11 +105,11 @@ site(comp) <- s
 n_wtables  <- length(unique(cosm$coiid))
 h_wtables  <- (ceiling(n_wtables / 3) * 3) + 0.25
 
-idx <- with(s, !is.na(pmkind_grp) | !is.na(landform))
+idx <- with(s, !is.na(pmkind) | !is.na(landform))
 n_compname     <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
 h_cplots_pm  <- n_compname * 
                    ceiling(0.3 * max(c(
-                     length(unique(s$pmkind_grp)),
+                     length(unique(s$pmkind)),
                      length(unique(s$landform))
                      )))
 
@@ -161,7 +161,7 @@ datatable(with(s, { data.frame(
 
 ```{r pmkind}
 # parent material and landform
-datatable(with(s, { data.frame(dmudesc_short, compname, drainagecl, slope_r, pmgroupname, pmkind_grp, geompos, landscape, landform, slopeshape, hillslopeprof)}),
+datatable(with(s, { data.frame(dmudesc_short, compname, drainagecl, slope_r, pmgroupname, pmkind, geompos, landscape, landform, slopeshape, hillslopeprof)}),
           options = list(pageLength = 10)
           )
 ```
@@ -175,9 +175,9 @@ s <- within(s, {
   })
 
 
-. <- subset(s, ! is.na(pmkind_grp) | ! is.na(landform)) 
+. <- subset(s, ! is.na(pmkind) | ! is.na(landform)) 
 .$comp_sort <- droplevels(.$comp_sort)
-ggplot(., aes(x = landform, y = pmkind_grp, fill = dmu_type)) + 
+ggplot(., aes(x = landform, y = pmkind, fill = dmu_type)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
   theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
