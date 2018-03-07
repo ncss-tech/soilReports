@@ -212,7 +212,7 @@ ggplot(., aes(x = geompos, y = hillslopeprof, fill = dmu_type)) +
 .$comp_sort <- droplevels(.$comp_sort)
 ggplot(., aes(x = slopeshape, y = hillslopeprof, fill = dmu_type)) + 
   geom_tile(alpha = 0.5) + 
-  facet_wrap(~ comp_sort, ncol = 3) + 
+  facet_wrap(~ comp_sort, ncol = 3) +
   theme(legend.position="top") +
   ggtitle("Hillslope Position vs Slope Shape by Component")
 ```
@@ -302,7 +302,7 @@ vars_slice = horizons(aqp::slice(comp, seq(0, 200, 2) ~ hzname + dep +
                               caco3_l + caco3_r + caco3_h
                             ))
 
-h3 <- merge(vars_slice, site(comp)[c("dmuiid", "comp_id", "coiid", "compname2", "majcompflag", "comppct_r", "localphase", "taxgrtgroup", "taxpartsize", "hydgrp")], by = "comp_id", all.x = TRUE)
+h3 <- merge(vars_slice, site(comp)[c("dmuiid", "comp_id", "coiid", "compname2", "majcompflag", "comppct_r", "localphase", "taxsubgrp", "taxpartsize", "hydgrp")], by = "comp_id", all.x = TRUE)
 
 vars <- c("coiid", "hzname")
 h4 <- {
@@ -329,7 +329,7 @@ gg_comp <- function(x, var) {
   x <- within(x, {
   comp_id2 = factor(paste(comp_id, "\n",
                           ifelse(var %in% c("om", "dbthirdbar", "ph1to1h2o", "caco3", "ksat"), 
-                                 as.character(taxgrtgroup),
+                                 as.character(taxsubgrp),
                                  as.character(taxpartsize))
                           ))
   comp_id2 = factor(comp_id2, levels = unique(comp_id2[order(- as.numeric(compname2), - dmuiid)]))
@@ -363,7 +363,7 @@ gg_comp <- function(x, var) {
 
 vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h2o", "caco3")
 gg_list <- lapply(vars, function(x) {
-  h_sub = h5[c("dmuiid", "comp_id", "coiid", "compname2", "majcompflag", "comppct_r", "localphase", "taxgrtgroup", "taxpartsize", "hzname", "dep", "hzdept_r", "hzdepb_r", "hzdep_m",
+  h_sub = h5[c("dmuiid", "comp_id", "coiid", "compname2", "majcompflag", "comppct_r", "localphase", "taxsubgrp", "taxpartsize", "hzname", "dep", "hzdept_r", "hzdepb_r", "hzdep_m",
                  paste0(x, c("_l", "_r", "_h", "_min2")))]
   names(h_sub) = gsub(paste0(x, "_"), "", names(h_sub))
   
