@@ -33,15 +33,11 @@ source('custom.R')
 # TODO: allow for batching from a basic report.Rmd
 source('config.R')
 
-
-## TODO: better selection of "old" vs. "new"
-# https://github.com/ncss-tech/soilReports/issues/67
-
 # must pre-load selected set with relevant DMU
-x <- fetchNASIS_component_data(rmHzErrors = FALSE)
+x <- fetchLIMS_component(project.name)
 
 ## site-level diff
-s <- site(x)
+s <- site(x$spc)
 
 # remove IDs from diff
 exclude.vars <- c('coiid', 'dmuiid')
@@ -59,9 +55,9 @@ site.diff <- render_diff(delta, fragment=TRUE, view = FALSE, title = 'Site Diff'
 
 
 ## hz-level diff
-d <- as(x, 'data.frame')
+d <- as(x$spc, 'data.frame')
 
-hz.vars <- c('dmudesc', 'compname', horizonNames(x))
+hz.vars <- c('dmudesc', 'compname', horizonNames(x$spc))
 exclude.vars <- c('coiid', 'chiid')
 hz.vars <- hz.vars[which(! hz.vars %in% exclude.vars)]
 d <- d[, hz.vars]
@@ -126,5 +122,6 @@ dev.null <- lapply(hz.diff, f)
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")`, and `daff` version `r utils::packageDescription("daff", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
 
 

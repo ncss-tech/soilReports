@@ -1,2 +1,3 @@
+2018-03-12 (0.2): swithing from local NASIS db to fetchLIMS_component() via LIMS report
 2017-09-16 (0.1): first version
 
