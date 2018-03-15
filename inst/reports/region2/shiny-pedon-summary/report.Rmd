@@ -7,6 +7,13 @@ output:
     smart: no
     keep_md: no
 ---
+<!-- shiny-pedon-summary (v0.2) -- instance created 2018-01-03 08:11:25-->  
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'shiny-pedon-summary'
+	.report.version <- '0.2'
+	.report.description <- 'interactively subset and summarize NASIS pedon data from one or more map units'
+```
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='center', fig.retina=2, dev='png', antialias='cleartype')
 ```

@@ -92,7 +92,7 @@ renderUI( {
 
 inputPanel(
   selectInput("thematic_field", label = "Select horizon attribute data to plot: ",
-              choices = c("clay","sand","phfield","total_frags_pct_cal","moist_soil_color","dry_soil_color"),selected = "clay")
+              choices = c("clay","sand","phfield","total_frags_pct","moist_soil_color","dry_soil_color"), selected = "clay")
 )
 
 #inputPanel( {

@@ -1,15 +1,21 @@
 #utility_functions.R
 
 getMapunitPedons <- function(targetmu) {
-  return(pedons[grepl(targetmu,pedons$MUSYM)]) #set of pedons from target MU
+  pedons$MUSYM[is.na(pedons$MUSYM)] <-  "" #this will include pedons outside survey/shapefile bounary if a regex pattern is used that matches blank ""
+  return(pedons[grepl(targetmu, pedons$MUSYM)]) #set of pedons from target MU
 }
 
 getPedonsByPattern <- function(compname,upid,pedon_list,taxon_kind,phasename) {
   peds <- data.frame()
   
   upidmatch <- grepl(pattern=upid,s.pedons$pedon_id)
+  
+  s.pedons$taxonname[is.na(s.pedons$taxonname)]  <- ""
   compmatch <- grepl(pattern=compname,s.pedons$taxonname)
+  
+  s.pedons$localphase[is.na(s.pedons$localphase)]  <- ""
   phasematch <- grepl(pattern=phasename,s.pedons$localphase)
+  
   if(taxon_kind == "any") {
     taxon_kind = ".*"
   }
