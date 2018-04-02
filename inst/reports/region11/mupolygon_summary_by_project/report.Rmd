@@ -10,10 +10,10 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-   projectname: !r as.character("MLRA 104 - Readlyn soils texture and slope phases")
-   geodatabase:  !r as.character("RTSD_MLRA_11-WAV_FY18.gdb")
+   projectname: !r as.character("EVAL - MLRA 95 - Sisson fine sandy loam, 0 to 2 percent slopes;EVAL - MLRA 95 - Sisson fine sandy loam, 12 to 20 percent slopes, eroded;EVAL - MLRA 95 - Sisson fine sandy loam, 2 to 6 percent slopes;EVAL - MLRA 95 - Sisson fine sandy loam, 2 to 6 percent slopes, eroded;EVAL - MLRA 95 - Sisson fine sandy loam, 6 to 12 percent slopes, eroded")
+   geodatabase:  !r as.character("RTSD_MLRA_11-JUE_FY18.gdb")
    project_data: !r as.character("M:/geodata/project_data/")
-   mlrassoarea:  !r as.character("11-WAV")
+   mlrassoarea:  !r as.character("11-JUE")
 ---
 # Report Description
 
@@ -31,7 +31,7 @@ source("config.R")
 suppressWarnings( {
   library(plyr)
   library(reshape2)
-  library(knitr)
+  library(DT)
   library(lattice)
   library(latticeExtra)# library(ggplot2)
   library(circular)
@@ -66,7 +66,7 @@ samplePercent <- 15
 p             <- c(0, 0.25, 0.5, 0.75, 1)
 
 # project data
-project    <- get_mapunit_from_LIMS(projectname, stringsAsFactors = TRUE)
+project    <- get_projectmapunit_from_LIMS(projectname, stringsAsFactors = TRUE)
 projectiid <- paste0(unique(project$projectiid), collapse = "_")
   
 # folder paths
@@ -201,9 +201,9 @@ data <- rbind(data2, data)
 ```
 
 
-# Project Name
-```{r project name}
-unique(project$projectname)
+# Map Units
+```{r mapunits}
+datatable(project[!is.na(project$musym), c("projectname", "areasymbol", "musym", "muacres")])
 ```
 
 
@@ -217,7 +217,7 @@ s <- c("30-meter USGS National Elevation Dataset (NED)", "10-meter NED", "10-met
 
 variables <- data.frame(Abbreviation = a, Measures = m, Unit = u, Source = s)
 
-kable(variables)
+knitr::kable(variables)
 ```
 
 
@@ -225,13 +225,14 @@ kable(variables)
 
 ```{r plot soil map units}
 st <- map("state", plot = FALSE)
-st_sp <- {map2SpatialLines(st, proj4string = CRS("+init=epsg:4326")) ->.;
+st_sp <- {
+  map2SpatialLines(st, proj4string = CRS("+init=epsg:4326")) ->.;
   spTransform(., CRS("+init=epsg:5070"))
   }
-
 plot(as(mupolygon, "Spatial"), axes = TRUE)
 plot(as(sapolygon, "Spatial"), add = TRUE)
 plot(st_sp,lwd=3, add = TRUE)
+
 ```
 
 # Soil polygon metrics
@@ -245,18 +246,44 @@ pol2 <- pol
 pol2$ssa_musym <- "*mlra_mapnit"
 pol <- rbind(pol2, pol)
 
-pol.lo1 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres", "Circularity"))
-pol.lo2 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres"))
-pol.5n1 <- ddply(pol.lo2, .(ssa_musym, variable), summarize, 
-                 range = prettySummary(value, n = FALSE, signif = FALSE)
-                 )
-pol.5n2 <- ddply(pol, .(ssa_musym), summarize, 
-                 nArces = round(sum(Acres), 0), 
-                 nPolygons = length(musym)
-                 )
-pol.5n <- join(pol.5n1, pol.5n2, by = "ssa_musym")
+# pol.lo1 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres", "Circularity"))
+vars <- c("Acres", "Circularity")
+pol.lo1 <- reshape(pol[c("ssa_musym", vars)], 
+                   direction = "long",
+                   timevar = "variable", times = vars,
+                   v.names = "value"   , varying = vars
+                   )
+# pol.lo2 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres"))
+pol.lo2 <- subset(pol.lo1, variable == "Acres")
 
-kable(pol.5n, digits = 0, align = "c", caption = "Summary of musym by areasymbol")
+# pol.5n1 <- ddply(pol.lo2, .(ssa_musym, variable), summarize, 
+#                  range = prettySummary(value, n = FALSE, signif = FALSE)
+#                  )
+vars <- c("ssa_musym", "variable")
+pol.5n1 <- {
+  by(pol.lo2, pol.lo2[vars], function(x) { data.frame(
+  x[1, vars],
+  range = prettySummary(x$value, n = FALSE, signif = FALSE)
+  )}) ->.; 
+  do.call("rbind", .) ->.;
+  }
+# pol.5n2 <- ddply(pol, .(ssa_musym), summarize, 
+#                  nArces = round(sum(Acres), 0), 
+#                  nPolygons = length(musym)
+#                  )
+vars <- "ssa_musym"
+pol.5n2 <- {
+  by(pol, pol[vars], function(x) { data.frame(
+  x[1, vars, drop = FALSE],
+  nAcres = round(sum(x$Acres, 0)),
+  nPolygons = length(x$musym)
+  )}) ->.;
+  do.call("rbind", .) ->.;
+  }
+# pol.5n <- join(pol.5n1, pol.5n2, by = "ssa_musym")
+pol.5n <- merge(pol.5n1, pol.5n2, by = "ssa_musym", all.x = TRUE)
+
+datatable(pol.5n, caption = "Summary of musym by areasymbol")
 
 # kable(mlra_acres, digits = 0, align = "c", caption = "Summary of Acres by MLRA")
 
@@ -264,34 +291,66 @@ kable(pol.5n, digits = 0, align = "c", caption = "Summary of musym by areasymbol
 pol.lo1$ssa_musym <- factor(pol.lo1$ssa_musym, 
                             levels = rev(sort(unique(pol.lo1$ssa_musym)))
                             )
-                                                          
+
 bwplot(ssa_musym ~ value | variable, 
        data = pol.lo1, 
        scales = list(x="free"), main = "Boxplots of polygon metrics", 
        axis = axis.grid,
        as.table = TRUE
        )
+# ggplot(pol.lo1, aes(x = ssa_musym, y = value)) +
+#   geom_boxplot() +
+#   facet_wrap(~ variable, scales = "free_x") +
+#   coord_flip() +
+#   ggtitle("Boxplots of polygon metrics")
 ```
 
 # Contingency tables (percent) 
 
 ```{r percentage by musym, results='asis'}
 ## Create descriptive and graphical summary of map unit
-kable(prop.table(xtabs(~ ssa_musym + slope_classes, data = data, drop.unused.levels = TRUE), 
-                 margin = 1) * 100, 
-      align = "c", digits=0, caption="Slope classes")
-kable(prop.table(xtabs(~ ssa_musym + aspect_classes, data = data, drop.unused.levels = TRUE), 
-                 margin = 1) * 100, 
-      align = "c", digits = 0, caption = "Aspect classes")
-kable(prop.table(xtabs(~ ssa_musym + valley_classes, data = data, drop.unused.levels = TRUE),
-                 margin = 1) * 100, 
-      align = "c", digits = 0, caption = "Upland vs. lowland")
-
+datatable({
+  round(prop.table(xtabs(~ ssa_musym + slope_classes, data = data, drop.unused.levels = TRUE),
+                   margin = 1) * 100) ->.;
+  as.data.frame(.) ->.;
+  reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "slope_classes"
+          ) ->.;
+  names(.) <- gsub("Freq.", "", names(.))
+  . ->.;
+  }, caption="Slope classes"
+  )
+datatable({
+  round(prop.table(xtabs(~ ssa_musym + aspect_classes, data = data, drop.unused.levels = TRUE), 
+                   margin = 1) * 100) ->.;
+  as.data.frame(.) ->.;
+  reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "aspect_classes"
+          ) ->.;
+  names(.) <- gsub("Freq.", "", names(.))
+  . ->.;
+  }, caption = "Aspect classes"
+  )
+datatable({
+  round(prop.table(xtabs(~ ssa_musym + valley_classes, data = data, drop.unused.levels = TRUE),
+                   margin = 1) * 100) ->.;
+  as.data.frame(.) ->.;
+  reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "valley_classes"
+          ) ->.;
+  names(.) <- gsub("Freq.", "", names(.))
+  . ->.;
+  }, caption = "Upland vs. lowland"
+  )
 lulc_t <- {xtabs(~ ssa_musym + lulc_classes, data = data, drop.unused.levels = TRUE) ->.;
   addmargins(prop.table(., margin = 1)) * 100}
 idx <- pIndex(lulc_t, 8)
 for (i in unique(idx)){
-  print(kable(lulc_t[, c(idx == i)], digits = 0, align = "c", caption = "Landuse and Landcover"))
+  print(datatable({
+    round(lulc_t[, c(idx == i)]) ->.;
+    as.data.frame(.) ->.;
+    reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "lulc_classes"
+          ) ->.;
+    names(.) <- gsub("Freq.", "", names(.))
+    . ->.;
+    }, caption = "Landuse and Landcover"))
   }
 ```
 
@@ -315,8 +374,8 @@ aspect.5n <- ddply(aspect.lo, .(variable, ssa_musym), summarize,
                    )
 aspect.c <- dcast(aspect.5n, ssa_musym ~ variable, value.var = 'range')
 
-kable(cbind(data.c[c(1:6)], data.n["n"]), align = "c")
-kable(cbind(data.c[c(1, 7:9)], aspect.c["aspect"], data.n["n"]), align = "c")
+datatable(cbind(data.c[c(1:6)], data.n["n"]))
+datatable(cbind(data.c[c(1, 7:9)], aspect.c["aspect"], data.n["n"]))
 
 data.lo$ssa_musym <- factor(data.lo$ssa_musym, 
                             levels = rev(sort(unique(data.lo$ssa_musym)))
