@@ -339,18 +339,21 @@ datatable({
   . ->.;
   }, caption = "Upland vs. lowland"
   )
-lulc_t <- {xtabs(~ ssa_musym + lulc_classes, data = data, drop.unused.levels = TRUE) ->.;
-  addmargins(prop.table(., margin = 1)) * 100}
+lulc_t <- {
+  xtabs(~ ssa_musym + lulc_classes, data = data, drop.unused.levels = TRUE) ->.;
+  addmargins(prop.table(., margin = 1)) * 100
+  }
 idx <- pIndex(lulc_t, 8)
 for (i in unique(idx)){
-  print(datatable({
+  datatable({
     round(lulc_t[, c(idx == i)]) ->.;
     as.data.frame(.) ->.;
     reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "lulc_classes"
           ) ->.;
     names(.) <- gsub("Freq.", "", names(.))
     . ->.;
-    }, caption = "Landuse and Landcover"))
+    }, caption = "Landuse and Landcover"
+    )
   }
 ```
 
