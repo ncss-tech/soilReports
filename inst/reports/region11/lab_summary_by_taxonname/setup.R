@@ -11,9 +11,17 @@
 .report.description <- 'summarize lab data from NASIS Lab Layer table'
 
 #report manifest
-.paths.to.copy <- c('report.Rmd','custom.R','genhz_rules') #on reportInit() or copyReport()
-.update.paths.to.copy <- c('report.Rmd','custom.R','genhz_rules') #on reportInit(update.report=TRUE) or reportUpdate()
-                          ##AB: making assumption here that you would want to update rules if you were calling update
+.paths.to.copy <- c('report.Rmd',
+                    'genhz_rules/Generic_rules.R',
+                    'genhz_rules/Miami_rules.R'
+                    ) #on reportInit() or copyReport()
+
+#on reportInit(update.report=TRUE) or reportUpdate()
+.update.paths.to.copy <- c('report.Rmd',
+                           'genhz_rules/Generic_rules.R',
+                           'genhz_rules/Miami_rules.R'
+                           )
+##AB: making assumption here that you would want to update rules if you were calling update
 #OPTIONAL
 .has.shiny.interface <- FALSE
 
