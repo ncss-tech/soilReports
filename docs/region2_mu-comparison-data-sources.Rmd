@@ -85,15 +85,34 @@ prism_ffd 0.9407 0.0261 35.98 <0.0001
 
 ## Design Freeze Index
 
-   * **q90_freeze_index_800m.tif**
-   
-   * **q90_freeze_index_F_800m.tif**
+   * **q90_freeze_index_800m.tif** number of degree days below 0° C, 90th percentile
+   * **q90_freeze_index_F_800m.tif** number of degree days below 0° F, 90th percentile
+
+From _NSSH Part 618.33 Frost Action, Potential_:
+
+> Part 618, Subpart B, Exhibits, Section 618.85 is a map that shows the design freezing index values in the continental United States. The values **are the number of degree days below 0° C for the coldest year in a period of 10 years** . The values indicate duration and intensity of freezing temperatures. The 250 isoline is the approximate boundary below which frost action ceases to be a problem.
+
+
+Methods:
+
+   * using units of degrees Celsius, and daily average air temperature ($Tavg$) 
+   * freezing degree days for a single year: $FI = sum( abs( min(0, Tavg) ) )$
+   * design freezing index, over 30 year record: $DFI = Q90( FI )$ where **FI** is the stack of annual FI
+
+Notes:
+
+   * There is a fairly large difference in where the 250 DFI isoline falls, depending on the temperature units.
+   * The 90th percentile of **FI** seems to track the notion of "coldest year in 10 years".
+   * The "average of 3 coldest years in 30" method gives different results, but spatial patterns are the same.
+   * Related [conversation](https://github.com/ncss-tech/soilReports/issues/84) on the calculation and interpretation.
+
+
 
 
 
 ## Growing Degree Days (C)
 
-   * **gdd_mean_800m.tif**
+**gdd_mean_800m.tif**
 
 Mean (Celsius) growing degree days, derived from the 800m PRISM daily minimum/maximum temperature data over the interval of 1981--2010.
 

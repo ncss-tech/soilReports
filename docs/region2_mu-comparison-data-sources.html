@@ -99,15 +99,30 @@ prism_ffd 0.9407 0.0261 35.98 &lt;0.0001</code></pre>
 <div id="design-freeze-index" class="section level2">
 <h2>Design Freeze Index</h2>
 <ul>
-<li><p><strong>q90_freeze_index_800m.tif</strong></p></li>
-<li><p><strong>q90_freeze_index_F_800m.tif</strong></p></li>
+<li><strong>q90_freeze_index_800m.tif</strong> number of degree days below 0° C, 90th percentile</li>
+<li><strong>q90_freeze_index_F_800m.tif</strong> number of degree days below 0° F, 90th percentile</li>
+</ul>
+<p>From <em>NSSH Part 618.33 Frost Action, Potential</em>:</p>
+<blockquote>
+<p>Part 618, Subpart B, Exhibits, Section 618.85 is a map that shows the design freezing index values in the continental United States. The values <strong>are the number of degree days below 0° C for the coldest year in a period of 10 years</strong> . The values indicate duration and intensity of freezing temperatures. The 250 isoline is the approximate boundary below which frost action ceases to be a problem.</p>
+</blockquote>
+<p>Methods:</p>
+<ul>
+<li>using units of degrees Celsius, and daily average air temperature (<span class="math inline">\(Tavg\)</span>)</li>
+<li>freezing degree days for a single year: <span class="math inline">\(FI = sum( abs( min(0, Tavg) ) )\)</span></li>
+<li>design freezing index, over 30 year record: <span class="math inline">\(DFI = Q90( FI )\)</span> where <strong>FI</strong> is the stack of annual FI</li>
+</ul>
+<p>Notes:</p>
+<ul>
+<li>There is a fairly large difference in where the 250 DFI isoline falls, depending on the temperature units.</li>
+<li>The 90th percentile of <strong>FI</strong> seems to track the notion of “coldest year in 10 years”.</li>
+<li>The “average of 3 coldest years in 30” method gives different results, but spatial patterns are the same.</li>
+<li>Related <a href="https://github.com/ncss-tech/soilReports/issues/84">conversation</a> on the calculation and interpretation.</li>
 </ul>
 </div>
 <div id="growing-degree-days-c" class="section level2">
 <h2>Growing Degree Days (C)</h2>
-<ul>
-<li><strong>gdd_mean_800m.tif</strong></li>
-</ul>
+<p><strong>gdd_mean_800m.tif</strong></p>
 <p>Mean (Celsius) growing degree days, derived from the 800m PRISM daily minimum/maximum temperature data over the interval of 1981–2010.</p>
 <p>Calculation reference: <a href="http://agron-www.agron.iastate.edu/Courses/agron212/Calculations/GDD.htm" class="uri">http://agron-www.agron.iastate.edu/Courses/agron212/Calculations/GDD.htm</a></p>
 <p><span class="math display">\[GDD_i = [ min(T_{max}, upper_{threshold}) + max(Tmin, lower_{threshold}) / 2 ] - T_{base}\]</span></p>
