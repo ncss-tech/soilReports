@@ -85,12 +85,12 @@ prism_ffd 0.9407 0.0261 35.98 <0.0001
 
 ## Design Freeze Index
 
-   * **q90_freeze_index_800m.tif** number of degree days below 0° C, 90th percentile
-   * **q90_freeze_index_F_800m.tif** number of degree days below 0° F, 90th percentile
+   * **q90_freeze_index_800m.tif** number of degree days below 0 deg C, 90th percentile
+   * **q90_freeze_index_F_800m.tif** number of degree days below 0 deg F, 90th percentile
 
 From _NSSH Part 618.33 Frost Action, Potential_:
 
-> Part 618, Subpart B, Exhibits, Section 618.85 is a map that shows the design freezing index values in the continental United States. The values **are the number of degree days below 0° C for the coldest year in a period of 10 years** . The values indicate duration and intensity of freezing temperatures. The 250 isoline is the approximate boundary below which frost action ceases to be a problem.
+> Part 618, Subpart B, Exhibits, Section 618.85 is a map that shows the design freezing index values in the continental United States. The values **are the number of degree days below 0 deg C for the coldest year in a period of 10 years** . The values indicate duration and intensity of freezing temperatures. The 250 isoline is the approximate boundary below which frost action ceases to be a problem.
 
 
 Methods:
