@@ -1,4 +1,9 @@
-
+---
+title: MU Comparison Data Sources
+author: Dylan Beaudette, Jennifer Wood, Russ Almaraz
+date: "`r Sys.Date()`"
+output: html_vignette
+---
 
 # Overview
 
