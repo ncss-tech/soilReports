@@ -31,6 +31,9 @@ destfile='MLRA-comparison/mlra-soil-data.rda')
 
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-namrad-data.rda', 
 destfile='MLRA-comparison/mlra-namrad-data.rda')
+
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-pop2015-data.rda', 
+destfile='MLRA-comparison/mlra-pop2015-data.rda')
 ```
 
 ## Example for Updating Existing Report

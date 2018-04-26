@@ -47,8 +47,8 @@ if(sum(as.numeric(loaded)) != length(packz)) {
 source('custom.R') 
 
 ## load local configuration 
-#TODO: allow entry of simple fields interactively if they are not specified?
-#TODO: allow for batching from a basic report.Rmd
+# TODO: allow entry of simple fields interactively if they are not specified?
+# TODO: allow for batching from a basic report.Rmd
 source('config.R')
 
 ### -----
@@ -65,29 +65,9 @@ if(!(mu.col %in% names(mu)))
 ### Sanity check #3 - make sure all raster/input file paths exist and are readable
 ###                   NB: this might not give correct results for parallel computation. Actual file read calls will also be wrapped in try()
 accessible.inputs <- file.access(as.character(unlist(raster.list)), mode = 4) + 1 #file.access returns 0 for success and -1 for failure
-if(any(!accessible.inputs)) {
-  stop(paste0("The following input files either do not exist or are unreadable: ",paste0(unlist(raster.list[!accessible.inputs]), collapse=", ")))
-}
-### -----
-
-### -----
-### Sanity check #4 - make sure output paths are valid (no illegal characters)
-###
-# make an output directory if it doesn't exist
-if(!dir.exists('output')) 
-  dir.create('./output')
-
-#shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
-if(!exists('shp.unsampled.fname')) shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
-if(!exists('shp.stats.fname')) shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
-if(!exists('shp.qc.fname')) shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
-
-if(!exists('csv.qc.fname')) csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'),'.csv')
-if(!exists('csv.stats.fname')) csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse='_'), '.csv')
-
-outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
-if(any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
-  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
+if(any( accessible.inputs == 0 )) {
+  unreadable.files <- names(which(accessible.inputs == 0))
+  stop(paste0("The following input files either do not exist or are unreadable: \n", paste0(unreadable.files, collapse=", ")))
 }
 ### -----
 
@@ -117,6 +97,30 @@ if(exists('mu.set')) {
   # if mu.set is not predefined, ordering is determined by the order of musyms in the source file
   mu.set <- sort(unique(mu[[mu.col]]))
 }
+
+
+### -----
+### Sanity check #4 - make sure output paths are valid (no illegal characters)
+###
+# make an output directory if it doesn't exist
+if(!dir.exists('output')) 
+  dir.create('./output')
+
+#shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
+if(!exists('shp.unsampled.fname')) shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
+if(!exists('shp.stats.fname')) shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
+if(!exists('shp.qc.fname')) shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
+
+if(!exists('csv.qc.fname')) csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'),'.csv')
+if(!exists('csv.stats.fname')) csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse='_'), '.csv')
+
+outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
+if(any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
+  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
+}
+### -----
+
+
 
 # in order to avoid column name collisions due to DBF limitations, keep only the mu.col column
 mu <- mu[, mu.col, drop=FALSE]
@@ -227,7 +231,7 @@ kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r
 
 
 ### Modified Box and Whisker Plots
-Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
+Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Box width is proportional to the number of samples per map unit (e.g. total map unit area). Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
 
 **Suggested usage:**
 
@@ -243,6 +247,7 @@ bwplot(.id ~ value | variable, data=d.continuous,
        scales=list(y=list(alternating=1), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
        strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, subscripts=TRUE, 
        layout=c(1, length(levels(d.continuous$variable))),
+       varwidth=TRUE,
        panel=function(x, subscripts=subscripts, ...) {
          
          # extract the current raster name
@@ -266,7 +271,7 @@ bwplot(.id ~ value | variable, data=d.continuous,
 
 
 ### Density Plots
-These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
+These plots are a smooth alternative ([density estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
 
 **Suggested usage:**
 
@@ -277,13 +282,21 @@ These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.
    + short vs. long "tails"
 
 ```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
+## TODO: consider variable line width proportional to area
+## https://github.com/ncss-tech/soilReports/issues/81
+# var.lwd <- scales::rescale(log(sampling.res$area.stats$`Total Area`), to=c(0.5, 2.5))
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 
 # dynamic setting of columns in legend
 n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 
-# compute densities and re-scale to {0,1}
-density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density)
+# scaling of density curves
+# just in case this isn't in the config file, set a default value here
+if( ! exists('scaleDensityCurves'))
+  scaleDensityCurves <- TRUE
+
+# compute densities and optionally re-scale to {0,1}
+density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density, constantScaling=scaleDensityCurves)
 
 xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(levels(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols, cex=0.8), par.settings=tps, type=c('l','g'))
 
@@ -356,6 +369,7 @@ kable(res, align = 'r', col.names=c(mu.col, names(res)[-1]))
 ```
 
 ```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis"}
+## TODO: consider moving this to custom.R ??
 makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   
   # this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
@@ -400,6 +414,13 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   if(!is.null(metadat$usage))  {
     cat("  \n  **Suggested usage:**  \n")
     cat(paste0("  \n",metadat$usage,"  \n  \n"))
+  }
+  
+  
+  ## sanity check: if the wrong raster is specified in the config file, levels will not match codes
+  ##               and all values with be NA
+  if(all(is.na(dat$value))){
+    stop(sprintf('all samples for "%s" are NA, perhaps the wrong raster file was specified?', variable.name))
   }
   
   # convert counts into proportions
@@ -500,7 +521,10 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   }
   return(TRUE)
 }
-l <- lapply(split(d.cat, f=d.cat$variable), FUN=makeCategoricalOutput)
+
+# make categorical summaries for all categorical variables
+d.cat.list <- split(d.cat, f=d.cat$variable)
+l <- lapply(d.cat.list, FUN=makeCategoricalOutput)
 ```
 
 ### Multivariate Summary

@@ -13,10 +13,8 @@ output:
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
-# package options
-opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
-
 # chunk options
+opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
 
 # R session options
 options(width=100, stringsAsFactors=FALSE)
@@ -33,12 +31,27 @@ source('custom.R')
 # TODO: allow for batching from a basic report.Rmd
 source('config.R')
 
+## TODO: this would be ideal, but not quite ready
+# x <- fetchLIMS_component(project.name)
 
-## TODO: better selection of "old" vs. "new"
-# https://github.com/ncss-tech/soilReports/issues/67
 
-# must pre-load selected set with relevant DMU
-x <- fetchNASIS_component_data(rmHzErrors = FALSE)
+## local NASIS DB setup
+# load project by name
+# add data for new MLRA MU via project mapunit -> mapunit table
+# add data for new MLRA DMU via mapunit/correlation -> data mapunit table
+x <- fetchNASIS_components()
+
+# establish DMU vintage
+x$vintage <- rep('old', times=length(x))
+
+# flag new DMU
+# could also use repdmu == 1
+x$vintage[grep('MLRA', x$dmudesc)] <- 'new'
+x$dmuname <- sprintf('%s\n%s', x$compname, x$vintage)
+
+# get correlation data so we can group via new map unit name
+nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE)
+site(x) <- nc
 
 ## site-level diff
 s <- site(x)
@@ -47,43 +60,59 @@ s <- site(x)
 exclude.vars <- c('coiid', 'dmuiid')
 site.vars <- which(! names(s) %in% exclude.vars)
 
-# extract 'old' vs. 'new' records
-a <- subset(s[, site.vars], subset=dmudesc == old.dmu)
-b <- subset(s[, site.vars], subset=dmudesc == new.dmu)
 
+## just in case, differences must be done by map unit
+# split by muname
+l <- split(s, s$muname)
+site.diff <- lapply(l, function(i) {
+  
+  # extract 'old' vs. 'new' records
+  a <- subset(i[, site.vars], subset=vintage == 'old')
+  b <- subset(i[, site.vars], subset=vintage == 'new')
+  
+  # exclude vars used for grouping
+  a$muname <- NULL ; a$areasmybol <- NULL ; a$repdmu <- NULL ; a$dmuname <- NULL ; a$muiid <- NULL ; a$vintage <- NULL
+  b$muname <- NULL; b$areasmybol <- NULL ; b$repdmu <- NULL ; b$dmuname <- NULL ; b$muiid <- NULL ; b$vintage <- NULL
+  
+  # name for each difference
+  diff.name <- unique(i$muname)
+  
+  ## copmute and render diff
+  delta <- diff_data(a, b)
+  res <- render_diff(delta, fragment=TRUE, view = FALSE, title = diff.name, summary = TRUE)
+  
+  return(list(title=diff.name, html=res))
+})
 
-## copmute and render diff
-# TODO: eval optimal arguments
-delta <- diff_data(a, b)
-site.diff <- render_diff(delta, fragment=TRUE, view = FALSE, title = 'Site Diff', summary = TRUE)
 
 
 ## hz-level diff
 d <- as(x, 'data.frame')
 
-hz.vars <- c('dmudesc', 'compname', horizonNames(x))
+# must include map unit name for grouped comparisons
+hz.vars <- c('muname', 'vintage', 'dmudesc', 'compname', horizonNames(x))
 exclude.vars <- c('coiid', 'chiid')
 hz.vars <- hz.vars[which(! hz.vars %in% exclude.vars)]
 d <- d[, hz.vars]
 
-# split into lists
+# split by MU/component names
 comp.order <- names(sort(tapply(s$comppct_r, s$compname, mean), decreasing = TRUE))
 d$compname <- factor(d$compname, levels=comp.order)
-l <- split(d, d$compname)
+d$muname <- factor(d$muname)
+l <- split(d, list(d$muname, d$compname))
 
 hz.diff <- lapply(l, function(i) {
   
-  a <- subset(i, subset=dmudesc == old.dmu)
-  b <- subset(i, subset=dmudesc == new.dmu)
+  a <- subset(i, subset=vintage == 'old')
+  b <- subset(i, subset=vintage == 'new')
   
   # exclude vars used for grouping
-  a$compname <- NULL ; a$comppct_r <- NULL ; a$dmudesc <- NULL
-  b$compname <- NULL ; b$comppct_r <- NULL ; b$dmudesc <- NULL
+  a$compname <- NULL ; a$comppct_r <- NULL ; a$dmudesc <- NULL ; a$muname <- NULL ; a$vintage <- NULL
+  b$compname <- NULL ; b$comppct_r <- NULL ; b$dmudesc <- NULL ; b$muname <- NULL ; b$vintage <- NULL
   
   delta <- diff_data(a, b)
   
-  diff.name <- paste0('Component/Horizon Diff: ', unique(i$compname))
-  # fname <- paste0('hz-diff-', unique(i$compname), '.html')
+  diff.name <- sprintf('%s/%s', unique(i$muname), unique(i$compname))
   
   res <- render_diff(delta, fragment=TRUE, view = FALSE, title = diff.name, summary = TRUE)
   return(list(title=diff.name, html=res))
@@ -97,7 +126,7 @@ hz.diff <- lapply(l, function(i) {
 <span style="font-size: 100%;">
 <br>
 <br>
-`r old.dmu`<br>vs.<br>`r new.dmu`
+`r project.name`
 </span>
 <br><br>
 report version `r .report.version`
@@ -105,11 +134,15 @@ report version `r .report.version`
 `r format(Sys.time(), "%Y-%m-%d")`</div>
 
 <br>
-This report provides [text differencing](https://en.wikipedia.org/wiki/Diff_utility) capabilities, applied to DMU/component records and component/horizon records queried from the selected set. This type of analyis requires marking records as *old* (`r old.dmu`) and *new* (`r new.dmu`) in the associated `config.R` file. Differences are higlighted in blue, deletions are in red, and additions are in green.
+This report provides [text differencing](https://en.wikipedia.org/wiki/Diff_utility) capabilities, applied to DMU/component records and component/horizon records queried from the selected set. Differences are higlighted in blue, deletions are in red, and additions are in green.
 
 
 ```{r, results='asis', echo=FALSE}
-wrapDaffHTML(site.diff, "DMU/Component Diff")
+f <- function(i) {
+  wrapDaffHTML(i$html, i$title)
+}
+
+dev.null <- lapply(site.diff, f)
 ```
 
 ```{r, results='asis', echo=FALSE}
@@ -121,10 +154,8 @@ dev.null <- lapply(hz.diff, f)
 ```
 
 
-
 ----------------------------
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")`, and `daff` version `r utils::packageDescription("daff", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
-
 

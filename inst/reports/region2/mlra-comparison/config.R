@@ -16,6 +16,7 @@ geomorphons.path <- 'mlra-geomorphons-data.rda'
 nlcd.path <- 'mlra-nlcd-data.rda'
 soil.path <- 'mlra-soil-data.rda'
 namrad.path <- 'mlra-namrad-data.rda'
+pop2015.path <- 'mlra-pop2015-data.rda'
 
 ####################
 ### MLRA selection #

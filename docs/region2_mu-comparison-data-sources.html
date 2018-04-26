@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Dylan Beaudette, Jennifer Wood, Russ Almaraz" />
+
+<meta name="date" content="2018-04-19" />
+
+<title>MU Comparison Data Sources</title>
+
+
+
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">MU Comparison Data Sources</h1>
+<h4 class="author"><em>Dylan Beaudette, Jennifer Wood, Russ Almaraz</em></h4>
+<h4 class="date"><em>2018-04-19</em></h4>
+
+
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Several of the Region 2 reports make use of a standardized set of raster data sources.</p>
+</div>
+<div id="climate-data" class="section level1">
+<h1>Climate Data</h1>
+<p>These maps are derived from the daily, 800m resolution, PRISM data spanning 1981–2010.</p>
+<div id="basic-summaries" class="section level2">
+<h2>Basic Summaries</h2>
+<div id="annual-estimates" class="section level3">
+<h3>Annual Estimates</h3>
+<ul>
+<li><p><strong>final_MAAT_800m.tif</strong> Mean annual air temperature (deg. C), derived from daily minimum and maximum temperatures.</p></li>
+<li><p><strong>final_MAP_mm_800m.tif</strong> Mean accumulated annual precipitation (mm), derived from daily totals.</p></li>
+</ul>
+</div>
+<div id="monthly-estimates" class="section level3">
+<h3>Monthly Estimates</h3>
+<ul>
+<li><p><strong>final_monthly_tavg_800m.tif</strong> Mean monthly temperature (deg. C), derived from daily minimum and maximum temperatures.</p></li>
+<li><p><strong>final_monthly_ppt_800m.tif</strong> Mean accumulated monthly precipitation (mm), derived from daily totals.</p></li>
+</ul>
+</div>
+</div>
+<div id="frost-free-period" class="section level2">
+<h2>Frost-Free Period</h2>
+<p>Number of days in the 50%, 80%, and 90% probability frost-free period, derived from daily minimum temperatures greater than 0 degrees C.</p>
+<p>These maps are based on 50/80/90 percent probability estimates for the last spring frost and first fall frost (day of year). See the related <a href="http://ncss-tech.github.io/AQP/sharpshootR/FFD-estimates.html">algorithm documentation</a> for details.</p>
+<p>Values have been cross-checked with 300+ weather stations in CA. Model:</p>
+<pre><code>Obs 328 LR chi2 526.00 R2 0.799
+sigma42.2446 d.f. 1 R2 adj 0.798
+d.f. 326 Pr(&gt; chi2) 0.0000 g 95.935
+Residuals
+Min 1Q Median 3Q Max
+-278.344 -16.875 2.436 14.323 274.604
+Fit:
+Coef S.E. t Pr(&gt;|t|)
+Intercept 15.1397 5.3455 2.83 0.0049
+prism_ffd 0.9407 0.0261 35.98 &lt;0.0001</code></pre>
+<div id="frost-free-days" class="section level3">
+<h3>Frost-Free Days</h3>
+<ul>
+<li><p><strong>ffd_50_pct_800m.tif</strong> Frost-free days, 50% probability.</p></li>
+<li><p><strong>ffd_80_pct_800m.tif</strong> Frost-free days, 80% probability.</p></li>
+<li><p><strong>ffd_90_pct_800m.tif</strong> Frost-free days, 90% probability.</p></li>
+</ul>
+</div>
+<div id="day-of-last-spring-first-fall-frost" class="section level3">
+<h3>Day of Last Spring / First Fall Frost</h3>
+<p><em>Last spring</em> frost maps represent the Julian day after which the probability of <em>no-frost</em> is 50 / 80 / 90 percent. <em>First fall</em> frost maps represent the Julian day before which the probability of <em>no-frost</em> is 50 / 80 / 90 percent.</p>
+<ul>
+<li><p><strong>last_spring_frost_50_pct_800m.tif</strong> Julian day of last spring frost, 50% probability.</p></li>
+<li><p><strong>first_fall_frost_50_pct_800m.tif</strong> Julian day of first fall frost, 50% probability.</p></li>
+<li><p><strong>last_spring_frost_80_pct_800m.tif</strong> Julian day of last spring frost, 80% probability.</p></li>
+<li><p><strong>first_fall_frost_80_pct_800m.tif</strong> Julian day of first fall frost, 80% probability.</p></li>
+<li><p><strong>last_spring_frost_90_pct_800m.tif</strong> Julian day of last spring frost, 90% probability.</p></li>
+<li><p><strong>first_fall_frost_90_pct_800m.tif</strong> Julian day of first fall frost, 90% probability.</p></li>
+</ul>
+</div>
+</div>
+<div id="design-freeze-index" class="section level2">
+<h2>Design Freeze Index</h2>
+<ul>
+<li><strong>q90_freeze_index_800m.tif</strong> number of degree days below 0 deg C, 90th percentile</li>
+<li><strong>q90_freeze_index_F_800m.tif</strong> number of degree days below 0 deg F, 90th percentile</li>
+</ul>
+<p>From <em>NSSH Part 618.33 Frost Action, Potential</em>:</p>
+<blockquote>
+<p>Part 618, Subpart B, Exhibits, Section 618.85 is a map that shows the design freezing index values in the continental United States. The values <strong>are the number of degree days below 0 deg C for the coldest year in a period of 10 years</strong> . The values indicate duration and intensity of freezing temperatures. The 250 isoline is the approximate boundary below which frost action ceases to be a problem.</p>
+</blockquote>
+<p>Methods:</p>
+<ul>
+<li>using units of degrees Celsius, and daily average air temperature (<span class="math inline">\(Tavg\)</span>)</li>
+<li>freezing degree days for a single year: <span class="math inline">\(FI = sum( abs( min(0, Tavg) ) )\)</span></li>
+<li>design freezing index, over 30 year record: <span class="math inline">\(DFI = Q90( FI )\)</span> where <strong>FI</strong> is the stack of annual FI</li>
+</ul>
+<p>Notes:</p>
+<ul>
+<li>There is a fairly large difference in where the 250 DFI isoline falls, depending on the temperature units.</li>
+<li>The 90th percentile of <strong>FI</strong> seems to track the notion of “coldest year in 10 years”.</li>
+<li>The “average of 3 coldest years in 30” method gives different results, but spatial patterns are the same.</li>
+<li>Related <a href="https://github.com/ncss-tech/soilReports/issues/84">conversation</a> on the calculation and interpretation.</li>
+</ul>
+</div>
+<div id="growing-degree-days-c" class="section level2">
+<h2>Growing Degree Days (C)</h2>
+<p><strong>gdd_mean_800m.tif</strong></p>
+<p>Mean (Celsius) growing degree days, derived from the 800m PRISM daily minimum/maximum temperature data over the interval of 1981–2010.</p>
+<p>Calculation reference: <a href="http://agron-www.agron.iastate.edu/Courses/agron212/Calculations/GDD.htm" class="uri">http://agron-www.agron.iastate.edu/Courses/agron212/Calculations/GDD.htm</a></p>
+<p><span class="math display">\[GDD_i = [ min(T_{max}, upper_{threshold}) + max(Tmin, lower_{threshold}) / 2 ] - T_{base}\]</span></p>
+<p><span class="math display">\[GDD_i = max(GDD_i, 0)\]</span></p>
+</div>
+<div id="calculations" class="section level2">
+<h2>Calculations</h2>
+<div id="effective-precipitation" class="section level3">
+<h3>Effective Precipitation</h3>
+<p><strong>effective_precipitation_800m.tif</strong></p>
+<p>Annual sum of monthly (total) precipitation - monthly (estimated) evapotranspiration, averaged over the interval of 1981–2010. Potential evapotranspiration (PET) estimated via <a href="https://en.wikipedia.org/wiki/Potential_evaporation">Thornthwaite’s method of 1948</a>. Input sources included:</p>
+<ul>
+<li>800m resolution, monthly, total precipitation (PRISM group)</li>
+<li>800m resolution, monthly, mean air temperature (PRISM group)</li>
+</ul>
+<p>Processing in GRASS GIS.</p>
+</div>
+<div id="fraction-of-precipitation-as-rain" class="section level3">
+<h3>Fraction of Precipitation as Rain</h3>
+<p><strong>rain_fraction_mean_800m.tif</strong></p>
+<p>This map contains estimates of the fraction of total (annual) precipitation as rain, derived from 800m daily PRISM Tmax and PPT grids (1981–2010). Calculations were performed using GRASS GIS, with methods and estimated parameters of the conditional snow probability function from Rajagopal and Harpold (2016).</p>
+<p>Partition PPT into snow/rain:</p>
+<p><span class="math display">\[rain = PPT - snow\]</span></p>
+<p><span class="math display">\[snow = PPT * Pr(snow)\]</span></p>
+<p>compute <span class="math inline">\(Pr(snow)\)</span> as a function of <span class="math inline">\(Tmax\)</span> using <a href="https://en.wikipedia.org/wiki/Hyperbolic_function#Standard_analytic_expressions">exponential identity for hyperbolic tangent function</a>:</p>
+<p>Evaluate conditional probability (fraction) of snow on a daily basis:</p>
+<p><span class="math display">\[Pr(snow) = a * ( tanh(b * (Tmax - c) ) - d )\]</span></p>
+<p>a:-0.5, b:0.21, c:0.5, d:1</p>
+<p><span class="math display">\[tanh(x) = (1 - exp(-2*x)) / (1 + exp(-2*x))\]</span></p>
+<p><span class="math display">\[Pr(snow) = -0.5 * ( (1 - exp(-2 * (0.21 * (Tmax - 0.5) ))) / (1 + exp(-2 * (0.21 * (Tmax - 0.5) ))) - 1 )\]</span></p>
+<p><span class="math display">\[rain = PPT - (PPT * Pr(snow))\]</span></p>
+<p>For each year(<span class="math inline">\(i\)</span>):</p>
+<p><span class="math display">\[rain fraction_i = sum(rain_i) / sum(PPT_i)\]</span></p>
+<p>Percentages have been converted to integers ranging from 0 to 100.</p>
+<p>Rajagopal, S. and A.A. Harpold. 2016. Testing and Improving Temperature Thresholds for Snow and Rain Prediction in the Western United States. Journal of the American Water Resources Association, 52: 1142-1154.</p>
+</div>
+</div>
+</div>
+<div id="terrain" class="section level1">
+<h1>Terrain</h1>
+<div id="standard-derivatives" class="section level2">
+<h2>Standard Derivatives</h2>
+<div id="meter-resolution" class="section level3">
+<h3>10 meter resolution</h3>
+<ul>
+<li><p><strong>SSR2_DEM10m_AEA.tif</strong> Integer representation of elevation (m).</p></li>
+<li><p><strong>SSR2_Aspect10m_AEA.tif</strong> Integer representation of aspect angle (degrees clock-wise from North).</p></li>
+<li><p><strong>SSR2_Slope10m_AEA.tif</strong> Integer representation of slope gradient (percent).</p></li>
+</ul>
+</div>
+<div id="meter-resolution-1" class="section level3">
+<h3>30 meter resolution</h3>
+<ul>
+<li><p><strong>DEM_30m_SSR2.tif</strong> Integer representation of elevation (m).</p></li>
+<li><p><strong>Aspect_30m_SSR2.tif</strong> Integer representation of aspect angle (degrees clock-wise from North).</p></li>
+<li><p><strong>Slope_30m_SSR2.tif</strong> Integer representation of slope gradient (percent).</p></li>
+</ul>
+</div>
+</div>
+<div id="surface-shape-curvature-classes" class="section level2">
+<h2>Surface Shape (Curvature Classes)</h2>
+<ul>
+<li><strong>curvature_classes_10_class_region2.tif</strong> 10 meter resolution</li>
+<li><strong>curvature_classes_30_class_region2.tif</strong> 30 meter resolution</li>
+</ul>
+<p>These maps contains surface curvatures (profile and crossectional), derived from the USGS 10m / 30m DEM and grouped into classes: concave, linear, convex.</p>
+<p>Profile (down-slope) and crossectional (across-slope) curvatures were calculated via Wood’s method (1996) using a 5x5 moving window in <a href="https://grass.osgeo.org/grass70/manuals/r.param.scale.html">GRASS GIS</a>. Curvatures were classified into concave, linear, and convex using a threshold of +/- 0.0001 (m^-1.</p>
+<p>Curvature classes (downslope, across slope) are coded as:</p>
+<pre><code>LL | LV | LC
+VL | VV | VC
+CL | CV | CC</code></pre>
+<p>Codes:</p>
+<pre><code>22 | 32 | 12
+23 | 33 | 13
+21 | 31 | 11</code></pre>
+<p>See Field Book for Describing and Sampling Soils version 3.0 for details.</p>
+<p>Wood, J. (1996): The Geomorphological characterisation of Digital Elevation Models. Diss., Department of Geography, University of Leicester, U.K.</p>
+</div>
+<div id="landform-elements-geomorphons" class="section level2">
+<h2>Landform Elements (geomorphons)</h2>
+<ul>
+<li><strong>forms10_region2.tif</strong> 10 meter resolution</li>
+<li><strong>forms30_region2.tif</strong> 30 meter resolution</li>
+</ul>
+<p>These maps were generated using the <a href="https://grass.osgeo.org/grass75/manuals/r.geomorphon.html">r.geomorphon GRASS GIS module</a>, with the following parameters:</p>
+<p><code>r.geomorphon --o dem=elev30_int forms=forms30 search=75 skip=5 flat=1.718</code></p>
+<p>The source DEM was a 10m / 30m resolution compilation of USGS NED data, rounded to integers. The “flat” threshold (1.718 deg) is based on a 3% slope break.</p>
+<p><a href="http://www.sciencedirect.com/science/article/pii/S0169555X12005028">Jasiewicz, J., Stepinski, T., 2013, Geomorphons - a pattern recognition approach to classification and mapping of landforms, Geomorphology, vol. 182, 147-156.</a></p>
+</div>
+<div id="terrain-indices" class="section level2">
+<h2>Terrain Indices</h2>
+<div id="annual-beam-radiance" class="section level3">
+<h3>Annual Beam Radiance</h3>
+<p><strong>beam_rad_sum_mj30_int_region2.tif</strong></p>
+<p>This map describes estimated annual beam radiance (MJ/ square meter / year) at each 30m grid cell, based on the solar radiation algorithm implimented in the <a href="https://grass.osgeo.org/grass75/manuals/r.sun.html">r.sun</a> module of GRASS GIS.</p>
+<p>See <a href="https://dl.sciencesocieties.org/publications/sssaj/abstracts/73/5/1755/preview">this article</a> for a more detailed description of the solar radiation algorithm and an application to soil survey.</p>
+</div>
+<div id="saga-twi" class="section level3">
+<h3>Saga TWI</h3>
+<p><strong>saga_twi_30_int_region2.tif</strong></p>
+<p>SAGA wetness index, calculated from a 30m DEM.</p>
+<p><em>From the SAGA manual:</em></p>
+<p>The ‘SAGA Wetness Index’ is, as the name says, similar to the ‘Topographic Wetness Index’ (TWI), but it is based on a modified catchment area calculation (‘Modified Catchment Area’), which does not think of the flow as very thin film. As result it predicts for cells situated in valley floors with a small vertical distance to a channel a more realistic, higher potential soil moisture compared to the standard TWI calculation.</p>
+<p>Boehner, J., Koethe, R. Conrad, O., Gross, J., Ringeler, A., Selige, T. (2002): Soil Regionalisation by Means of Terrain Analysis and Process Parameterisation. In: Micheli, E., Nachtergaele, F., Montanarella, L. [Ed.]: Soil Classification 2001. European Soil Bureau, Research Report No. 7, EUR 20398 EN, Luxembourg. pp.213-222.</p>
+</div>
+<div id="compount-topographic-index" class="section level3">
+<h3>Compount Topographic Index</h3>
+<p><strong>tci_30_int_region2.tif</strong></p>
+<p>This map describes the compount topographic index at each 30m grid cell, based on the <a href="https://grass.osgeo.org/grass75/manuals/r.topidx.html">r.topidx</a> module of GRASS GIS.</p>
+<p>Moore, I.D., R.B. Grayson, and A.R. Ladson, 1991. Digital Terrain Modeling: A Review of Hydrological, Geomorphological, and Biological Applications. Hydrological Processes 5:3-30.</p>
+</div>
+</div>
+</div>
+<div id="land-cover" class="section level1">
+<h1>Land Cover</h1>
+<div id="nlcd" class="section level2">
+<h2>NLCD</h2>
+<p>National land cover data (<a href="https://www.mrlc.gov/nlcd2011.php">2011 edition</a>) data, cropped to SS region 2.</p>
+<ul>
+<li><strong>nlcd_2011_cropped.tif</strong> <a href="https://www.mrlc.gov/nlcd01_leg.php">16-class land cover classification</a></li>
+<li><strong>nlcd_impervious_2011_cropped.tif</strong> binary classification of <em>impervious surfaces</em></li>
+</ul>
+</div>
+<div id="nass" class="section level2">
+<h2>NASS</h2>
+<p>Pending.</p>
+</div>
+</div>
+<div id="fema" class="section level1">
+<h1>FEMA</h1>
+<p>Pending.</p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

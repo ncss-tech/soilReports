@@ -1,0 +1,306 @@
+---
+title: MU Comparison Data Sources
+author: Dylan Beaudette, Jennifer Wood, Russ Almaraz
+date: "`r Sys.Date()`"
+output: html_vignette
+---
+
+# Overview
+
+Several of the Region 2 reports make use of a standardized set of raster data sources.
+
+
+
+# Climate Data
+
+These maps are derived from the daily, 800m resolution, PRISM data spanning 1981--2010.
+
+
+## Basic Summaries
+
+### Annual Estimates
+
+  * **final_MAAT_800m.tif** Mean annual air temperature (deg. C), derived from daily minimum and maximum temperatures.
+
+  * **final_MAP_mm_800m.tif** Mean accumulated annual precipitation (mm), derived from daily totals.
+
+### Monthly Estimates
+
+  * **final_monthly_tavg_800m.tif** Mean monthly temperature (deg. C), derived from daily minimum and maximum temperatures.
+
+  * **final_monthly_ppt_800m.tif** Mean accumulated monthly precipitation (mm), derived from daily totals.
+  
+  
+
+
+
+## Frost-Free Period
+
+Number of days in the 50%, 80%, and 90% probability frost-free period, derived from daily minimum temperatures greater than 0 degrees C.
+
+These maps are based on 50/80/90 percent probability estimates for the last spring frost and first fall frost (day of year). See the related [algorithm documentation](http://ncss-tech.github.io/AQP/sharpshootR/FFD-estimates.html) for details.
+
+Values have been cross-checked with 300+ weather stations in CA. Model: 
+
+```
+Obs 328 LR chi2 526.00 R2 0.799
+sigma42.2446 d.f. 1 R2 adj 0.798
+d.f. 326 Pr(> chi2) 0.0000 g 95.935
+Residuals
+Min 1Q Median 3Q Max
+-278.344 -16.875 2.436 14.323 274.604
+Fit:
+Coef S.E. t Pr(>|t|)
+Intercept 15.1397 5.3455 2.83 0.0049
+prism_ffd 0.9407 0.0261 35.98 <0.0001
+```
+
+### Frost-Free Days
+
+   * **ffd_50_pct_800m.tif** Frost-free days, 50% probability.
+
+   * **ffd_80_pct_800m.tif** Frost-free days, 80% probability.
+
+   * **ffd_90_pct_800m.tif** Frost-free days, 90% probability.
+
+
+### Day of Last Spring / First Fall Frost
+
+*Last spring* frost maps represent the Julian day after which the probability of *no-frost* is 50 / 80 / 90 percent. *First fall* frost maps represent the Julian day before which the probability of *no-frost* is 50 / 80 / 90 percent.
+    
+
+   * **last_spring_frost_50_pct_800m.tif** Julian day of last spring frost, 50% probability.
+   
+   * **first_fall_frost_50_pct_800m.tif** Julian day of first fall frost, 50% probability.
+
+   * **last_spring_frost_80_pct_800m.tif** Julian day of last spring frost, 80% probability.
+   
+   * **first_fall_frost_80_pct_800m.tif** Julian day of first fall frost, 80% probability.
+   
+   * **last_spring_frost_90_pct_800m.tif** Julian day of last spring frost, 90% probability.
+
+   * **first_fall_frost_90_pct_800m.tif** Julian day of first fall frost, 90% probability.
+
+
+
+## Design Freeze Index
+
+   * **q90_freeze_index_800m.tif** number of degree days below 0 deg C, 90th percentile
+   * **q90_freeze_index_F_800m.tif** number of degree days below 0 deg F, 90th percentile
+
+From _NSSH Part 618.33 Frost Action, Potential_:
+
+> Part 618, Subpart B, Exhibits, Section 618.85 is a map that shows the design freezing index values in the continental United States. The values **are the number of degree days below 0 deg C for the coldest year in a period of 10 years** . The values indicate duration and intensity of freezing temperatures. The 250 isoline is the approximate boundary below which frost action ceases to be a problem.
+
+
+Methods:
+
+   * using units of degrees Celsius, and daily average air temperature ($Tavg$) 
+   * freezing degree days for a single year: $FI = sum( abs( min(0, Tavg) ) )$
+   * design freezing index, over 30 year record: $DFI = Q90( FI )$ where **FI** is the stack of annual FI
+
+Notes:
+
+   * There is a fairly large difference in where the 250 DFI isoline falls, depending on the temperature units.
+   * The 90th percentile of **FI** seems to track the notion of "coldest year in 10 years".
+   * The "average of 3 coldest years in 30" method gives different results, but spatial patterns are the same.
+   * Related [conversation](https://github.com/ncss-tech/soilReports/issues/84) on the calculation and interpretation.
+
+
+
+
+
+## Growing Degree Days (C)
+
+**gdd_mean_800m.tif**
+
+Mean (Celsius) growing degree days, derived from the 800m PRISM daily minimum/maximum temperature data over the interval of 1981--2010.
+
+Calculation reference: http://agron-www.agron.iastate.edu/Courses/agron212/Calculations/GDD.htm
+   
+$$GDD_i = [ min(T_{max}, upper_{threshold}) + max(Tmin, lower_{threshold}) / 2 ] - T_{base}$$
+
+$$GDD_i = max(GDD_i, 0)$$
+
+
+
+## Calculations
+
+### Effective Precipitation
+
+**effective_precipitation_800m.tif**
+
+Annual sum of monthly (total) precipitation - monthly (estimated) evapotranspiration, averaged over the interval of 1981--2010. Potential evapotranspiration (PET) estimated via [Thornthwaite's method of 1948](https://en.wikipedia.org/wiki/Potential_evaporation). Input sources included:
+
+   * 800m resolution, monthly, total precipitation (PRISM group)
+   * 800m resolution, monthly, mean air temperature (PRISM group)
+   
+Processing in GRASS GIS.
+
+
+### Fraction of Precipitation as Rain
+
+**rain_fraction_mean_800m.tif**
+
+This map contains estimates of the fraction of total (annual) precipitation as rain, derived from 800m daily PRISM Tmax and PPT grids (1981--2010). Calculations were performed using GRASS GIS, with methods and estimated parameters of the conditional snow probability function from Rajagopal and Harpold (2016).
+
+Partition PPT into snow/rain:
+
+$$rain = PPT - snow$$
+
+$$snow = PPT * Pr(snow)$$
+
+compute $Pr(snow)$ as a function of $Tmax$ using [exponential identity for hyperbolic tangent function](https://en.wikipedia.org/wiki/Hyperbolic_function#Standard_analytic_expressions):
+
+Evaluate conditional probability (fraction) of snow on a daily basis:
+
+$$Pr(snow) = a * ( tanh(b * (Tmax - c) ) - d )$$
+
+a:-0.5, b:0.21, c:0.5, d:1
+
+$$tanh(x) = (1 - exp(-2*x)) / (1 + exp(-2*x))$$
+
+$$Pr(snow) = -0.5 * ( (1 - exp(-2 * (0.21 * (Tmax - 0.5) ))) / (1 + exp(-2 * (0.21 * (Tmax - 0.5) ))) - 1 )$$
+
+$$rain = PPT - (PPT * Pr(snow))$$
+
+For each year($i$): 
+
+$$rain fraction_i = sum(rain_i) / sum(PPT_i)$$
+
+Percentages have been converted to integers ranging from 0 to 100.
+
+
+Rajagopal, S. and A.A. Harpold. 2016. Testing and Improving Temperature Thresholds for Snow and Rain Prediction in the Western United States. Journal of the American Water Resources Association, 52: 1142-1154.
+
+
+# Terrain
+
+
+## Standard Derivatives
+
+### 10 meter resolution
+
+   * **SSR2_DEM10m_AEA.tif** Integer representation of elevation (m).
+   
+   * **SSR2_Aspect10m_AEA.tif** Integer representation of aspect angle (degrees clock-wise from North).
+   
+   * **SSR2_Slope10m_AEA.tif** Integer representation of slope gradient (percent).
+
+
+### 30 meter resolution
+
+  * **DEM_30m_SSR2.tif** Integer representation of elevation (m).
+
+  * **Aspect_30m_SSR2.tif** Integer representation of aspect angle (degrees clock-wise from North).
+   
+  * **Slope_30m_SSR2.tif** Integer representation of slope gradient (percent).
+
+
+## Surface Shape (Curvature Classes)
+
+   * **curvature_classes_10_class_region2.tif** 10 meter resolution
+   * **curvature_classes_30_class_region2.tif** 30 meter resolution
+
+These maps contains surface curvatures (profile and crossectional), derived from the USGS 10m / 30m DEM and grouped into classes: concave, linear, convex.
+
+Profile (down-slope) and crossectional (across-slope) curvatures were calculated via Wood's method (1996) using a 5x5 moving window in [GRASS GIS](https://grass.osgeo.org/grass70/manuals/r.param.scale.html). Curvatures were classified into concave, linear, and convex using a threshold of +/- 0.0001 (m^-1. 
+
+Curvature classes (downslope, across slope) are coded as:
+```
+LL | LV | LC
+VL | VV | VC
+CL | CV | CC
+```
+
+Codes:
+```
+22 | 32 | 12
+23 | 33 | 13
+21 | 31 | 11
+```
+
+See Field Book for Describing and Sampling Soils version 3.0 for details.
+
+Wood, J. (1996): The Geomorphological characterisation of Digital Elevation Models. Diss., Department of Geography, University of Leicester, U.K.
+
+
+## Landform Elements (geomorphons)
+
+   * **forms10_region2.tif** 10 meter resolution
+   * **forms30_region2.tif** 30 meter resolution
+
+These maps were generated using the [r.geomorphon GRASS GIS module](https://grass.osgeo.org/grass75/manuals/r.geomorphon.html), with the following parameters: 
+
+`r.geomorphon --o dem=elev30_int forms=forms30 search=75 skip=5 flat=1.718`
+
+The source DEM was a 10m / 30m resolution compilation of USGS NED data, rounded to integers. The "flat" threshold (1.718 deg) is based on a 3% slope break.
+
+[Jasiewicz, J., Stepinski, T., 2013, Geomorphons - a pattern recognition approach to classification and mapping of landforms, Geomorphology, vol. 182, 147-156.](http://www.sciencedirect.com/science/article/pii/S0169555X12005028)
+
+
+
+## Terrain Indices
+
+### Annual Beam Radiance
+
+**beam_rad_sum_mj30_int_region2.tif**
+
+This map describes estimated annual beam radiance (MJ/ square meter / year) at each 30m grid cell, based on the solar radiation algorithm implimented in the [r.sun](https://grass.osgeo.org/grass75/manuals/r.sun.html) module of GRASS GIS.
+
+See [this article](https://dl.sciencesocieties.org/publications/sssaj/abstracts/73/5/1755/preview) for a more detailed description of the solar radiation algorithm and an application to soil survey.
+
+
+### Saga TWI
+
+**saga_twi_30_int_region2.tif**
+
+SAGA wetness index, calculated from a 30m DEM.
+
+*From the SAGA manual:*
+
+The 'SAGA Wetness Index' is, as the name says, similar to the 'Topographic Wetness Index' (TWI), but it is based on a modified catchment area calculation ('Modified Catchment Area'), which does not think of the flow as very thin film. As result it predicts for cells situated in valley floors with a small vertical distance to a channel a more realistic, higher potential soil moisture compared to the standard TWI calculation.
+
+Boehner, J., Koethe, R. Conrad, O., Gross, J., Ringeler, A., Selige, T. (2002): Soil Regionalisation by Means of Terrain Analysis and Process Parameterisation. In: Micheli, E., Nachtergaele, F., Montanarella, L. [Ed.]: Soil Classification 2001. European Soil Bureau, Research Report No. 7, EUR 20398 EN, Luxembourg. pp.213-222.
+
+
+
+### Compount Topographic Index
+   
+**tci_30_int_region2.tif**
+
+This map describes the compount topographic index at each 30m grid cell, based on the [r.topidx](https://grass.osgeo.org/grass75/manuals/r.topidx.html) module of GRASS GIS.
+
+Moore, I.D., R.B. Grayson, and A.R. Ladson, 1991. Digital Terrain Modeling: A Review of Hydrological, Geomorphological, and Biological Applications. Hydrological Processes 5:3-30.
+
+
+
+# Land Cover
+
+## NLCD
+
+National land cover data ([2011 edition](https://www.mrlc.gov/nlcd2011.php)) data, cropped to SS region 2.
+
+   * **nlcd_2011_cropped.tif** [16-class land cover classification](https://www.mrlc.gov/nlcd01_leg.php)
+   * **nlcd_impervious_2011_cropped.tif** binary classification of *impervious surfaces*
+
+
+## NASS
+
+Pending.
+
+
+# FEMA
+
+Pending.
+
+
+
+
+
+
+
+
+
+
+
