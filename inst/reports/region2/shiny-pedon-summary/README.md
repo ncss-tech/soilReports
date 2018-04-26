@@ -1,11 +1,11 @@
 ## Shiny Interactive Pedon Summary
 ### PURPOSE:
 #### 1.	Maintain “microcorrelation” record that can be used to document decisions made for using point data for component population, analysis of series range in characteristics, etc.
-#####    - Provide simple, traceable routines for subsetting pedon data that minimize the amount of NASIS selected set wizardry required to complete and reproduce analyses
-#####    - Apply and document rules used for correlation of pedon horizons to component layers
+    - Provide simple, traceable routines for subsetting pedon data that minimize the amount of NASIS selected set wizardry required to complete and reproduce analyses
+    - Apply and document rules used for correlation of pedon horizons to component layers
 #### 2.	Interactive and visually-appealing way of interacting with (complex) pedon data structures
 #### 3.	Allow rapid generation of static reports from the interactive context. 
-#####    - Autogenerate archives of source data and connotative output file names for efficient review of multiple components, series, or mapunits.
+    - Autogenerate archives of source data and connotative output file names for efficient review of multiple components, series, or mapunits.
 
 ### Steps (stubs for now)
 1.	Preparing your selected set
