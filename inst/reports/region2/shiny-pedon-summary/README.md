@@ -79,4 +79,6 @@ The shiny interface would show a plot and graphs of properties from the selected
 
 ##  TODOS
  - horizon tab : currently rownames (GENHZs) don't show up correctly in Shiny output due to issues with `kable`.
- - modal pedon : include modal pedon value alongside median where appropriate for texture, color, morphology, surface frags, diagnostics
+ - modal pedon 
+ : include modal pedon value alongside median where appropriate for texture, color, morphology, surface frags, diagnostics
+ - generic horizon aggregation patterns - develop generic regular expressions for matching typical horizons in certain taxa (i.e. a Vertisol specific set, a Spodosol set, a set for ... etc.
