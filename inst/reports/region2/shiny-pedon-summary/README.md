@@ -1,4 +1,32 @@
 ## Shiny Interactive Pedon Summary
+PURPOSE:
+1.	Maintain “microcorrelation” record that can be used to document decisions made for using point data for component population, analysis of series range in characteristics, etc.
+a.	Provide simple, traceable routines for subsetting pedon data that minimize the amount of NASIS selected set wizardry required to complete and reproduce analyses
+b.	Apply and document rules used for correlation of pedon horizons to component layers
+2.	Interactive and visually-appealing way of interacting with (complex) pedon data structures
+3.	Allow rapid generation of static reports from the interactive context. 
+a.	Autogenerate archives of source data and connotative output file names for efficient review of multiple components, series, or mapunits.
+
+Steps (stubs for now)
+1.	Preparing your selected set
+
+2.	Generalized horizonation – approaches
+•	“generic” regex patterns (exploratory)
+•	Investigating the effectiveness of the generic patterns in your area 
+•	Importing component layer IDs into NASIS from a text file generated in R
+•	Manual assignment via NASIS component layer ID (final analysis)
+
+3.	Survey area mapunit polygons and selection of covariates for extraction at pedon locations
+
+4.	Using regular expressions for subsetting pedon data
+
+5.	Other options for stratifying pedon data
+
+6.	Running the script
+
+7.	Interacting with and Interpreting the Data
+
+8.	Generating “static” hard copy reports
 
 ### Basic setup
 The report has a `config.R` file where the following are specified:
@@ -52,4 +80,3 @@ The shiny interface would show a plot and graphs of properties from the selected
 ##  TODOS
  - horizon tab : currently rownames (GENHZs) don't show up correctly in Shiny output due to issues with `kable`.
  - modal pedon : include modal pedon value alongside median where appropriate for texture, color, morphology, surface frags, diagnostics
- - "order level" or region-tailored general horizon patterns - allows for exploration without concern for taxon/correlation status using generic horizon aggregation that is based on higher order taxonomy and common horizon designations in those taxa
