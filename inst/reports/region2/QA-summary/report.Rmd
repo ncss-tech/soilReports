@@ -12,7 +12,6 @@ params:
 ---
 
 
-
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
@@ -62,9 +61,12 @@ x$dmuname <- sprintf('%s\n%s', x$compname, x$vintage)
 # join MU / correlation into DMU / component @site
 site(x) <- nc
 
+## estimate base saturation at pH 7
+x$base.sat <- pmin(100, (x$sumbases_r / x$cec7_r) * 100)
+
 
 ## establish some reasonable figure widths in inches
-profile.fig.width <- 1 + (length(x) * 0.85)
+profile.fig.width <- 1.5 + (length(x) * 0.85)
 
 ## TODO: base this on user-supplied properties
 slab.fig.width <- 12
@@ -73,6 +75,11 @@ slab.fig.width <- 12
 mu.prop.panels.height <- 1 + (length(unique(x$nationalmusym)) * 2.5)
 
 ## TODO user-specified horizon properties as parameter
+
+## TODO / ideas
+##  
+##  site-level comparisons in aggregate
+##  table(x$dmuname, x$taxsubgrp)
 
 ```
 
@@ -128,29 +135,33 @@ groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex 
 
 groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='texture', col.label='Texture', col.legend.cex=0.75)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='sumbases_r', col.label='Base Saturation (%)', col.legend.cex=0.85)
 
 
 groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='lep_r', col.label='LEP', col.legend.cex=0.85)
 
+groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85)
+
+groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.85)
+
+groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='base.sat', col.label='Base Saturation @ pH 7 (%)', col.legend.cex=0.85)
+
+
 
 groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='ph1to1h2o_r', col.label='pH 1:1 H2O', col.legend.cex=0.85)
 
+groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85)
 
 groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='sar_r', col.label='SAR (%)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='caco3_r', col.label='CaCO3 (%)', col.legend.cex=0.85)
 
+
+groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85)
 
 groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='ksat_r', col.label='Ksat (um/s)', col.legend.cex=0.85)
 
 
 groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='om_r', col.label='Organic Matter (%)', col.legend.cex=0.85)
-
 
 groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = c(-16, -18), color='dbthirdbar_r', col.label='Db 1/3 Bar (g / cc)', col.legend.cex=0.85)
 
