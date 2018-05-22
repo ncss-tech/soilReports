@@ -49,6 +49,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
      + [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
      + [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
      + [DMU Difference Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/dmu-diff)
+     + [QA Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/QA-summary)
 
   * Region 11
      + [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
@@ -64,6 +65,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
   * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
   * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
   * [DMU differences](http://ncss-tech.github.io/example-reports/dmu-diff-example.html)
+  * [QA Summary](http://ncss-tech.github.io/example-reports/QA-summary-example.html)
 
 
 ## Run a Report - Example: Map Unit Comparison report
