@@ -1,6 +1,11 @@
 # DMU Diff Report
 This report provides [text differencing](https://en.wikipedia.org/wiki/Diff_utility) capabilities, applied to DMU/component records and component/horizon records queried from the selected set. Differences are higlighted in blue, deletions are in red, and additions are in green.
 
+Local NASIS DB setup: 
+   * load project by name
+   * add data for new MLRA MU via project mapunit -> mapunit table
+   * add data for related DMU via mapunit/correlation -> data mapunit table
+
 ## Typical Usage
 Load the local NASIS database with two DMU that represent "pre" and "post" SDJR/update work. It is essential that the `mapunit`, `correlation`, and `DMU` objects are loaded in the selected set.
 
@@ -16,4 +21,4 @@ reportSetup(reportName='region2/dmu-diff')
 reportInit(reportName='region2/dmu-diff', outputDir='DMU-diff')
 ```
 
-Edit the associated `config.R` document with the DMU descriptions that represent the *old* and *new* records. Open `report.Rmd` and click on the "Knit" button.
+Open `report.Rmd` and edit the `projectname` parameter to match the project name that was used to setup your local NASIS database then click "knit".

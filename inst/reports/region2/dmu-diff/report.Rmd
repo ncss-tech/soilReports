@@ -7,6 +7,8 @@ output:
     smart: no
     keep_md: no
     css: style.css
+params:
+  projectname: !r as.character("MLRA 17 - Arbuckle horizon standardization in 2-CHI SSA updated in SDJR")
 ---
 
 
@@ -27,9 +29,7 @@ library(soilDB, quietly=TRUE)
 source('custom.R') 
 
 ## load local configuration 
-# TODO: allow entry of simple fields interactively if they are not specified?
-# TODO: allow for batching from a basic report.Rmd
-source('config.R')
+project.name <- params$projectname
 
 ## TODO: this would be ideal, but not quite ready
 # x <- fetchLIMS_component(project.name)

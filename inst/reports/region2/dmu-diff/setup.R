@@ -10,10 +10,10 @@
 ## version number
 
 .report.name <- 'dmu-diff'
-.report.version <- '0.3'
+.report.version <- '0.4'
 .report.description <- 'Differences between select DMU'
 
-.paths.to.copy <- c('report.Rmd', 'custom.R', 'config.R', 'categorical_definitions.R', 'README.md', 'changes.txt', 'style.css')
+.paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
 .update.paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
 
 .packages.to.get <- c('knitr', 'rmarkdown', 'daff', 'soilDB')
