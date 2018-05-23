@@ -10,7 +10,7 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-  projectname: !r as.character("EVAL - MLRA 95 - Hortonville silt loam, 20 to 30 percent slopes;EVAL - MLRA 95 - Hortonville-Boyer-Zurich comples, 20 to 35 percent slopes;EVAL - MLRA 95 - Hortonville-Boyer-Zurich complex, 12 to 20 percent slopes, eroded;EVAL - MLRA 95 - Hortonville-Boyer-Zurich complex, 2 to 6 percent slopes;EVAL - MLRA 95 - Hortonville-Boyer-Zurich complex, 6 to 12 percent slopes, eroded")
+  projectname: !r as.character("EVAL - MLRA 95 - Rotamer loam, 12 to 20 percent slopes, eroded;EVAL - MLRA 95 - Rotamer loam, 2 to 6 percent slopes, eroded;EVAL - MLRA 95 - Rotamer loam, 20 to 30 percent slopes, eroded;EVAL - MLRA 95 - Rotamer loam, 6 to12 percent slopes, eroded")
 ---
 
 ```{r setup, echo = FALSE}
@@ -102,43 +102,27 @@ site(comp) <- s
 
 
 # set figure heights
-n_wtables  <- length(unique(cosm$coiid))
-h_wtables  <- (ceiling(n_wtables / 3) * 3) + 0.25
+n_wtables <- length(unique(cosm$coiid))
+h_wtables <- (ceiling(n_wtables / 3) * 3) + 0.25
 
 idx <- with(s, !is.na(pmkind) | !is.na(landform))
-n_compname     <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
-h_cplots_pm  <- n_compname * 
-                   ceiling(0.3 * max(c(
-                     length(unique(s$pmkind)),
-                     length(unique(s$landform))
-                     )))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_pm <- n_compname * ceiling(0.3 * length(unique(s$pmkind))) + 1.5
 
 idx <- with(s, !is.na(landform) | !is.na(geompos))
-n_compname     <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
-h_cplots_lf  <- n_compname * 
-                   ceiling(0.3 * max(c(
-                     length(unique(s$landform)),
-                     length(unique(s$geompos))
-                     )))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_lf <- n_compname * ceiling(0.3 * length(unique(s$landform))) + 1.5
 
 idx <- with(s, !is.na(hillslopeprof) | ! is.na(geompos))
-n_compname     <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
-h_cplots_2d  <- n_compname * 
-                   ceiling(0.5 * max(c(
-                     length(unique(s$hillslopeprof)),
-                     length(unique(s$geompos))
-                     )))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_2d <- n_compname * ceiling(0.5 * length(unique(s$hillslopeprof))) + 1.5
 
 idx <- with(s, !is.na(hillslopeprof) | ! is.na(slopeshape))
-n_compname     <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
-h_cplots_ss  <- n_compname * 
-                   ceiling(0.5 * max(c(
-                     length(unique(s$hillslopeprof)),
-                     length(unique(s$slopeshape))
-                     )))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_ss <- n_compname * ceiling(0.5 * length(unique(s$hillslopeprof))) + 1.5
 
-n_dplots   <- length(unique(site(subsetProfiles(comp, h = "!is.na(hzdept_r)"))$coiid))
-h_dplots   <- (ceiling(n_dplots / 3) * 3) + 0.25
+n_dplots <- length(unique(site(subsetProfiles(comp, h = "!is.na(hzdept_r)"))$coiid))
+h_dplots <- (ceiling(n_dplots / 3) * 3) + 0.25
 
 png_dplots <- function(file, width, height) Cairo(file, type = "png", width = width, height = height, units = "in", res=200, pointsize = 15)
 ```
