@@ -12,6 +12,7 @@ params:
 ---
 
 
+
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
@@ -33,12 +34,12 @@ source('custom.R')
 ## load local configuration 
 project.name <- params$projectname
 
-## local NASIS DB setup
-# load project by name
-# add data for new MLRA MU via project mapunit -> mapunit table
-# add data for new MLRA DMU via mapunit/correlation -> data mapunit table
 
 ## load relevant stuff from local NASIS
+
+# project metadata: defined in custom.R
+project.metadata <- get_project_meta()
+
 # mu text + mu names / symbols
 mutext <- get_mutext_from_NASIS_db()
 
@@ -103,6 +104,13 @@ This report requires setting up a selected set in your local NASIS database:
    * add data associated with MLRA map units into *mapunit table*
    * add data associated with old and new DMU into *data mapunit table*
 
+
+## Project Description
+
+```{r echo=FALSE, results='asis'}
+txt <- sprintf("<div id='mu_textnote'>%s</div>\n\n", project.metadata$projectdesc)
+cat(txt)
+```
 
 ## MLRA Map Unit Text Notes
 
