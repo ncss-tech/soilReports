@@ -7,8 +7,6 @@ output:
     smart: no
     keep_md: no
     css: style.css
-params:
-  projectname: !r as.character("MLRA 17 - Arbuckle horizon standardization in 2-CHI SSA updated in SDJR")
 ---
 
 
@@ -30,10 +28,6 @@ library(plyr, quietly=TRUE)
 
 ## load report-specific functions
 source('custom.R') 
-
-## load local configuration 
-project.name <- params$projectname
-
 
 ## load relevant stuff from local NASIS
 
@@ -90,7 +84,7 @@ mu.prop.panels.height <- 1 + (length(unique(x$nationalmusym)) * 2.5)
 <span style="font-size: 100%;">
 <br>
 <br>
-`r project.name`
+`r project.metadata$projectname`
 </span>
 <br><br>
 report version `r .report.version`

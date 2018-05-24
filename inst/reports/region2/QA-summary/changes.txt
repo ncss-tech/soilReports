@@ -1,2 +1,3 @@
+2018-05-24 (0.2): project metadata pulled from local NASIS selected set
 2018-05-21 (0.1): first version
 

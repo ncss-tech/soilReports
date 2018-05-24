@@ -10,7 +10,7 @@
 ## version number
 
 .report.name <- 'dmu-diff'
-.report.version <- '0.4'
+.report.version <- '0.5'
 .report.description <- 'Differences between select DMU'
 
 .paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')

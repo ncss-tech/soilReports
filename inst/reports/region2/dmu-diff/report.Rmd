@@ -7,8 +7,6 @@ output:
     smart: no
     keep_md: no
     css: style.css
-params:
-  projectname: !r as.character("MLRA 17 - Arbuckle horizon standardization in 2-CHI SSA updated in SDJR")
 ---
 
 
@@ -28,17 +26,10 @@ library(soilDB, quietly=TRUE)
 ## load report-specific functions
 source('custom.R') 
 
-## load local configuration 
-project.name <- params$projectname
+# project metadata: defined in custom.R
+project.metadata <- get_project_meta()
 
-## TODO: this would be ideal, but not quite ready
-# x <- fetchLIMS_component(project.name)
-
-
-## local NASIS DB setup
-# load project by name
-# add data for new MLRA MU via project mapunit -> mapunit table
-# add data for new MLRA DMU via mapunit/correlation -> data mapunit table
+# DMU / components as SPC
 x <- fetchNASIS_components()
 
 # establish DMU vintage
@@ -126,7 +117,7 @@ hz.diff <- lapply(l, function(i) {
 <span style="font-size: 100%;">
 <br>
 <br>
-`r project.name`
+`r project.metadata$projectname`
 </span>
 <br><br>
 report version `r .report.version`

@@ -1,7 +1,14 @@
 library(rmarkdown)
 
-# project name
-p <- 'MLRA 17/14 - Sycamore silty clay loam'
+
+## optionally export latest templates
+
+# library(soilReports)
+# reportInit(reportName = 'region2/dmu-diff', outputDir = 'DMU-diff', overwrite = FALSE)
+# reportInit(reportName = 'region2/QA-summary', outputDir = 'QA-summary', overwrite = FALSE)
+
+## configuration:
+# these reports get their configuration from the local NASIS DB: load a single project and associated DMU.
 
 # output directory
 d <- '../2-CHI/FY2018/Sycamore/Sycamore silty clay loam/'
@@ -13,7 +20,6 @@ d <- '../2-CHI/FY2018/Sycamore/Sycamore silty clay loam/'
 render(input = 'DMU-diff/report.Rmd',
        output_dir = d, 
        output_file = 'DMU-diff.html',
-       params = list(projectname=p), 
        clean = TRUE,
        envir = new.env()
       )
@@ -23,7 +29,6 @@ render(input = 'DMU-diff/report.Rmd',
 render(input = 'QA-summary/report.Rmd',
        output_dir = d, 
        output_file = 'QA-summary.html',
-       params = list(projectname=p), runtime = 'static', 
        clean = TRUE,
        envir = new.env()
 )

@@ -5,7 +5,7 @@
 Load the local NASIS database with two DMU that represent "pre" and "post" SDJR/update work. It is essential that the `mapunit`, `correlation`, and `DMU` objects are loaded in the selected set.
 
 Local NASIS DB setup: 
-   * load project by name
+   * load a single project by name
    * add data for new MLRA MU via project mapunit -> mapunit table
    * add data for new MLRA DMU via mapunit/correlation -> data mapunit table
 
@@ -21,5 +21,5 @@ reportSetup(reportName='region2/QA-summary')
 reportInit(reportName='region2/QA-summary', outputDir='QA-summary')
 ```
 
-Open `report.Rmd` and edit the `projectname` parameter to match the project name that was used to setup your local NASIS database then click "knit".
+Open `report.Rmd` and then click "knit". Configuration is based on the single project loaded into your selected set.
 
