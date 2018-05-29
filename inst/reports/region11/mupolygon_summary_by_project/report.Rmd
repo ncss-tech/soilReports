@@ -10,10 +10,10 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-   projectname: !r as.character("EVAL - MLRA 95 - Sisson fine sandy loam, 0 to 2 percent slopes;EVAL - MLRA 95 - Sisson fine sandy loam, 12 to 20 percent slopes, eroded;EVAL - MLRA 95 - Sisson fine sandy loam, 2 to 6 percent slopes;EVAL - MLRA 95 - Sisson fine sandy loam, 2 to 6 percent slopes, eroded;EVAL - MLRA 95 - Sisson fine sandy loam, 6 to 12 percent slopes, eroded")
-   geodatabase:  !r as.character("RTSD_MLRA_11-JUE_FY18.gdb")
+   projectname: !r as.character("EVAL - MLRA 111D - Fincastle silt loam, Southern Ohio Till Plain, 2 to 4 percent slopes")
+   geodatabase:  !r as.character("RTSD_MLRA_11-IND_FY18.gdb")
    project_data: !r as.character("M:/geodata/project_data/")
-   mlrassoarea:  !r as.character("11-JUE")
+   mlrassoarea:  !r as.character("11-IND")
 ---
 # Report Description
 
@@ -66,7 +66,7 @@ samplePercent <- 15
 p             <- c(0, 0.25, 0.5, 0.75, 1)
 
 # project data
-project    <- get_projectmapunit_from_LIMS(projectname, stringsAsFactors = TRUE)
+project    <- get_projectmapunit_from_NASISWebReports(projectname, stringsAsFactors = TRUE)
 projectiid <- paste0(unique(project$projectiid), collapse = "_")
   
 # folder paths
