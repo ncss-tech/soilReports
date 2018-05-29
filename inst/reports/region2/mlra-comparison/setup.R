@@ -15,15 +15,17 @@
 
 ## report name
 .report.name <- 'mlra-comparison'
+
 ## version number
-.report.version <- '0.5'
+.report.version <- '0.6'
+
 ## short description
 .report.description <- 'compare MLRA using pre-made, raster sample databases'
 
-.paths.to.copy <- c('report.Rmd','config.R','NOTES.md','changes.txt')
-.update.paths.to.copy <- c('report.Rmd','NOTES.md','changes.txt')
-.has.shiny.interface <- FALSE
+.paths.to.copy <- c('report.Rmd', 'custom.R', 'config.R', 'NOTES.md', 'changes.txt')
+.update.paths.to.copy <- c('report.Rmd', 'custom.R', 'NOTES.md','changes.txt')
 
+.has.shiny.interface <- FALSE
 
 
 ## fixes, usually due to an older version of R
