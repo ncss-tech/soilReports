@@ -282,7 +282,7 @@ Moore, I.D., R.B. Grayson, and A.R. Ladson, 1991. Digital Terrain Modeling: A Re
 National land cover data ([2011 edition](https://www.mrlc.gov/nlcd2011.php)) data, cropped to SS region 2.
 
    * **nlcd_2011_cropped.tif** [16-class land cover classification](https://www.mrlc.gov/nlcd01_leg.php)
-   * **nlcd_impervious_2011_cropped.tif** binary classification of *impervious surfaces*
+   * **nlcd_impervious_2011_cropped.tif** percent *impervious surface* (0-100)
 
 
 ## NASS
