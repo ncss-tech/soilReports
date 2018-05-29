@@ -37,7 +37,7 @@ library(DT)
 
 # project mapunits
 projectname <- unlist(strsplit(params$projectname, ";"))
-f    <- fetchWebReports(projectname, fill = TRUE, stringsAsFactors = TRUE)
+f    <- fetchWebReport(projectname, fill = TRUE, stringsAsFactors = TRUE)
 pm   <- f$mapunit
 comp <- f$spc
 
@@ -81,7 +81,7 @@ s <- within(site(comp), {
   comp_id   = factor(comp_id, levels = unique(comp_id[order(- as.numeric(compname2), - dmuiid)]))
   })
   
-cosm <- get_cosoilmoist_from_NASISWebReports(projectname, stringsAsFactors = TRUE)
+cosm <- get_cosoilmoist_from_NASISWebReport(projectname, stringsAsFactors = TRUE)
 idx <- with(cosm, {!is.na(cosm$dept_r) & cosm$status == "wet"})
 if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
 cosm <- within(cosm, {
