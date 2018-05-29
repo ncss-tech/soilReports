@@ -24,13 +24,13 @@ raster.list <- list(
     `Slope Gradient (%)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/Slope_30m_SSR2.tif',
     `Annual Beam Radiance (MJ/sq.m)`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_ann_beam_rad_int.tif',
     `Compound Topographic Index`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_tci_int.tif',
-    `SAGA TWI`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_saga_twi_int.tif'
+    `SAGA TWI`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_saga_twi_int.tif',
+    `NLCD Impervious Surface (%))`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_impervious_2011_cropped.tif'
   ),
   categorical=list(
     `Geomorphon Landforms`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif',
     `Curvature Classes`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Curvature/curvature_classes_30_class_region2.tif',
-    `NLCD (2011)`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_2011_cropped.tif',
-    `NLCD Impervious Surfaces (%))`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_impervious_2011_cropped.tif'
+    `NLCD (2011)`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_2011_cropped.tif'
   ),
   circular=list(
     `Slope Aspect (degrees)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/Aspect_30m_SSR2.tif'
