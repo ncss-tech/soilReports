@@ -15,7 +15,6 @@ library(knitr, quietly=TRUE)
 opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
 
 # chunk options
-
 # R session options
 options(width=100, stringsAsFactors=FALSE)
 
@@ -44,7 +43,7 @@ if(sum(as.numeric(loaded)) != length(packz)) {
 ### -----
 
 ## load report-specific functions
-source('custom.R') 
+source('custom.R')
 
 ## load local configuration 
 # TODO: allow entry of simple fields interactively if they are not specified?
