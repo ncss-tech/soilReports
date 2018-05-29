@@ -10,7 +10,7 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-  projectname: !r as.character("EVAL - MLRA 111D - Crosby-Fincastle silt loams, 2 to 6 percent slopes;EVAL - MLRA 111D - Fincastle silt loam, Southern Ohio Till Plain, 2 to 4 percent slopes;EVAL - MLRA 111D - Fincastle silt loam, Tipton Till Plain, 2 to 4 percent slopes")
+  projectname: !r as.character("EVAL - MLRA 111A - Ross silt loam, 0 to 2 percent slopes, frequently flooded")
 ---
 
 ```{r setup, echo = FALSE}
@@ -37,7 +37,7 @@ library(DT)
 
 # project mapunits
 projectname <- unlist(strsplit(params$projectname, ";"))
-f    <- fetchWebReport(projectname, fill = TRUE, stringsAsFactors = TRUE)
+f    <- fetchNASISWebReport(projectname, fill = TRUE, stringsAsFactors = TRUE)
 pm   <- f$mapunit
 comp <- f$spc
 
