@@ -1,5 +1,5 @@
 ### MU GIS Summary Report
-### 2017-02-08
+### 2018-05-29
 ### D.E. Beaudette and J. Wood
 ###
 ### configuration file, edit as needed
@@ -15,27 +15,25 @@
 
 raster.list <- list(
   continuous=list(
-    `Mean Annual Air Temperature (degrees C)`='E:/gis_data/prism/final_MAAT_800m.tif',
-    `Mean Annual Precipitation (mm)`='E:/gis_data/prism/final_MAP_mm_800m.tif',
-    `Effective Precipitation (mm)`='E:/gis_data/prism/effective_precipitation_800m.tif',
-    `Frost-Free Days`='E:/gis_data/prism/ffd_mean_800m.tif',
-    `Growing Degree Days (degrees C)`='E:/gis_data/prism/gdd_mean_800m.tif',
-    `Elevation (m)`='E:/gis_data/region-2-mu-analysis/elev_30.tif',
-    `Slope Gradient (%)`='E:/gis_data/region-2-mu-analysis/slope_30.tif',
-    `Annual Beam Radiance (MJ/sq.m)`='E:/gis_data/ca630/beam_rad_sum_mj_30m.tif',
-    `(Estimated) MAST (degrees C)`='E:/gis_data/ca630/mast-model.tif',
-    `Compound Topographic Index`='E:/gis_data/ca630/tci30.tif',
-    `MRVBF`='E:/gis_data/ca630/mrvbf_10.tif',
-    `SAGA TWI`='E:/gis_data/ca630/saga_twi_10.tif'
+    `Mean Annual Air Temperature (degrees C)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/final_MAAT_800m.tif',
+    `Mean Annual Precipitation (mm)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/final_MAP_mm_800m.tif',
+    `Effective Precipitation (mm)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/effective_precipitation_800m.tif',
+    `Frost-Free Days`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/ffd_50_pct_800m.tif',
+    `Growing Degree Days (degrees C)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/gdd_mean_800m.tif',
+    `Elevation (m)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/DEM_30m_SSR2.tif',
+    `Slope Gradient (%)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/Slope_30m_SSR2.tif',
+    `Annual Beam Radiance (MJ/sq.m)`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_ann_beam_rad_int.tif',
+    `Compound Topographic Index`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_tci_int.tif',
+    `SAGA TWI`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_saga_twi_int.tif'
   ),
   categorical=list(
-    `Geomorphon Landforms`='E:/gis_data/region-2-mu-analysis/forms10_region2.tif',
-    `Curvature Classes`='E:/gis_data/region-2-mu-analysis/curvature_classes_10_class_region2.tif',
-    `NLCD 2011`='E:/gis_data/region-2-mu-analysis/nlcd_2011_cropped.tif',
-    `Mesic Thermic Uncertainty`='S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model-mesic_thermic-uncertainty.tif'
+    `Geomorphon Landforms`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif',
+    `Curvature Classes`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Curvature/curvature_classes_30_class_region2.tif',
+    `NLCD (2011)`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_2011_cropped.tif',
+    `NLCD Impervious Surfaces (%))`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_impervious_2011_cropped.tif'
   ),
   circular=list(
-    `Slope Aspect (degrees)`='E:/gis_data/region-2-mu-analysis/aspect_30.tif'
+    `Slope Aspect (degrees)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/Aspect_30m_SSR2.tif'
   )
 )
 
@@ -65,8 +63,8 @@ raster.list <- list(
 ## Typical SDJR style data: SHP with multiple map units
 ##
 
-# path to SHP
-mu.dsn <- 'L:/NRCS/MLRAShared/CA630/FG_CA630_OFFICIAL.gdb'
+# path to parent folder of SHP, no trailing forward slash (/)
+mu.dsn <- 'L:/NRCS/MLRAShared/Geodata/project_data'
 # SHP name, without file extension
 mu.layer <- 'ca630_a'
  
