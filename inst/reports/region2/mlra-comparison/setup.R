@@ -22,8 +22,8 @@
 ## short description
 .report.description <- 'compare MLRA using pre-made, raster sample databases'
 
-.paths.to.copy <- c('report.Rmd', 'custom.R', 'config.R', 'NOTES.md', 'changes.txt')
-.update.paths.to.copy <- c('report.Rmd', 'custom.R', 'NOTES.md','changes.txt')
+.paths.to.copy <- c('report.Rmd', 'custom.R', 'config.R', 'README.md', 'changes.txt')
+.update.paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md','changes.txt')
 
 .has.shiny.interface <- FALSE
 
