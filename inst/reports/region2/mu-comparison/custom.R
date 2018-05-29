@@ -26,14 +26,28 @@ classSignature <- function(i) {
 # remove NA from $value
 # compute density for $value, using 1.5x "default" bandwidth
 # re-scale to {0,1}
+# truncate to original range of $value
 # return x,y values
 scaled.density <- function(d, constantScaling=TRUE) {
-  res <- stats::density(na.omit(d$value), kernel='gaussian', adjust=1.5)
+  # basic density estimate
+  v <- na.omit(d$value)
+  res <- stats::density(v, kernel='gaussian', adjust=1.5)
+  
+  # optionally re-scale to {0,1}
   if(constantScaling)
     res$y <- scales::rescale(res$y)
-    
+  
+  # constrain to original range
+  r <- range(v)
+  idx.low <- which(res$x < r[1])
+  idx.high <- which(res$x > r[2])
+  # replace with NA
+  res$x[c(idx.low, idx.high)] <- NA
+  res$y[c(idx.low, idx.high)] <- NA
+  
   return(data.frame(x=res$x, y=res$y))
 }
+
 
 # TODO: this could be useful in soilReports? not really sharpshootR worthy since it has nothing to do with soil... might be best just left here
 # abstracted this for use in the default symbology for "undefined" categoricals, made a call for the old use of defining mapunit colors for legends
