@@ -1,5 +1,7 @@
 ## Mapunit summary utility functions
 
+## Note: warnings will corrupt md markup that is created by this function
+
 makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   
   # this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
@@ -141,7 +143,9 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   
   if(length(unique(x.long$.id)) > 1 & do.spatial.summary) {
     # cluster proportions
-    x.d <- as.hclust(diana(daisy(x)))
+    # note: daisy will issue warnings when there is only a single class with non-0 proportions
+    #       warnings emitted at this point will corrupt MD markup
+    x.d <- as.hclust(diana(suppressWarnings(daisy(x))))
     # re-order MU labels levels based on clustering
     x.long$.id <- factor(x.long$.id, levels=unique(x.long$.id)[x.d$order])
     # musym are re-ordered according to clustering
