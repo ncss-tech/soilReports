@@ -1,4 +1,172 @@
-# Mapunit summary utility functions
+## Mapunit summary utility functions
+
+makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
+  
+  # this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
+  variable.name <- unique(dat$variable)[1]
+  pat <- variableNameToPattern(variable.name)
+  
+  metadat <- lvls <- lbls <- list()
+  
+  # if no specific metadata for this variable, use the variable name as used in config file as header
+  if(is.null(pat)) {
+    metadat$header <- variable.name 
+    metadat$description <- ""
+    metadat$levels <- unique(dat$value)
+    # does nothing special... one value = one label as character
+    metadat$labels <- metadat$levels
+    
+    # local copies, for what?
+    lvls <- metadat$levels
+    lbls <- metadat$labels
+    
+    ## TODO: better colors for varyinf number of possible categories
+    # default colors, not very nice
+    # note: use a color ramp function for an arbitrary number of colors
+    metadat$colors <- colorRampPalette(brewer.pal(pmin(length(metadat$levels), 9), 'Set1'))(length(metadat$levels))
+    
+    metadat$decimals <- 2
+    dat$value <- factor(dat$value, levels=metadat$levels, labels=metadat$labels)
+    
+  } else {
+    # metadata is defined in categorical_definitions.R
+    ## note: this object exists outside of the scope of this function
+    metadat <- categorical.defs[[pat]] 
+    flag <- FALSE
+    
+    # do not have to specify keep all classes, optional parameter.
+    if(!is.null(metadat$keep.all.classes)) {
+      if(metadat$keep.all.classes) 
+        flag <- TRUE
+    }
+    
+    # default behavior is to remove extraneous classes for table readability
+    if(!flag) {
+      lvls <- metadat$levels[metadat$levels %in% dat$value]
+      lbls <- metadat$labels[metadat$levels %in% lvls]
+    } else {
+      # TODO: document this
+      lvls <- metadat$levels
+      lbls <- metadat$labels
+    }
+    
+    dat$value <- factor(dat$value, levels=lvls, labels=lbls)
+  }
+  
+  cat(paste0("  \n### ", metadat$header,"  \n"))
+  if(!is.null(metadat$description))  {
+    cat(paste0("  \n",metadat$description,"  \n"))
+  }
+  if(!is.null(metadat$usage))  {
+    cat("  \n  **Suggested usage:**  \n")
+    cat(paste0("  \n",metadat$usage,"  \n  \n"))
+  }
+  
+  
+  ## sanity check: if the wrong raster is specified in the config file, levels will not match codes
+  ##               and all values with be NA
+  if(all(is.na(dat$value))){
+    stop(sprintf('all samples for "%s" are NA, perhaps the wrong raster file was specified?', variable.name))
+  }
+  
+  # convert counts into proportions
+  x <- sweepProportions(dat)
+  
+  # tidy legend by removing "near-zero" proportions
+  idx <- which(apply(x, 2, function(i) any(i > 0.001)))
+  
+  # now remove the extra classes if we had to drop a class after determining proportions to be too small
+  # this ensures that the correct color is used for each class
+  bad.vars.flag <- (!lbls %in% colnames(x[, -idx]))
+  lvls <- lvls[bad.vars.flag]
+  lbls <- lbls[bad.vars.flag]
+  
+  # remove classes with near-zero proportions
+  # result is a table
+  x <- x[, idx, drop=FALSE]
+  
+  # convert table -> data.frame, factor levels are lost
+  # implicitly converted to long format
+  x.long <-as.data.frame.table(x, stringsAsFactors = FALSE)
+  
+  # re-add factor levels for MUSYM and raster labels
+  x.long$.id <- factor(x.long$.id, levels = levels(dat$.id))
+  x.long$value <- factor(x.long$value, levels = lbls)
+  
+  # re-label long-format for plotting
+  names(x.long)[2] <- "label"
+  names(x.long)[3] <- "value"
+  
+  
+  # create a signature of the most frequent classes that sum to 75% or
+  x.sig <- apply(x, 1, classSignature)
+  x.sig <- as.data.frame(x.sig)
+  names(x.sig) <- 'mapunit composition "signature" (most frequent classes that sum to 75% or more)'
+  
+  # get a signature for each polygon
+  spatial.summary <- ddply(dat, c( '.id', 'pID'), .fun=sweepProportions, drop.unused.levels=FALSE, single.id=TRUE)
+  
+  ## most likely class
+  most.likely.class.idx <- 1
+  
+  if(!is.null(ncol(spatial.summary[,-c(1,2)]))) # prevent problems when one class is observed in samples (MU has low variance w.r.t raster)
+    most.likely.class.idx <- apply(spatial.summary[, -c(1:2)], 1, which.max)
+  
+  spatial.summary[[paste0('ml_', variable.name)]] <- levels(dat$value)[most.likely.class.idx]
+  
+  ## implemented via aqp::shannonEntropy()
+  # shannon entropy, log base 2 (bits) by polygon
+  # shannon entropy is zero when mapunit is "pure"
+  if(!is.null(ncol(spatial.summary[, -c(1,2,length(names(spatial.summary)))]))) #handle same problem as above;
+    spatial.summary[[paste0('shannon_h_', variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, aqp::shannonEntropy, b=2)
+  else
+    spatial.summary[[paste0('shannon_h_', variable.name)]] <- rep(0, length(spatial.summary[, -c(1,2,length(names(spatial.summary)))])) 
+  
+  
+  # setup plot styling
+  colors <-  metadat$colors[metadat$levels %in% lvls]
+  tps <- list(superpose.polygon=list(col=colors, lwd=2, lend=2))
+  trellis.par.set(tps)
+  
+  # setup legend configuration
+  sK.levels <- levels(x.long$label)
+  if(length(sK.levels) < 3) {
+    sK.columns <- length(sK.levels)
+  } else {
+    sK.columns <- 3 # hard-coded for now, TODO: dynamically set for space-saving and readability (#66)
+  }
+  
+  # compose legend
+  sK <- simpleKey(space='top', columns=sK.columns, text=sK.levels, rectangles = TRUE, points=FALSE)
+  
+  if(length(unique(x.long$.id)) > 1 & do.spatial.summary) {
+    # cluster proportions
+    x.d <- as.hclust(diana(daisy(x)))
+    # re-order MU labels levels based on clustering
+    x.long$.id <- factor(x.long$.id, levels=unique(x.long$.id)[x.d$order])
+    # musym are re-ordered according to clustering
+    cat('  \n  \n')
+    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK, legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10)))))
+    cat('  \n  \n')
+  } else {
+    # re-order MUSYM labels according to original ordering, specified in mu.set
+    x.long$.id <- factor(x.long$.id, levels=levels(dat$.id))
+    
+    trellis.par.set(tps)
+    cat('  \n  \n')
+    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK))
+    cat('  \n  \n')
+  }  
+  print(kable(x, digits = metadat$decimals))
+  cat('  \n  \n')
+  if(do.spatial.summary) {
+    print(kable(x.sig))
+    cat('  \n  \n')
+    mu <- merge(mu, spatial.summary, by='pID', all.x=TRUE)
+  }
+  return(TRUE)
+}
+
 
 classSignature <- function(i) {
   # order the proportions of each row
