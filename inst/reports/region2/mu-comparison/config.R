@@ -30,7 +30,8 @@ raster.list <- list(
   categorical=list(
     `Geomorphon Landforms`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif',
     `Curvature Classes`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Curvature/curvature_classes_30_class_region2.tif',
-    `NLCD (2011)`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_2011_cropped.tif'
+    `NLCD (2011)`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_2011_cropped.tif',
+    `NASS Cropland Data Layer (2017)`='L:/NRCS/MLRAShared/Geodata/project_data/NASS/Ver2017_30m_cdls_clip.img'
   ),
   circular=list(
     `Slope Aspect (degrees)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/Aspect_30m_SSR2.tif'
