@@ -7,6 +7,9 @@ output:
     smart: no
     keep_md: no
 ---
+
+
+
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
@@ -385,8 +388,10 @@ This plot displays the similarity of the map units across the set of environment
  * Multiple, disconnected contours (per map unit) could indicate errors or small map unit separated by large distances. Check for multiple peaks in the associated density plots.
  * Nesting of clusters (e.g. smaller cluster contained by larger cluster) suggests superset/subset relationships.
  * Overlap is proportional to similarity.
+ * Comment-out raster data sources with low variability off if the multivariate summary is not displayed.
+ 
 
-```{r, results='hide', echo=FALSE, fig.width=9, fig.height=9}
+```{r, results='hide', warning=FALSE, echo=FALSE, fig.width=9, fig.height=9}
 ## TODO: 
 # 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
 
@@ -414,6 +419,8 @@ if(length(d.mu.wide.vars) < 2) {
     # OK to run MV summaries
     multivariate.summary <- TRUE
     
+    ## TODO: this may be too strict, remove variables first
+    ## https://github.com/ncss-tech/soilReports/issues/87
     # filter out low-variance MU
     if(any(sd.by.id$res)) {
       ids.to.keep <- sd.by.id$.id[which(!sd.by.id$res)]
@@ -424,7 +431,11 @@ if(length(d.mu.wide.vars) < 2) {
       mu.set <- mu.set[idx.to.keep]
     }
     
+    ## TODO: https://github.com/ncss-tech/soilReports/issues/87
+    # filter out low-variance variables
+    
     ## TODO: what is a reasonable sample size?
+    ## TODO: there is likely a subset of variables worth including
     # only sub-sample if there are "a lot" of samples
     if(nrow(d.mu.wide) > 1000) {
       # sub-sample via LHS: this takes time
