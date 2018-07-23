@@ -19,7 +19,7 @@
 .packages.to.get <- c('knitr', 'rmarkdown', 'daff', 'soilDB')
 
 ## packages from GH, no deps
-.gh.packages.to.get <- c('soilDB')
+.gh.packages.to.get <- c('ncss-tech/soilDB')
 
 # flag to indicate that shiny.Rmd and not report.Rmd is the primary markdown file; convention should probably be that shiny.Rmd has option to generate a static report.Rmd-type output. 
 # currently the pedon summary demo using Shiny supports this option and uses a file called report.Rmd as the template for the static output
