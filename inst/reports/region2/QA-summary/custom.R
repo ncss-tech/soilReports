@@ -29,6 +29,10 @@ get_project_meta <- function(SS=TRUE, fixLineEndings=TRUE) {
   # convert codes
   d <- uncode(d)
   
+  # replace tabs with spaces
+  # tabs at the beginning of a line will confuse the MD parser, generating <code><pre> blocks
+  d$projectdesc <- gsub(d$projectdesc, pattern = '\t', replacement = ' ', fixed = TRUE)
+  
   # optionally convert \r\n -> \n
   if(fixLineEndings){
     d$projectdesc <- gsub(d$projectdesc, pattern = '\r\n', replacement = '\n', fixed = TRUE)
