@@ -52,8 +52,16 @@ x$vintage <- rep('old', times=length(x))
 x$vintage[grep('MLRA', x$dmudesc)] <- 'new'
 x$dmuname <- sprintf('%s\n%s', x$compname, x$vintage)
 
+# abbreviated dmudesc, MLRA DMU have a very long name
+x$dmudesc_short <- ifelse(grepl('mlra', x$dmudesc, ignore.case = TRUE), '*NEW*', x$dmudesc)
+
 # join MU / correlation into DMU / component @site
 site(x) <- nc
+
+# still working on this...
+# group name for profile plots
+# x$groupname <- sprintf("%s\n%s", x$nationalmusym, x$dmudesc_short)
+x$groupname <- sprintf("%s\n%s", x$nationalmusym, x$compname)
 
 ## estimate base saturation at pH 7
 x$base.sat <- pmin(100, (x$sumbases_r / x$cec7_r) * 100)
@@ -140,58 +148,58 @@ l_ply(mutext.list, function(text.notes) {
 ```
 
 ## Profile Sketches
-Components associated with MLRA map units are marked as "new".
-```{r echo=FALSE, results='hide', fig.width=profile.fig.width, fig.height=6}
+Groups are formed by the new national map unit symbol / component name. Profiles associated with the "old" DMU are labeled with the parent `dmudesc`. Profiles associated with  the "new" MLRA DMU are labeled as `*NEW*`.
+```{r echo=FALSE, results='hide', fig.width=profile.fig.width, fig.height=6.5}
 
 # setup a reasonable group name offset
-n.groups <- length(unique(x$nationalmusym))
+n.groups <- length(unique(x$groupname))
 if(n.groups > 1) {
   # use an alternating group name offset
   # this is usually a good strategy
-  gno <- c(-16, -18)
+  gno <- c(-12, -14)
 } else {
   # single group, use a single offset
-  gno <- -18
+  gno <- -13
 }
 
-par(mar=c(1,1,4,1))
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='claytotal_r', col.label='Clay Content (%)', col.legend.cex=0.85)
+par(mar=c(0.25, 0.5, 4, 1))
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='claytotal_r', col.label='Clay Content (%)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='sandtotal_r', col.label='Sand Content (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sandtotal_r', col.label='Sand Content (%)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='fragvoltot_r', col.label='Total Fragment Volumne (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='fragvoltot_r', col.label='Total Fragment Volumne (%)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='texture', col.label='Texture', col.legend.cex=0.75)
-
-
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='lep_r', col.label='LEP', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='base.sat', col.label='Base Saturation @ pH 7 (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='texture', col.label='Texture', col.legend.cex=0.75)
 
 
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='ph1to1h2o_r', col.label='pH 1:1 H2O', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='lep_r', col.label='LEP', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='sar_r', col.label='SAR (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='caco3_r', col.label='CaCO3 (%)', col.legend.cex=0.85)
-
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='ksat_r', col.label='Ksat (um/s)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='base.sat', col.label='Base Saturation @ pH 7 (%)', col.legend.cex=0.85)
 
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='om_r', col.label='Organic Matter (%)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'nationalmusym', label='dmuname', group.name.cex = 0.85, group.name.offset = gno, color='dbthirdbar_r', col.label='Db 1/3 Bar (g / cc)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ph1to1h2o_r', col.label='pH 1:1 H2O', col.legend.cex=0.85)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sar_r', col.label='SAR (%)', col.legend.cex=0.85)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='caco3_r', col.label='CaCO3 (%)', col.legend.cex=0.85)
+
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ksat_r', col.label='Ksat (um/s)', col.legend.cex=0.85)
+
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='om_r', col.label='Organic Matter (%)', col.legend.cex=0.85)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='dbthirdbar_r', col.label='Db 1/3 Bar (g / cc)', col.legend.cex=0.85)
 
 
 ```

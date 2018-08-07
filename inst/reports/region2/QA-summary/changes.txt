@@ -1,3 +1,4 @@
+2018-08-07 (0.3): new grouping system for profile plots
 2018-05-24 (0.2): project metadata pulled from local NASIS selected set
 2018-05-21 (0.1): first version
 
