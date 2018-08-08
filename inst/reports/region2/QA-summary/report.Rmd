@@ -10,6 +10,13 @@ output:
 ---
 
 
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'QA-summary'
+	.report.version <- '0.3'
+	.report.description <- 'QA Summary Report'
+```
+
+
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
@@ -30,7 +37,8 @@ source('custom.R')
 
 ## load relevant stuff from local NASIS
 
-# project metadata: defined in custom.R
+# project metadata from local NASIS
+# defined in custom.R
 project.metadata <- get_project_meta()
 
 # mu text + mu names / symbols
@@ -41,6 +49,13 @@ x <- fetchNASIS_components()
 
 # MU / correlation
 nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE)
+
+## additional stuff via WWW reports
+
+# MU affected
+# must supply a FY, default to current year (?)
+mu.set <- get_projectmapunit2_from_NASISWebReport(mlrassoarea = '%', fiscalyear = format(Sys.Date(), "%Y"), projectname = project.metadata$projectname)
+
 
 ## post-processing
 # TODO: better to use mutype?
@@ -82,6 +97,15 @@ mu.prop.panels.height <- 1 + (length(unique(x$nationalmusym)) * 2.5)
 ##  
 ##  site-level comparisons in aggregate
 ##  table(x$dmuname, x$taxsubgrp)
+##
+## link to SEE or mapview of series extents
+## http://ncss-tech.github.io/stats_for_soil_survey/chapters/2_data/2b_spatial_data.html
+##
+## table of affected components
+##
+## graphical breakdown of Legend -> MU -> DMU -> component by mutype
+##
+
 
 ```
 
@@ -145,6 +169,17 @@ l_ply(mutext.list, function(text.notes) {
   
 })
 
+```
+
+## Affected Map Units
+```{r echo=FALSE}
+## HTML formatting isn't quite right when using html_vignette
+mu.set[order(mu.set$areasymbol), c('areasymbol', 'musym', 'nationalmusym', 'mutype')]
+```
+
+## Component Breakdown
+```{r echo=FALSE}
+site(x)[, c('vintage', 'compname', 'comppct_r')]
 ```
 
 ## Profile Sketches
@@ -278,3 +313,4 @@ update(p, xlab='', ylab='')
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")` and `aqp` version `r utils::packageDescription("aqp", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
