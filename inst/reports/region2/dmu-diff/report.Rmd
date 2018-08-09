@@ -52,9 +52,13 @@ exclude.vars <- c('coiid', 'dmuiid')
 site.vars <- which(! names(s) %in% exclude.vars)
 
 
-## just in case, differences must be done by map unit
-# split by muname
-l <- split(s, s$muname)
+## differences must be done by map unit
+## better done by MU / compname
+## it becomes very hard to interpret the mixture of components generated from many old MU -> single new MU
+
+# split by combination
+l <- split(s, list(s$muname, s$compname))
+
 site.diff <- lapply(l, function(i) {
   
   # extract 'old' vs. 'new' records
@@ -62,11 +66,11 @@ site.diff <- lapply(l, function(i) {
   b <- subset(i[, site.vars], subset=vintage == 'new')
   
   # exclude vars used for grouping
-  a$muname <- NULL ; a$areasmybol <- NULL ; a$repdmu <- NULL ; a$dmuname <- NULL ; a$muiid <- NULL ; a$vintage <- NULL
-  b$muname <- NULL; b$areasmybol <- NULL ; b$repdmu <- NULL ; b$dmuname <- NULL ; b$muiid <- NULL ; b$vintage <- NULL
+  a$muname <- NULL ; a$areasmybol <- NULL ; a$repdmu <- NULL ; a$dmuname <- NULL ; a$muiid <- NULL ; a$vintage <- NULL ; a$dmudesc <- NULL
+  b$muname <- NULL; b$areasmybol <- NULL ; b$repdmu <- NULL ; b$dmuname <- NULL ; b$muiid <- NULL ; b$vintage <- NULL ; b$dmudesc <- NULL
   
   # name for each difference
-  diff.name <- unique(i$muname)
+  diff.name <- sprintf('%s/%s', unique(i$muname), unique(i$compname))
   
   ## copmute and render diff
   delta <- diff_data(a, b)
@@ -149,4 +153,3 @@ dev.null <- lapply(hz.diff, f)
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")`, and `daff` version `r utils::packageDescription("daff", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
-

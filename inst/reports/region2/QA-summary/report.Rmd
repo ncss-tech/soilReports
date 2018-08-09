@@ -10,14 +10,6 @@ output:
 ---
 
 
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-	.report.name <- 'QA-summary'
-	.report.version <- '0.3'
-	.report.description <- 'QA Summary Report'
-```
-
-
-
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
