@@ -38,6 +38,8 @@ project.metadata <- get_project_meta()
 # mu text + mu names / symbols
 mutext <- get_mutext_from_NASIS_db()
 
+## TODO: should we bring in those component that are missing hz data?
+## probably not at this point, as profile sketchs and aggregation will be messed up
 # DMU / components as SPC
 x <- fetchNASIS_components()
 
@@ -51,9 +53,12 @@ nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE
 mu.set <- get_projectmapunit2_from_NASISWebReport(mlrassoarea = '%', fiscalyear = format(Sys.Date(), "%Y"), projectname = project.metadata$projectname)
 
 ## OSD data for dendrogram
-series.set <- unique(x$compname[which(x$compkind == 'series')])
+series.set <- unique(get_component_data_from_NASIS_db()$compname)
 spc <- fetchOSD(series.set)
 n.spc <- length(spc)
+
+# this figure is only possible if there are more than 1 series
+do.osd.dend <- n.spc > 1
 
 
 ## post-processing
@@ -208,7 +213,7 @@ site(x)[, c('vintage', 'compname', 'comppct_r')]
 ```
 
 
-```{r echo=FALSE, results='hide', fig.width=osd.fig.width, fig.height=6.5, eval=(length(n.spc) > 0)}
+```{r echo=FALSE, results='hide', fig.width=osd.fig.width, fig.height=6.5, eval=do.osd.dend}
 SoilTaxonomyDendrogram(spc, cex.taxon.labels=0.8)
 ```
 
@@ -274,14 +279,14 @@ groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.ce
 ## Component Month Summaries
 
 ```{r echo=FALSE, results='hide', fig.width=10, fig.height=8}
-ggplot(cm, aes(month, dmudesc_short, flodfreqcl)) + geom_tile(aes(fill = flodfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+ggplot(cm, aes(month, dmudesc_short, flodfreqcl)) + geom_tile(aes(fill = flodfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
 
-ggplot(cm, aes(month, dmudesc_short, floddurcl)) + geom_tile(aes(fill = floddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+ggplot(cm, aes(month, dmudesc_short, floddurcl)) + geom_tile(aes(fill = floddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
 
 
-ggplot(cm, aes(month, dmudesc_short, pondfreqcl)) + geom_tile(aes(fill = pondfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+ggplot(cm, aes(month, dmudesc_short, pondfreqcl)) + geom_tile(aes(fill = pondfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
 
-ggplot(cm, aes(month, dmudesc_short, ponddurcl)) + geom_tile(aes(fill = ponddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+ggplot(cm, aes(month, dmudesc_short, ponddurcl)) + geom_tile(aes(fill = ponddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
 ```
 
 
