@@ -21,8 +21,10 @@ options(width=100, stringsAsFactors=FALSE)
 
 ## load dependencies
 library(soilDB, quietly=TRUE)
+library(sharpshootR, quietly=TRUE)
 library(latticeExtra, quietly=TRUE)
 library(plyr, quietly=TRUE)
+library(ggplot2, quietly=TRUE)
 
 ## load report-specific functions
 source('custom.R') 
@@ -47,6 +49,11 @@ nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE
 # MU affected
 # must supply a FY, default to current year (?)
 mu.set <- get_projectmapunit2_from_NASISWebReport(mlrassoarea = '%', fiscalyear = format(Sys.Date(), "%Y"), projectname = project.metadata$projectname)
+
+## OSD data for dendrogram
+series.set <- unique(x$compname[which(x$compkind == 'series')])
+spc <- fetchOSD(series.set)
+n.spc <- length(spc)
 
 
 ## post-processing
@@ -74,14 +81,40 @@ x$groupname <- sprintf("%s\n%s", x$nationalmusym, x$compname)
 x$base.sat <- pmin(100, (x$sumbases_r / x$cec7_r) * 100)
 
 
+## TODO: this should be split of MLRA MU symbols
+## component month summaries
+# load comonth
+cm <- get_comonth_from_NASIS_db(fill = TRUE)
+# combine DMU/component names
+cm <- join(site(x), cm, by='coiid')
+# re-level component names based on mean comppct
+cm.compname.level.data <- sort(round(tapply(cm$comppct, cm$compname, mean)), decreasing = TRUE)
+cm$compname <- factor(cm$compname, 
+                      levels=names(cm.compname.level.data), 
+                      labels = sprintf("%s (%s%%)", names(cm.compname.level.data), cm.compname.level.data)
+                      )
+
+## TODO: maybe add this
+# # drop component names which aren't present in the MLRA MU
+# missing.test <- tapply(cm$dmudesc_short == '*NEW*', cm$compname, which)
+# idx <- which(sapply(missing.test, length) == 0)
+
+
 ## establish some reasonable figure widths in inches
+
+# profile figures
 profile.fig.width <- 1.5 + (length(x) * 0.85)
 
-## TODO: base this on user-supplied properties
+# OSD dendrogram for all components that are named series
+osd.fig.width <- 5 + (n.spc * 0.5)
+
+# slab figures
+# TODO: base this on user-supplied properties
 slab.fig.width <- 12
 
 ## establish some reasonable figure heights
 mu.prop.panels.height <- 1 + (length(unique(x$nationalmusym)) * 2.5)
+
 
 ## TODO user-specified horizon properties as parameter
 
@@ -174,6 +207,13 @@ mu.set[order(mu.set$areasymbol), c('areasymbol', 'musym', 'nationalmusym', 'muty
 site(x)[, c('vintage', 'compname', 'comppct_r')]
 ```
 
+
+```{r echo=FALSE, results='hide', fig.width=osd.fig.width, fig.height=6.5, eval=(length(n.spc) > 0)}
+SoilTaxonomyDendrogram(spc, cex.taxon.labels=0.8)
+```
+
+
+
 ## Profile Sketches
 Groups are formed by the new national map unit symbol / component name. Profiles associated with the "old" DMU are labeled with the parent `dmudesc`. Profiles associated with  the "new" MLRA DMU are labeled as `*NEW*`.
 ```{r echo=FALSE, results='hide', fig.width=profile.fig.width, fig.height=6.5}
@@ -231,6 +271,18 @@ groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.ce
 
 ```
 
+## Component Month Summaries
+
+```{r echo=FALSE, results='hide', fig.width=10, fig.height=8}
+ggplot(cm, aes(month, dmudesc_short, flodfreqcl)) + geom_tile(aes(fill = flodfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+
+ggplot(cm, aes(month, dmudesc_short, floddurcl)) + geom_tile(aes(fill = floddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+
+
+ggplot(cm, aes(month, dmudesc_short, pondfreqcl)) + geom_tile(aes(fill = pondfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+
+ggplot(cm, aes(month, dmudesc_short, ponddurcl)) + geom_tile(aes(fill = ponddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(compname)) + theme(legend.position="bottom")
+```
 
 
 ## RV Summaries by Depth
