@@ -10,6 +10,7 @@ output:
 ---
 
 
+
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
@@ -52,6 +53,21 @@ nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE
 # must supply a FY, default to current year (?)
 mu.set <- get_projectmapunit2_from_NASISWebReport(mlrassoarea = '%', fiscalyear = format(Sys.Date(), "%Y"), projectname = project.metadata$projectname)
 
+# flag records that should be removed:
+mu.set$drop <- FALSE
+
+# archived SSA
+idx <- grep('arch', mu.set$areasymbol, ignore.case = TRUE)
+mu.set$drop[idx] <- TRUE
+
+# mustatus of additional / provisional
+idx <- mu.set$mustatus %in% c('Provisional', 'Additional')
+mu.set$drop[idx] <- TRUE
+
+# mustatus of NA (except MLRA Map Unit)
+idx <- which(is.na(mu.set$mustatus) & is.na(mu.set$mutype))
+mu.set$drop[idx] <- TRUE
+
 ## OSD data for dendrogram
 series.set <- unique(get_component_data_from_NASIS_db()$compname)
 spc <- fetchOSD(series.set)
@@ -84,6 +100,12 @@ x$groupname <- sprintf("%s\n%s", x$nationalmusym, x$compname)
 
 ## estimate base saturation at pH 7
 x$base.sat <- pmin(100, (x$sumbases_r / x$cec7_r) * 100)
+
+
+## keep only those data associated with correlated MU in active SSA
+idx <- which(x$dmuiid %in% mu.set$dmuiid[which(! mu.set$drop)])
+x <- x[idx, ]
+
 
 
 ## TODO: this should be split of MLRA MU symbols
@@ -204,12 +226,12 @@ l_ply(mutext.list, function(text.notes) {
 ## Affected Map Units
 ```{r echo=FALSE}
 ## HTML formatting isn't quite right when using html_vignette
-mu.set[order(mu.set$areasymbol), c('areasymbol', 'musym', 'nationalmusym', 'mutype')]
+mu.set[order(mu.set$drop, mu.set$areasymbol), c('areasymbol', 'musym', 'nationalmusym', 'mutype', 'mustatus', 'drop')]
 ```
 
 ## Component Breakdown
 ```{r echo=FALSE}
-site(x)[, c('vintage', 'compname', 'comppct_r')]
+site(x)[, c('dmudesc', 'vintage', 'compname', 'comppct_r')]
 ```
 
 

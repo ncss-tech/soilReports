@@ -1,3 +1,4 @@
+2018-08-14 (0.4): project correlation details via WWW report, filtering of additional/provisional/archived records
 2018-08-07 (0.3): new grouping system for profile plots, added comonth summary, add OSD dendrogram
 2018-05-24 (0.2): project metadata pulled from local NASIS selected set
 2018-05-21 (0.1): first version

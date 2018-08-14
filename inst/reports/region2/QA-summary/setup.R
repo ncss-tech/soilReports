@@ -10,7 +10,7 @@
 ## version number
 
 .report.name <- 'QA-summary'
-.report.version <- '0.3'
+.report.version <- '0.4'
 .report.description <- 'QA Summary Report'
 
 .paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
