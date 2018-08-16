@@ -107,7 +107,9 @@ if(exists('mu.set')) {
 if(!dir.exists('output')) 
   dir.create('./output')
 
-#shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
+# shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
+# note: concatenation of mu.set could result in illegal (too long) file names ~ 130 characters on windows
+# https://github.com/ncss-tech/soilReports/issues/93
 if(!exists('shp.unsampled.fname')) shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
 if(!exists('shp.stats.fname')) shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
 if(!exists('shp.qc.fname')) shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
@@ -624,10 +626,8 @@ names(polygons.to.check)[1] <- mu.col
 # print table (removed from report now that shapefile with proportions outside range is generated)
 #kable(polygons.to.check[display.idx,], row.names = FALSE) #only shows polys with p.crit > 0.15 in report tabular output
 
-#save a SHP file with prop.outside.range for each polygon and raster data source combination
+# save a SHP file with prop.outside.range for each polygon and raster data source combination
 if(nrow(polygons.to.check) > 0) {
-  # BUG: this fails when mu.set contains illegal characters
-  # https://github.com/ncss-tech/soilReports/issues/75
   try(writeOGR(mu.check, dsn='output', layer=shp.qc.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
   try(write.csv(mu.check, paste0('output/',csv.qc.fname)))
 }
@@ -639,8 +639,7 @@ if(nrow(polygons.to.check) > 0) {
 ```{r echo=FALSE}
 # save SHP with any un-sampled polygons
 if(length(sampling.res$unsampled.ids) > 0) {
-  # BUG: this fails when mu.set contains illegal characters
-  # https://github.com/ncss-tech/soilReports/issues/75
+  
   try(writeOGR(mu[sampling.res$unsampled.ids, ], dsn='output', layer=shp.unsampled.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 }
 
@@ -662,8 +661,6 @@ poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
 # poly.stats.wide <- poly.stats.wide.1
 
 # save
-# BUG: this fails when mu.set contains illegal characters
-# https://github.com/ncss-tech/soilReports/issues/75
 try(write.csv(poly.stats.wide, file=paste0('output/',csv.stats.fname), row.names=FALSE))
 
 ## join stats to map unit polygon attribute table
@@ -674,8 +671,6 @@ names(mu)[-1] <- abbreviateNames(mu)
 mu$.id <- NULL
 
 # save to file
-# BUG: this fails when mu.set contains illegal characters
-# https://github.com/ncss-tech/soilReports/issues/75
 try(writeOGR(mu, dsn='output', layer=shp.stats.fname, driver='ESRI Shapefile', overwrite_layer=TRUE))
 
 ## TODO: how do you trap warnings within a .Rmd knitting session?
