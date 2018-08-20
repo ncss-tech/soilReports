@@ -9,8 +9,6 @@ output:
     css: style.css
 ---
 
-
-
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
 
@@ -49,6 +47,9 @@ nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE
 
 ## additional stuff via WWW reports
 
+## TODO: check for "old" DMU not linked to "new" MLRA MU
+## look for NA in mu.set
+
 # MU affected
 # must supply a FY, default to current year (?)
 mu.set <- get_projectmapunit2_from_NASISWebReport(mlrassoarea = '%', fiscalyear = format(Sys.Date(), "%Y"), projectname = project.metadata$projectname)
@@ -64,6 +65,7 @@ mu.set$drop[idx] <- TRUE
 idx <- mu.set$mustatus %in% c('Provisional', 'Additional')
 mu.set$drop[idx] <- TRUE
 
+## Note: this could indicate and old DMU not linked to new MU
 # mustatus of NA (except MLRA Map Unit)
 idx <- which(is.na(mu.set$mustatus) & is.na(mu.set$mutype))
 mu.set$drop[idx] <- TRUE
@@ -102,8 +104,15 @@ x$groupname <- sprintf("%s\n%s", x$nationalmusym, x$compname)
 x$base.sat <- pmin(100, (x$sumbases_r / x$cec7_r) * 100)
 
 
+
+## TODO: this may include some false positives for dropping: DMU linked to multiple MU
+
 ## keep only those data associated with correlated MU in active SSA
-idx <- which(x$dmuiid %in% mu.set$dmuiid[which(! mu.set$drop)])
+test.1 <- x$dmuiid %in% mu.set$dmuiid[which(! mu.set$drop)]
+## OR vintage marked as "new" --> these are the new, MLRA DMU
+test.2 <- x$vintage == 'new'
+
+idx <- which( test.1 | test.2)
 x <- x[idx, ]
 
 
@@ -384,4 +393,5 @@ update(p, xlab='', ylab='')
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")` and `aqp` version `r utils::packageDescription("aqp", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
 
