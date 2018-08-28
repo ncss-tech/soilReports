@@ -10,7 +10,9 @@ output:
       collapsed: yes
       smooth_scroll: no
 params:
-  projectname: !r as.character("EVAL - MLRA 111A - Ross silt loam, 0 to 2 percent slopes, frequently flooded")
+  projectname: !r as.character("MLRA 95 - Poygan silty clay loam, 0 to 2 percent slopes")
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, echo = FALSE}
@@ -40,6 +42,8 @@ projectname <- unlist(strsplit(params$projectname, ";"))
 f    <- fetchNASISWebReport(projectname, fill = TRUE, stringsAsFactors = TRUE)
 pm   <- f$mapunit
 comp <- f$spc
+
+# comp <- subsetProfiles(comp, s = 'dmuiid != 552940')
 
 idx <- !duplicated(pm$projectname)
 datatable(pm[idx, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")],
@@ -151,9 +155,11 @@ datatable(with(s, { data.frame(dmudesc_short, compname, drainagecl, slope_r, pmg
 ```
 
 ```{r sm_pmkind, fig.dim = c(8, h_cplots_pm), fig.ext = "png", dev = "png_dplots"}
+
+s <- merge(s, pm[c("dmuiid", "mustatus_new")], by = "dmuiid", all = TRUE)
+
 # landform vs 3-D morphometry
 s <- within(s, {
-  dmu_type = ifelse(!grepl("MLRA", s$dmudesc), "nonmlra_dmu", "mlra_dmu")
   comp_sort = factor(paste0(compname, "\n", drainagecl))
   comp_sort = factor(comp_sort, levels = unique(comp_sort[order(- as.numeric(compname2), - dmuiid)]))
   })
@@ -161,9 +167,10 @@ s <- within(s, {
 
 . <- subset(s, ! is.na(pmkind) | ! is.na(landform)) 
 .$comp_sort <- droplevels(.$comp_sort)
-ggplot(., aes(x = landform, y = pmkind, fill = dmu_type)) + 
+ggplot(., aes(x = landform, y = pmkind, fill = mustatus_new)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
+  scale_fill_manual(values = c("orange", "blue")) +
   theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   ggtitle("Parent Material Kind vs Landform by Component")
 ```
@@ -172,9 +179,10 @@ ggplot(., aes(x = landform, y = pmkind, fill = dmu_type)) +
 # landform vs 3-D morphometry
 . <- subset(s, ! is.na(landform) | ! is.na(geompos)) 
 .$comp_sort <- droplevels(.$comp_sort)
-ggplot(., aes(x = geompos, y = landform, fill = dmu_type)) + 
+ggplot(., aes(x = geompos, y = landform, fill = mustatus_new)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
+  scale_fill_manual(values = c("orange", "blue")) +
   theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   ggtitle("Landform vs 3-D Morphometry by Component")
 ```
@@ -183,9 +191,10 @@ ggplot(., aes(x = geompos, y = landform, fill = dmu_type)) +
 # 2-D vs 3-D morphometry
 . <- subset(s, !is.na(hillslopeprof) | ! is.na(geompos)) 
 .$comp_sort <- droplevels(.$comp_sort)
-ggplot(., aes(x = geompos, y = hillslopeprof, fill = dmu_type)) + 
+ggplot(., aes(x = geompos, y = hillslopeprof, fill = mustatus_new)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) + 
+  scale_fill_manual(values = c("orange", "blue")) +
   theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
   ggtitle("2-D vs 3-D Morphometry by Component")
 ```
@@ -194,9 +203,10 @@ ggplot(., aes(x = geompos, y = hillslopeprof, fill = dmu_type)) +
 # 2-D vs slope shape
 . <- subset(s, !is.na(hillslopeprof) | ! is.na(slopeshape))
 .$comp_sort <- droplevels(.$comp_sort)
-ggplot(., aes(x = slopeshape, y = hillslopeprof, fill = dmu_type)) + 
+ggplot(., aes(x = slopeshape, y = hillslopeprof, fill = mustatus_new)) + 
   geom_tile(alpha = 0.5) + 
   facet_wrap(~ comp_sort, ncol = 3) +
+  scale_fill_manual(values = c("orange", "blue")) +
   theme(legend.position="top") +
   ggtitle("Hillslope Position vs Slope Shape by Component")
 ```
@@ -391,7 +401,7 @@ plot(gg_list$claytotal)
 ```
 
 ### Ksat
-```{r, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+```{r, ksat, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
 plot(gg_list$ksat)
 ```
 
