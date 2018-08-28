@@ -36,6 +36,9 @@ project.metadata <- get_project_meta()
 
 # mu text + mu names / symbols
 mutext <- get_mutext_from_NASIS_db()
+# replace \n with <br> -- this will ensure presentation in HTML is same as in text editor
+mutext$textentry <- gsub(pattern = '\n', replacement = '<br>', x = mutext$textentry, fixed = TRUE)
+
 
 ## TODO: should we bring in those component that are missing hz data?
 ## probably not at this point, as profile sketchs and aggregation will be messed up
@@ -290,7 +293,7 @@ groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.ce
 
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sar_r', col.label='SAR (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sar_r', col.label='SAR', col.legend.cex=0.85)
 
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='caco3_r', col.label='CaCO3 (%)', col.legend.cex=0.85)
 
