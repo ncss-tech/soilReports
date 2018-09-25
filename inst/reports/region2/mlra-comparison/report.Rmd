@@ -29,6 +29,8 @@ library(latticeExtra, quietly=TRUE)
 library(cluster, quietly=TRUE)
 library(clhs, quietly=TRUE)
 library(randomForest, quietly=TRUE)
+library(ggplot2, quietly = TRUE)
+
 
 ## load report-specific functions
 source('custom.R')
@@ -46,17 +48,29 @@ load(nlcd.path)
 load(soil.path)
 load(namrad.path)
 load(pop2015.path)
+# monthly data
+load(monthly.pet.path)
+load(monthly.ppt.path)
 
 # subset to requested MLRA
 mlra.prism.data <- subset(mlra.prism.data, subset=mlra %in% mu.set)
+pet.prism.data <- subset(pet.prism.data, subset=mlra %in% mu.set)
+ppt.prism.data <- subset(ppt.prism.data, subset=mlra %in% mu.set)
 mlra.geomorphons.data <- subset(mlra.geomorphons.data, subset=mlra %in% mu.set)
 mlra.nlcd.data <- subset(mlra.nlcd.data, subset=mlra %in% mu.set)
 mlra.soil.data <- subset(mlra.soil.data, subset=mlra %in% mu.set)
 mlra.namrad.data <- subset(mlra.namrad.data, subset=mlra %in% mu.set)
 mlra.pop2015.data <- subset(mlra.pop2015.data, subset=mlra %in% mu.set)
 
+## post-processing
+# compute monthly PPT - PET
+wb.prism.data <- data.frame(mlra=ppt.prism.data$mlra, ppt.prism.data[, -1] - pet.prism.data[, -1])
+
 # set factor levels to order in config.R
 mlra.prism.data$mlra <- factor(mlra.prism.data$mlra, levels=mu.set)
+ppt.prism.data$mlra <- factor(ppt.prism.data$mlra, levels=mu.set)
+pet.prism.data$mlra <- factor(pet.prism.data$mlra, levels=mu.set)
+wb.prism.data$mlra <- factor(wb.prism.data$mlra, levels=mu.set)
 mlra.geomorphons.data$mlra <- factor(mlra.geomorphons.data$mlra, levels=mu.set)
 mlra.nlcd.data$mlra <- factor(mlra.nlcd.data$mlra, levels=mu.set)
 mlra.soil.data$mlra <- factor(mlra.soil.data$mlra, levels=mu.set)
@@ -67,6 +81,17 @@ mlra.pop2015.data$mlra <- factor(mlra.pop2015.data$mlra, levels=mu.set)
 mlra.prism.data.long <- melt(mlra.prism.data, id.vars = 'mlra')
 mlra.soil.data.long <- melt(mlra.soil.data, id.vars = 'mlra')
 mlra.namrad.data.long <- melt(mlra.namrad.data, id.vars = 'mlra')
+
+# convert monthly data into long format
+ppt.prism.data.long <- melt(ppt.prism.data, id.vars = 'mlra')
+pet.prism.data.long <- melt(pet.prism.data, id.vars = 'mlra')
+wb.prism.data.long <- melt(wb.prism.data, id.vars = 'mlra')
+
+# fix months: assuming correct ordering via column order
+levels(ppt.prism.data.long$variable) <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+levels(pet.prism.data.long$variable) <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+levels(wb.prism.data.long$variable) <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+
 
 # nice colors
 # 7 or fewer classes, use high-constrast colors
@@ -162,13 +187,14 @@ bwplot(mlra ~ value | variable, data=mlra.namrad.data.long,
        })
 ```
 
-```{r, echo=FALSE, fig.width=8, fig.height=10}
+```{r, echo=FALSE, fig.width=8, fig.height=6}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
 # NOTE: notches rely on effective sampling size
 bwplot(mlra ~ pop2015, data=mlra.pop2015.data, subset=pop2015 > 0,
        xlab='People / 1km Grid Cell\nNASA 2015',
-       scales=list(y=list(alternating=3), x=list(log=10)), col='black',
+       title='2015 Population Density',
+       scales=list(alternating=3, x=list(log=10)), col='black',
        par.settings=tps,
        xscale.components=xscale.components.log10ticks,
        panel=function(...) {
@@ -183,7 +209,7 @@ bwplot(mlra ~ pop2015, data=mlra.pop2015.data, subset=pop2015 > 0,
 ```
 
 ### Density Plots
-These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
+These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples". Note that density estimates are constrained to the range defined by the 1--99 percentiles.
 
 **Suggested usage:**
 
@@ -222,6 +248,7 @@ xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Rel
 rm(density.plot.data)
 ```
 
+
 ```{r, echo=FALSE, fig.width=8, fig.height=9}
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 
@@ -235,6 +262,194 @@ xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Rel
 
 rm(density.plot.data)
 ```
+
+
+### Monthly Summaries
+
+Median PPT vs. PET, bounded by 25th and 75th percentile.
+```{r echo=FALSE, results='hide', fig.width=10, fig.height=8.5}
+
+# combine PPT and PET into the same long-format DF
+# this only works because data and structures are identical
+#
+# all(ppt.prism.data.long$mlra == pet.prism.data.long$mlra)
+# all(ppt.prism.data.long$variable == pet.prism.data.long$variable)
+g <- ppt.prism.data.long
+names(g)[3] <- 'PPT'
+g$PET <- pet.prism.data.long$value
+
+# compute univariate quantiles
+monthly.data <- ddply(g, c('mlra', 'variable'), .fun = plyr::summarise, 
+                      PPT.q25=quantile(PPT, na.rm=TRUE, probs=0.25),
+                      PPT.q50=quantile(PPT, na.rm=TRUE, probs=0.5),
+                      PPT.q75=quantile(PPT, na.rm=TRUE, probs=0.75),
+                      PET.q25=quantile(PET, na.rm=TRUE, probs=0.25),
+                      PET.q50=quantile(PET, na.rm=TRUE, probs=0.5),
+                      PET.q75=quantile(PET, na.rm=TRUE, probs=0.75)
+                      )
+
+
+tps <- list(superpose.line=list(col=cols, lwd=2, lend=2), superpose.symbol=list(pch=15, col=cols, cex=1))
+
+# plot 2D median and IQR
+xyplot(PPT.q50 ~ PET.q50 | variable, data=monthly.data, groups=mlra, 
+       as.table=TRUE, scales=list(alternating=3, relation='free', tick.number=8, y=list(rot=0)), 
+       xlab='25-50-75th Percentiles PET (mm)',
+       ylab='25-50-75th Percentiles PPT (mm)',
+       par.settings=tps, 
+       strip=strip.custom(bg=grey(0.85)),
+       auto.key=list(lines=TRUE, points=FALSE, title='MLRA', columns=length(mu.set)),
+       prepanel=function(left=monthly.data$PET.q25, right=monthly.data$PET.q75, top=monthly.data$PPT.q75, bottom=monthly.data$PPT.q25, groups=groups, subscripts=subscripts, ...) {
+         
+         x <- c(left[subscripts], right[subscripts])
+         y <- c(bottom[subscripts], top[subscripts])
+         
+         ord <- order(as.numeric(x))
+         dx <- diff(as.numeric(x[ord]))
+         dy <- diff(as.numeric(y[ord]))
+
+         list(xlim = lattice:::scale.limits(x), ylim = lattice:::scale.limits(y),
+            dx = dx, dy = dy, xat = if (is.factor(x)) sort(unique(as.numeric(x))) else NULL,
+            yat = if (is.factor(y)) sort(unique(as.numeric(y))) else NULL)
+       },
+       panel=function(x=x, y=y, left=monthly.data$PET.q25, right=monthly.data$PET.q75, top=monthly.data$PPT.q75, bottom=monthly.data$PPT.q25, groups=groups, subscripts=subscripts, ...) {
+  
+  panel.grid(-1, -1)
+  panel.xyplot(x, y, groups=groups, subscripts=subscripts, ...)
+  
+  d <- data.frame(groups=groups[subscripts], x=x, y=y, top=top[subscripts], bottom=bottom[subscripts], right=right[subscripts], left=left[subscripts])
+  
+  s <- split(d, d$groups)
+  grp.colors <- cols
+  
+  lapply(s, function(i) {
+    # get current color
+    color <- grp.colors[match(i$groups, levels(groups))]
+    # PPT
+    panel.segments(i$left, i$y, i$right, i$y, col=color, lwd=2)
+    # PET
+    panel.segments(i$x, i$bottom, i$x, i$top, col=color, lwd=2)
+  })
+  
+})
+
+rm(g, monthly.data)
+gc(reset = TRUE)
+```
+
+
+Modified box-whisker comparisons by month.
+```{r, echo=FALSE, fig.width=9, fig.height=8}
+# ## bwplot side/side
+# h <- ggplot(ppt.prism.data.long, aes(variable, value))
+# 
+# h + geom_boxplot(aes(color=mlra), outlier.shape = NA) +
+#   xlab('') + ylab('PPT (mm)') + 
+#   ylim(c(quantile(ppt.prism.data.long$value, probs = 0.05, na.rm = TRUE), quantile(ppt.prism.data.long$value, probs = 0.95, na.rm = TRUE))) +
+#   scale_color_manual(values=alpha(cols, 0.75)) +
+#   theme_bw()
+
+## this is much simpler to look at
+h <- ggplot(ppt.prism.data.long, aes(mlra, value))
+
+h + geom_boxplot(aes(color=mlra), outlier.shape = NA) +
+  facet_wrap(vars(variable)) +
+  xlab('') + ylab('PPT (mm)') + 
+  ylim(c(quantile(ppt.prism.data.long$value, probs = 0.05, na.rm = TRUE), quantile(ppt.prism.data.long$value, probs = 0.95, na.rm = TRUE))) +
+  scale_color_manual(values=alpha(cols, 0.75)) +
+  theme_bw()
+
+
+h <- ggplot(pet.prism.data.long, aes(mlra, value))
+
+h + geom_boxplot(aes(color=mlra), outlier.shape = NA) +
+  facet_wrap(vars(variable)) +
+  xlab('') + ylab('PET (mm)') + 
+  ylim(c(quantile(pet.prism.data.long$value, probs = 0.05, na.rm = TRUE), quantile(pet.prism.data.long$value, probs = 0.95, na.rm = TRUE))) +
+  scale_color_manual(values=alpha(cols, 0.75)) +
+  theme_bw()
+
+h <- ggplot(wb.prism.data.long, aes(mlra, value))
+
+h + geom_boxplot(aes(color=mlra), outlier.shape = NA) +
+  facet_wrap(vars(variable), scales = 'free_y') +
+  geom_abline(intercept=0, slope = 0, lty=2) +
+  xlab('') + ylab('PPT - PET (mm)') + 
+  scale_color_manual(values=alpha(cols, 0.75)) +
+  theme_bw()
+```
+
+Monthly inter-quartile range.
+```{r, echo=FALSE, fig.width=8, fig.height=5}
+## time-series of IQR
+
+monthly.data <- ddply(ppt.prism.data.long, c('mlra', 'variable'), .fun = plyr::summarise, 
+                      q25=quantile(value, na.rm=TRUE, probs=0.25),
+                      q50=quantile(value, na.rm=TRUE, probs=0.5),
+                      q75=quantile(value, na.rm=TRUE, probs=0.75)
+                      )
+
+h <- ggplot(monthly.data, aes(x = variable, group=mlra))
+
+h + 
+  geom_ribbon(aes(ymin = q25, ymax = q75, fill=mlra)) + 
+  geom_line(aes(variable, q25)) + 
+  geom_line(aes(variable, q75)) + 
+  geom_abline(intercept=0, slope = 0, lty=2) +
+  xlab('') + ylab('PPT (mm)') + 
+  ggtitle('Monthly IQR') +
+  scale_fill_manual(values=alpha(cols, 0.75)) +
+  theme_bw()
+
+
+# ggplot(monthly.data, aes(x = variable, y = q50, group=mlra, color=mlra)) + 
+#   geom_line(size=1.25) + 
+#   xlab('') + ylab('PPT (mm)') + 
+#   ggtitle('Monthly Median') +
+#   scale_color_manual(values=alpha(cols, 0.75)) +
+#   # geom_dl(aes(label = mlra), method = list(dl.combine("first.points", "last.points"))) +
+#   theme_bw()
+
+
+
+
+monthly.data <- ddply(pet.prism.data.long, c('mlra', 'variable'), .fun = plyr::summarise, 
+                      q25=quantile(value, na.rm=TRUE, probs=0.25),
+                      q75=quantile(value, na.rm=TRUE, probs=0.75)
+                      )
+
+h <- ggplot(monthly.data, aes(x = variable, group=mlra))
+
+h + 
+  geom_ribbon(aes(ymin = q25, ymax = q75, fill=mlra)) + 
+  geom_line(aes(variable, q25)) + 
+  geom_line(aes(variable, q75)) + 
+  xlab('') + ylab('PET (mm)') + 
+  ggtitle('Monthly IQR') +
+  geom_abline(intercept=0, slope = 0, lty=2) +
+  scale_fill_manual(values=alpha(cols, 0.75)) +
+  theme_bw()
+
+
+monthly.data <- ddply(wb.prism.data.long, c('mlra', 'variable'), .fun = plyr::summarise, 
+                      q25=quantile(value, na.rm=TRUE, probs=0.25),
+                      q75=quantile(value, na.rm=TRUE, probs=0.75)
+                      )
+
+h <- ggplot(monthly.data, aes(x = variable, group=mlra))
+
+h + 
+  geom_ribbon(aes(ymin = q25, ymax = q75, fill=mlra)) + 
+  geom_line(aes(variable, q25)) + 
+  geom_line(aes(variable, q75)) + 
+  geom_abline(intercept=0, slope = 0, lty=2) +
+  xlab('') + ylab('PPT - PET (mm)') + 
+  ggtitle('Monthly IQR') +
+  scale_fill_manual(values=alpha(cols, 0.75)) +
+  theme_bw()
+```
+
+
 
 ### Tabular Summaries
 Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable. In these tables, headings like "Q5" can be interpreted as the the "5th percentile"; 5% of the data are less than this value. The 50th percentile ("Q50") is the median.
@@ -364,8 +579,10 @@ This plot displays the similarity of the map units across the set of environment
 ## TODO: 
 # 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
 
-# join soil data with PRISM data
-mlra.data <- cbind(mlra.prism.data, mlra.soil.data[, -1])
+# join soil + PRISM annual + limited PRISM monthly data
+# Jan, June, Oct PPT and PET
+# cbind() works because data structures are identical
+mlra.data <- cbind(mlra.prism.data, mlra.soil.data[, -1], ppt.prism.data[, c(2, 7, 11)], pet.prism.data[, c(2, 7, 11)])
 
 # locate "non-id" vars
 mlra.data.vars <- which(! names(mlra.data) %in% c('mlra'))

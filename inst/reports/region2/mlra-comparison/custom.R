@@ -6,16 +6,19 @@
 # truncate to original range of $value
 # return x,y values
 scaled.density <- function(d, constantScaling=TRUE) {
-  # basic density estimate
+  
+  # no NA allowed in density()
   v <- na.omit(d$value)
+  
+  # basic density estimate
   res <- stats::density(v, kernel='gaussian', adjust=1.5)
   
   # optionally re-scale to {0,1}
   if(constantScaling)
     res$y <- scales::rescale(res$y)
   
-  # constrain to original range
-  r <- range(v)
+  # constrain to original 0.01-0.99 pctiles
+  r <- quantile(v, na.rm=TRUE, probs = c(0.01, 0.99))
   idx.low <- which(res$x < r[1])
   idx.high <- which(res$x > r[2])
   # replace with NA
