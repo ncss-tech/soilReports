@@ -59,7 +59,7 @@ devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_de
 ## Example Output
   
   * [summary of select CA630 map units](http://ncss-tech.github.io/example-reports/mu-comparison/CA630-mu-comparison.html)
-  * [summary of select MLRA polygons](http://ncss-tech.github.io/example-reports/mu-comparison/MLRA-comparison-report.html)
+  * [summary of select MLRA](http://ncss-tech.github.io/example-reports/MLRA-comparison.html)
   * [summary of mupolygon layer](http://ncss-tech.github.io/example-reports/mupolygon_report.html)
   * [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
   * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
