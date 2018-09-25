@@ -17,21 +17,35 @@ reportInit(reportName='region2/mlra-comparison', outputDir='MLRA-comparison')
 
 Download the raster sample databases into the directory created above.
 ```r
+# landform elements via geomorphons algorithm
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-geomorphons-data.rda', 
 destfile='MLRA-comparison/mlra-geomorphons-data.rda')
 
+# NLCD
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-nlcd-data.rda', 
 destfile='MLRA-comparison/mlra-nlcd-data.rda')
 
+# 800m PRISM stack
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-prism-data.rda', 
 destfile='MLRA-comparison/mlra-prism-data.rda')
 
+# monthly PPT 800m PRISM stack
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-monthly-ppt-data.rda', 
+destfile='MLRA-comparison/mlra-monthly-ppt-data.rda')
+
+# monthly PET 800m PRISM stack
+download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-monthly-pet-data.rda', 
+destfile='MLRA-comparison/mlra-monthly-pet-data.rda')
+
+# ISSR-800 soil properties
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-soil-data.rda', 
 destfile='MLRA-comparison/mlra-soil-data.rda')
 
+# gamma radiometrics
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-namrad-data.rda', 
 destfile='MLRA-comparison/mlra-namrad-data.rda')
 
+# 2015 population density
 download.file('https://github.com/ncss-tech/mlra-raster-db/raw/master/rda-files/mlra-pop2015-data.rda', 
 destfile='MLRA-comparison/mlra-pop2015-data.rda')
 ```

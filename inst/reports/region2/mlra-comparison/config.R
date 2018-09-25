@@ -10,8 +10,10 @@
 ### Raster Sample Databases #
 #############################
 
-# you will need all three of these
+# typically stored in the same folder
 prism.path <- 'mlra-prism-data.rda'
+monthly.ppt.path <- 'mlra-monthly-ppt-data.rda'
+monthly.pet.path <- 'mlra-monthly-pet-data.rda'
 geomorphons.path <- 'mlra-geomorphons-data.rda'
 nlcd.path <- 'mlra-nlcd-data.rda'
 soil.path <- 'mlra-soil-data.rda'
@@ -24,7 +26,7 @@ pop2015.path <- 'mlra-pop2015-data.rda'
 
 # define a subset of MLRA
 # mu.set <- c('17', '15', '18', '22A', '136', '144B', '58A', '93A', '42')
-mu.set <- c('17', '15', '18', '22A')
+mu.set <- c('15', '18', '27', '35')
 
 ###########################
 ### quantiles of interest #

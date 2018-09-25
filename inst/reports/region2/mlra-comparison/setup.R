@@ -7,7 +7,7 @@
 
 ## note: this will not update installed packages... could lead to dependency-related errors
 ## packages + deps from CRAN
-.packages.to.get <- c('knitr', 'rmarkdown', 'plyr', 'reshape2', 'clhs', 'devtools', 'randomForest', 'vegan')
+.packages.to.get <- c('knitr', 'rmarkdown', 'plyr', 'reshape2', 'clhs', 'devtools', 'randomForest', 'vegan', 'ggplot2')
 
 
 ## packages from GH, no deps
@@ -17,7 +17,7 @@
 .report.name <- 'mlra-comparison'
 
 ## version number
-.report.version <- '0.6'
+.report.version <- '0.7'
 
 ## short description
 .report.description <- 'compare MLRA using pre-made, raster sample databases'
