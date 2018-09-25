@@ -1,3 +1,4 @@
+2018-09-25 (0.7): monthly PPT and PET data, along with new figures added
 2018-05-29 (0.6): moving custom functions into custom.r; density curves are now truncated at original range of data
 2018-01-29 (0.4): adding NASA 2015 population count data
 2017-04-18 (0.3): adding select soil properties from 800m CONUS gridded data
