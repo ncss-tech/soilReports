@@ -16,11 +16,16 @@ installRprofile <- function(overwrite=FALSE) {
   
   # new /HOME/.Rprofile that should direct packages to C:/
   Rprofile.contents <- "
+  # 2018-10-15
+  # Customize R environment for use within USDA-NRCS network.
+  #
+  
+  
   # establish path to where we would like R packages to be stored
   c.my.documents <- file.path('C:/Users', Sys.getenv('USERNAME'), 'Documents')
   
   # determine the sub-dir for current version of R
-  R.ver <- paste(R.version$major,sub('\\\\..*$', '', R.version$minor), sep='.')
+  R.ver <- paste(R.version$major,sub('\\..*$', '', R.version$minor), sep='.')
   
   # full path to where we want R packages to live
   R.path.personal.lib <- file.path(c.my.documents, 'R', 'win-library', R.ver)
@@ -31,17 +36,22 @@ installRprofile <- function(overwrite=FALSE) {
   dir.create(R.path.personal.lib, recursive = TRUE)
   }
   
-  # register evnironmental variable for new personal library
+  # register environmental variable for new personal library
   Sys.setenv(R_LIBS_USER=R.path.personal.lib)
   
   # update other evn. variables
   invisible(.libPaths(c(unlist(strsplit(Sys.getenv('R_LIBS'), ';')), unlist(strsplit(Sys.getenv('R_LIBS_USER'), ';')))))
   
+  # change any references to network shares in env variables
+  Sys.setenv(HOME=c.my.documents, HOMEDRIVE='C:', HOMESHARE=c.my.documents, R_USER=c.my.documents, TEMP='C:/Temp/', TMP='C:/Temp/')
+  
   # cleanup
   rm(c.my.documents, R.ver, R.path.personal.lib)
   
+  
   # debugging
-  message(paste('R library paths:', paste('\n ', .libPaths(), collapse='')))
+  message(paste('R library paths:', paste('\n', .libPaths(), collapse='')))
+  
   "
 
   # overwrite existing .Rprofile in user's HOME directory
