@@ -25,7 +25,7 @@ installRprofile <- function(overwrite=FALSE) {
   c.my.documents <- file.path('C:/Users', Sys.getenv('USERNAME'), 'Documents')
   
   # determine the sub-dir for current version of R
-  R.ver <- paste(R.version$major,sub('\\..*$', '', R.version$minor), sep='.')
+  R.ver <- paste(R.version$major, sub('\\\\..*$', '', R.version$minor), sep='.')
   
   # full path to where we want R packages to live
   R.path.personal.lib <- file.path(c.my.documents, 'R', 'win-library', R.ver)
