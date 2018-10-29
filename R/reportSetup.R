@@ -21,7 +21,7 @@
 .ipkGH <- function(p){
   message('installing packages from GitHub...')
   # this function is vectorized
-  install_github(p, dependencies=FALSE, upgrade_dependencies=FALSE)
+  remotes::install_github(p, dependencies=FALSE, upgrade=FALSE, build=FALSE)
 }
 
 # install packages / work-arounds needed for a named report
