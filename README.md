@@ -28,7 +28,7 @@ path.expand('~')
 
 # install .Rprofile
 source('https://raw.githubusercontent.com/ncss-tech/soilReports/master/R/installRprofile.R')
-installRprofile()
+installRprofile(overwrite=TRUE)
 ```
 
 
@@ -40,7 +40,7 @@ Run this code if you don't yet have the `soilReports` package or after a new ver
 install.packages('devtools', dep=TRUE)
 
 # get the latest version of the 'soilReports' package
-devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE) 
+remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE) 
 ```
 
 ## Choose an Available Report
@@ -89,7 +89,7 @@ Updates to report templates, documentation, and custom functions are available *
 
 ```r
 # get latest version of package + report templates
-devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
 
 # load this library
 library(soilReports)
