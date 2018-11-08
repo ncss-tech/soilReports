@@ -43,14 +43,13 @@ Sys.setenv(R_LIBS_USER=R.path.personal.lib)
 # change any references to network shares in env variables
 Sys.setenv(HOME=c.my.documents, HOMEDRIVE='C:', HOMESHARE=c.my.documents, R_USER=c.my.documents, TEMP='C:/Temp/', TMP='C:/Temp/')
 
+# update other evn. variables
+invisible(.libPaths(c(unlist(strsplit(Sys.getenv('R_LIBS'), ';')), unlist(strsplit(Sys.getenv('R_LIBS_USER'), ';')))))
 # cleanup
 rm(c.my.documents, R.ver, R.path.personal.lib)
 
 # debugging
 message(paste('R library paths:', paste('\n', .libPaths(), collapse='')))
-
-# update other evn. variables
-invisible(.libPaths(c(unlist(strsplit(Sys.getenv('R_LIBS'), ';')), unlist(strsplit(Sys.getenv('R_LIBS_USER'), ';')))))
 "
 
   # overwrite existing .Rprofile in user's HOME directory
