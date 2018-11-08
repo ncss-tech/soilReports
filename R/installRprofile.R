@@ -16,6 +16,7 @@ installRprofile <- function(overwrite=FALSE) {
   
   # new /HOME/.Rprofile that should direct packages to C:/
   # this should have NO indentiation !!!
+  # this should have no white-space on last line(s)
   Rprofile.contents <- "
 # 2018-10-15
 # Customize R environment for use within USDA-NRCS network.
