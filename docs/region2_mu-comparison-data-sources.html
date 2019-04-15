@@ -12,7 +12,7 @@
 
 <meta name="author" content="Dylan Beaudette, Jennifer Wood, Russ Almaraz" />
 
-<meta name="date" content="2018-05-29" />
+<meta name="date" content="2019-04-15" />
 
 <title>MU Comparison Data Sources</title>
 
@@ -32,7 +32,7 @@
 
 <h1 class="title toc-ignore">MU Comparison Data Sources</h1>
 <h4 class="author"><em>Dylan Beaudette, Jennifer Wood, Russ Almaraz</em></h4>
-<h4 class="date"><em>2018-05-29</em></h4>
+<h4 class="date"><em>2019-04-15</em></h4>
 
 
 
@@ -64,17 +64,125 @@
 <h2>Frost-Free Period</h2>
 <p>Number of days in the 50%, 80%, and 90% probability frost-free period, derived from daily minimum temperatures greater than 0 degrees C.</p>
 <p>These maps are based on 50/80/90 percent probability estimates for the last spring frost and first fall frost (day of year). See the related <a href="http://ncss-tech.github.io/AQP/sharpshootR/FFD-estimates.html">algorithm documentation</a> for details.</p>
-<p>Values have been cross-checked with 300+ weather stations in CA. Model:</p>
-<pre><code>Obs 328 LR chi2 526.00 R2 0.799
-sigma42.2446 d.f. 1 R2 adj 0.798
-d.f. 326 Pr(&gt; chi2) 0.0000 g 95.935
+<p>Values have been cross-checked with 300+ weather stations in CA.</p>
+<div align="center">
+<strong>Linear Regression Model</strong>
+</div>
+<pre>
+ ols(formula = ffd.50 ~ prism_ffd, data = z)
+ </pre>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey; border-left: 1px solid black; border-right: 1px solid black; text-align: center;">
+</th>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey; border-right: 1px solid black; text-align: center;">
+Model Likelihood<br>Ratio Test
+</th>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey; border-right: 1px solid black; text-align: center;">
+Discrimination<br>Indexes
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="min-width: 9em; border-left: 1px solid black; border-right: 1px solid black; text-align: center;">
+Obs 328
+</td>
+<td style="min-width: 9em; border-right: 1px solid black; text-align: center;">
+LR χ<sup>2</sup> 526.00
+</td>
+<td style="min-width: 9em; border-right: 1px solid black; text-align: center;">
+<i>R</i><sup>2</sup> 0.799
+</td>
+</tr>
+<tr>
+<td style="min-width: 9em; border-left: 1px solid black; border-right: 1px solid black; text-align: center;">
+Ïƒ 42.2446
+</td>
+<td style="min-width: 9em; border-right: 1px solid black; text-align: center;">
+d.f. 1
+</td>
+<td style="min-width: 9em; border-right: 1px solid black; text-align: center;">
+<i>R</i><sup><span style="font-size: 70%;">2</span></sup><sub style="position: relative; left: -.47em; bottom: -.4em;"><span style="font-size: 70%;">adj</span></sub> 0.798
+</td>
+</tr>
+<tr>
+<td style="min-width: 9em; border-bottom: 2px solid grey; border-left: 1px solid black; border-right: 1px solid black; text-align: center;">
+d.f. 326
+</td>
+<td style="min-width: 9em; border-bottom: 2px solid grey; border-right: 1px solid black; text-align: center;">
+Pr(&gt;χ<sup>2</sup>) 0.0000
+</td>
+<td style="min-width: 9em; border-bottom: 2px solid grey; border-right: 1px solid black; text-align: center;">
+<i>g</i> 95.935
+</td>
+</tr>
+</tbody>
+</table>
+<div align="center">
 Residuals
-Min 1Q Median 3Q Max
--278.344 -16.875 2.436 14.323 274.604
-Fit:
-Coef S.E. t Pr(&gt;|t|)
-Intercept 15.1397 5.3455 2.83 0.0049
-prism_ffd 0.9407 0.0261 35.98 &lt;0.0001</code></pre>
+</div>
+<pre>
+      Min       1Q   Median       3Q      Max 
+ -278.344  -16.875    2.436   14.323  274.604 
+ </pre>
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+</th>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+β
+</th>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+S.E.
+</th>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+<i>t</i>
+</th>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: right;">
+Pr(&gt;|<i>t</i>|)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+Intercept
+</td>
+<td style="min-width: 7em; text-align: right;">
+15.1397
+</td>
+<td style="min-width: 7em; text-align: right;">
+5.3455
+</td>
+<td style="min-width: 7em; text-align: right;">
+2.83
+</td>
+<td style="min-width: 7em; text-align: right;">
+0.0049
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+prism_ffd
+</td>
+<td style="min-width: 7em; border-bottom: 2px solid grey; text-align: right;">
+0.9407
+</td>
+<td style="min-width: 7em; border-bottom: 2px solid grey; text-align: right;">
+0.0261
+</td>
+<td style="min-width: 7em; border-bottom: 2px solid grey; text-align: right;">
+35.98
+</td>
+<td style="min-width: 7em; border-bottom: 2px solid grey; text-align: right;">
+&lt;0.0001
+</td>
+</tr>
+</tbody>
+</table>
 <div id="frost-free-days" class="section level3">
 <h3>Frost-Free Days</h3>
 <ul>
@@ -217,8 +325,19 @@ CL | CV | CC</code></pre>
 <div id="annual-beam-radiance" class="section level3">
 <h3>Annual Beam Radiance</h3>
 <p><strong>beam_rad_sum_mj30_int_region2.tif</strong></p>
-<p>This map describes estimated annual beam radiance (MJ/ square meter / year) at each 30m grid cell, based on the solar radiation algorithm implimented in the <a href="https://grass.osgeo.org/grass75/manuals/r.sun.html">r.sun</a> module of GRASS GIS.</p>
+<p>This map describes estimated annual beam radiance (MJ/ square meter / year) at each 30m grid cell, based on the solar radiation algorithm implimented in the <a href="https://grass.osgeo.org/grass75/manuals/r.sun.html">r.sun</a> module of GRASS GIS. Horizon maps generated by <a href="https://grass.osgeo.org/grass76/manuals/r.horizon.html">r.horizon</a>. Default Linke atmospheric turbitity coefficient (3.0) and surface albedo (0.2) values were used.</p>
 <p>See <a href="https://dl.sciencesocieties.org/publications/sssaj/abstracts/73/5/1755/preview">this article</a> for a more detailed description of the solar radiation algorithm and an application to soil survey.</p>
+<p>Example invocation.</p>
+<pre><code># horizon step size, degrees
+step=30
+
+# by tile
+r.horizon --q --o elevation=$map step=$step start=$start end=$end output=hzangle
+
+# by tile / day of year
+r.sun --quiet --overwrite elevation=$elev aspect=$asp slope=$slope \
+day=$day horizon_basename=hzangle horizon_step=$step \
+beam_rad=beam.$day_fmt</code></pre>
 </div>
 <div id="saga-twi" class="section level3">
 <h3>Saga TWI</h3>
