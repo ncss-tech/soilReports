@@ -1,3 +1,4 @@
+2019-05-15 (3.3.7): fix related to https://github.com/ncss-tech/soilReports/issues/87
 2018-05-29 (3.3.6): density curves are now truncated at min/max values, NASS CDL now included in the default config, adding TODO items for multivariate summary / low-variance warnings
 2018-02-07 (3.3.5): boxplots now use variable width, proportional to sample size; new option in config.R: scaleDensityCurves=TRUE|FALSE
 2018-01-24 (3.3.4): new sanity check for mis-specification of categorical raster in config.R
