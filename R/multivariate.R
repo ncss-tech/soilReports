@@ -56,3 +56,5 @@ cLHS_subset <- function(i, n, non.id.vars) {
   
   return(i.sub)
 }
+
+

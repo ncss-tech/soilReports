@@ -1,7 +1,6 @@
 ## Mapunit summary utility functions
 
 ## Note: warnings will corrupt md markup that is created by this function
-
 makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   
   # this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
@@ -195,30 +194,7 @@ classSignature <- function(i) {
 }
 
 
-# remove NA from $value
-# compute density for $value, using 1.5x "default" bandwidth
-# re-scale to {0,1}
-# truncate to original range of $value
-# return x,y values
-scaled.density <- function(d, constantScaling=TRUE) {
-  # basic density estimate
-  v <- na.omit(d$value)
-  res <- stats::density(v, kernel='gaussian', adjust=1.5)
-  
-  # optionally re-scale to {0,1}
-  if(constantScaling)
-    res$y <- scales::rescale(res$y)
-  
-  # constrain to original range
-  r <- range(v)
-  idx.low <- which(res$x < r[1])
-  idx.high <- which(res$x > r[2])
-  # replace with NA
-  res$x[c(idx.low, idx.high)] <- NA
-  res$y[c(idx.low, idx.high)] <- NA
-  
-  return(data.frame(x=res$x, y=res$y))
-}
+
 
 
 # TODO: this could be useful in soilReports? not really sharpshootR worthy since it has nothing to do with soil... might be best just left here
@@ -267,32 +243,7 @@ flagPolygons <- function(i) {
 }
 
 
-# http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
-kdeContours <- function(i, prob, cols, m, ...) {
-  
-  if(nrow(i) < 2) {
-    return(NULL)
-  }
-  
-  this.id <- unique(i$.id)
-  this.col <- cols[match(this.id, m)]
-  dens <- kde2d(i$x, i$y, n=200); ## estimate the z counts
-  
-  dx <- diff(dens$x[1:2])
-  dy <- diff(dens$y[1:2])
-  sz <- sort(dens$z)
-  c1 <- cumsum(sz) * dx * dy
-  levels <- sapply(prob, function(x) {
-    approx(c1, sz, xout = 1 - x)$y
-  })
-  
-  # add contours if possibly
-  if(!is.na(levels))
-    contour(dens, levels=levels, drawlabels=FALSE, add=TRUE, col=this.col, ...)
-  
-  # # add bivariate medians
-  # points(median(i$x), median(i$y), pch=3, lwd=2, col=this.col)
-}
+
 
 
 # masking function applied to a "wide" data.frame of sampled raster data
@@ -304,20 +255,7 @@ mask.fun <- function(i) {
 }
 
 
-# cut down to reasonable size: using cLHS
-f.subset <- function(i, n, non.id.vars) {
-  # if there are more than n records, then sub-sample
-  if(nrow(i) > n) {
-    # columns with IDs have been pre-filtered
-    idx <- clhs(i[, non.id.vars], size=n, progress=FALSE, simple=TRUE, iter=1000)
-    i.sub <- i[idx, ]
-  }
-  #	otherwise use what we have
-  else
-    i.sub <- i
-  
-  return(i.sub)
-}
+
 
 
 # set multi-row figure based on number of groups and fixed number of columns
