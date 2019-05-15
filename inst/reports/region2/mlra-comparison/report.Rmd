@@ -11,6 +11,8 @@ output:
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 # setup
 library(knitr, quietly=TRUE)
+# need to do this in order to access general-purpose functions
+library(soilReports, quietly=TRUE)
 
 # package options
 opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
