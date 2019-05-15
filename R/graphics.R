@@ -54,15 +54,29 @@ kdeContours <- function(i, id, prob, cols, m, ...) {
 
 
 # custom stats for box-whisker plot: 5th-25th-50th-75th-95th percentiles
+# NOTE: we are re-purposing the coef argument!
 # x: vector of values to summarize
-custom.bwplot <- function(x, coef=1.5, do.out=FALSE) {
+# coef: Moran's I associated with the current raster
+custom.bwplot <- function(x, coef=NA, do.out=FALSE) {
   # custom quantiles for bwplot
   stats <- quantile(x, p=c(0.05, 0.25, 0.5, 0.75, 0.95), na.rm = TRUE)
   # number of samples
   n <- length(na.omit(x))
   
+  if(!is.na(coef)) {
+    # compute effective sample size
+    rho <- coef
+    n_eff <- sharpshootR::ESS_by_Moran_I(n, rho)
+    
+    # confidence "notch" is based on ESS
+    iqr <- stats[4] - stats[2]
+    conf <- stats[3] + c(-1.58, 1.58) * iqr/sqrt(n_eff)
+  } else {
+    conf <- NA
+  }
+  
   out.low <- x[which(x < stats[1])]
   out.high <- x[which(x > stats[5])]
   
-  return(list(stats=stats, out=c(out.low, out.high)))
+  return(list(stats=stats, n=n, conf=conf, out=c(out.low, out.high)))
 }
