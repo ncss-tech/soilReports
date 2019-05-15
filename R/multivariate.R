@@ -4,6 +4,9 @@
 
 # return variables safe for cLHs
 # required to resolve https://github.com/ncss-tech/soilReports/issues/87
+# x: data.frame in wide format
+# id: vector of IDs variables to exclude from SD test, first element is the group ID
+# tol: tolerance for near-0 SD test
 findSafeVars <- function(x, id, tol=1e-5) {
   
   n <- names(x)
@@ -12,7 +15,9 @@ findSafeVars <- function(x, id, tol=1e-5) {
   non.id.vars <- n[- match(id, n)]
   
   # test must be applied over IDs
-  xl <- split(x, x[[id]])
+  # the group ID must be the first ID in `id`
+  group.id <- id[1]
+  xl <- split(x, x[[group.id]])
   
   # iterate over chunks as split by ID
   v <- lapply(xl, function(i) {
