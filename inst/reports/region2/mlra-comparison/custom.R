@@ -56,20 +56,6 @@ kdeContours <- function(i, prob, cols, m, ...) {
 }
 
 
-# cut down to reasonable size: using cLHS
-f.subset <- function(i, n, non.id.vars) {
-  # if there are more than n records, then sub-sample
-  if(nrow(i) > n) {
-    # columns with IDs have been pre-filtered
-    idx <- clhs(i[, non.id.vars], size=n, progress=FALSE, simple=TRUE, iter=1000)
-    i.sub <- i[idx, ]
-  }
-  #	otherwise use what we have
-  else
-    i.sub <- i
-  
-  return(i.sub)
-}
 
 
 

@@ -584,17 +584,18 @@ This plot displays the similarity of the map units across the set of environment
 # cbind() works because data structures are identical
 mlra.data <- cbind(mlra.prism.data, mlra.soil.data[, -1], ppt.prism.data[, c(2, 7, 11)], pet.prism.data[, c(2, 7, 11)])
 
-# locate "non-id" vars
-mlra.data.vars <- which(! names(mlra.data) %in% c('mlra'))
+# find variables with low SD, by group
+# leave-out ID vars
+mlra.data.vars <- findSafeVars(mlra.data, id = 'mlra')
 
 ## TODO: what is a reasonable sample size?
 # only sub-sample if there are "a lot" of samples
 if(nrow(mlra.data) > 1000) {
   # sub-sample via LHS: this takes time
-  # first three columns are IDs
+  # first column is ID
   # n: this is the number of sub-samples / map unit
   # non.id.vars: this is an index to non-ID columns
-  d.sub <- ddply(mlra.data, 'mlra', f.subset, n=50, non.id.vars=mlra.data.vars)
+  d.sub <- ddply(mlra.data, 'mlra', cLHS_subset, n=50, non.id.vars=mlra.data.vars)
 } else {
   d.sub <- mlra.data
 }
@@ -690,5 +691,4 @@ if(length(levels(d.sub$mlra)) >= 2) {
 
 ----------------------------
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
-
 
