@@ -1,22 +1,23 @@
+##
+##
+##
+
 # remove NA from $value
 # compute density for $value, using 1.5x "default" bandwidth
 # re-scale to {0,1}
 # truncate to original range of $value
 # return x,y values
 scaled.density <- function(d, constantScaling=TRUE) {
-  
-  # no NA allowed in density()
-  v <- na.omit(d$value)
-  
   # basic density estimate
+  v <- na.omit(d$value)
   res <- stats::density(v, kernel='gaussian', adjust=1.5)
   
   # optionally re-scale to {0,1}
   if(constantScaling)
     res$y <- scales::rescale(res$y)
   
-  # constrain to original 0.01-0.99 pctiles
-  r <- quantile(v, na.rm=TRUE, probs = c(0.01, 0.99))
+  # constrain to original range
+  r <- range(v)
   idx.low <- which(res$x < r[1])
   idx.high <- which(res$x > r[2])
   # replace with NA
@@ -26,15 +27,14 @@ scaled.density <- function(d, constantScaling=TRUE) {
   return(data.frame(x=res$x, y=res$y))
 }
 
-
 # http://stackoverflow.com/questions/16225530/contours-of-percentiles-on-level-plot
-kdeContours <- function(i, prob, cols, m, ...) {
+kdeContours <- function(i, id, prob, cols, m, ...) {
   
   if(nrow(i) < 2) {
     return(NULL)
   }
   
-  this.id <- unique(i$mlra)
+  this.id <- unique(i[[id]])
   this.col <- cols[match(this.id, m)]
   dens <- kde2d(i$x, i$y, n=200); ## estimate the z counts
   

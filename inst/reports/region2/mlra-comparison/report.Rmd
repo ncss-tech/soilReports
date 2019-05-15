@@ -8,6 +8,7 @@ output:
     keep_md: no
 ---
 
+
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 # setup
 library(knitr, quietly=TRUE)
@@ -627,9 +628,9 @@ abline(h=0, v=0, lty=2, col='grey')
 
 # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
 # add contours of prob density
-res <- lapply(s, kdeContours, prob=c(0.75), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=3)
-res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=2)
-res <- lapply(s, kdeContours, prob=c(0.25), cols=cols, m=levels(d.sub$mlra), lwd=2, lty=1)
+res <- lapply(s, kdeContours, id='mlra', prob=c(0.75), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=3)
+res <- lapply(s, kdeContours, id='mlra', prob=c(0.5), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=2)
+res <- lapply(s, kdeContours, id='mlra', prob=c(0.25), cols=cols, m=levels(d.sub$mlra), lwd=2, lty=1)
 
 points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$mlra)], pch=16)
 # note special indexing for cases when low-var MU have been removed
