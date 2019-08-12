@@ -13,6 +13,8 @@ output:
 params:
    series: !r as.character("Miami")
    genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/lab_summary_by_taxonname/genhz_rules/Generic_rules.R"))
+editor_options: 
+  chunk_output_type: console
 ---
 ```{r setup, echo=FALSE, warning=FALSE}
 p <- c(0, 0.25, 0.5, 0.75, 1)
@@ -93,7 +95,7 @@ lh <- within(lh, {
                       as.character(genhz)
                       )
   genhz_nlcd = factor(genhz_nlcd,
-                      labels = names(sort(tapply(hzdepm, genhz_nlcd, median)))
+                      levels = names(sort(tapply(hzdepm, genhz_nlcd, median)))
                       )
   awc = round((wthirdbarclod - wfifteenbar) * 
                 dbthirdbar * 
@@ -309,17 +311,17 @@ bwplot(genhz ~ value | variable, data = lh.lo,
 # Tables
 
 lh.num <- lh[c("genhz_nlcd", lh_d)]
-lh.num <- Filter(f = function(x) !all(is.na(x)), x = lh.num)
-lh.lo <- melt(lh.num, id.vars = "genhz_nlcd")
+lh.num <- lh.num[apply(lh.num, 1, function(x) !all(is.na(x))), ]
+lh.lo <- reshape2::melt(lh.num, id.vars = "genhz_nlcd")
 lh.5n <- ddply(lh.lo, .(variable, genhz_nlcd), summarize, 
                range = prettySummary(value)
                )
-lh.c <- dcast(lh.5n, genhz_nlcd ~ variable, value.var = "range")
+lh.c <- reshape2::dcast(lh.5n, genhz_nlcd ~ variable, value.var = "range")
 
 idx <- pIndex(lh.c, 4)
 
 for (i in unique(idx)){
-  print(kable(lh.c[, c(TRUE, idx == i)], align = "c"))
+  print(knitr::kable(lh.c[, c(TRUE, idx == i)], align = "c"))
   }
 ```
 
