@@ -1,0 +1,206 @@
+---
+title: "Interactive Report Setup - mapunit comparison report"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: sandstone
+runtime: shiny
+---
+```{r setup}
+#geodata
+library(rgdal)
+
+#soil data
+library(aqp)
+library(soilDB)
+
+#shiny widgets
+library(leaflet)
+library(mapview)
+library(RagGrid)
+```
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+config <- new.env()
+
+ssa_all <- soilDB::SDA_query('SELECT * FROM legend') # get full list of SSAs
+config$ssa_sub <- ssa_all[0,]
+
+config$comp_all <- NULL
+config$spatial_all <- NULL
+```
+
+Inputs {.sidebar}
+-------------------------------------
+```{r}
+renderUI( { inputPanel({
+    textInput("outfileprefix",label="Output file prefix:",value="")
+})  })
+
+renderUI( { inputPanel({ 
+    selectInput("ssr", label = "Select Soil Survey Region: ", choices = levels(factor(ssa_all$mlraoffice)))
+})  })
+
+renderUI({ inputPanel({ 
+    foo <- input$ssr
+    selectInput("ssa", label = "Select Soil Survey Area: ", choices = ssa_all[ssa_all$mlraoffice == input$ssr, c('areasymbol')])
+})  })
+
+renderUI( {  inputPanel({ 
+  actionButton("add_ssa", "Add Soil Survey Area")
+})  })
+
+renderUI( {  inputPanel({ 
+  actionButton("clear_ssa", "Clear Soil Survey Areas")
+})  })
+
+renderUI( {  inputPanel({
+  actionButton("refresh_tabular", label="Fetch Tabular Data")
+})  })
+
+renderUI( {  inputPanel({
+  actionButton("refilter", label="Filter Tabular Data")
+})  })
+
+
+renderUI( {  inputPanel({
+  actionButton("refresh_spatial", "Fetch Spatial Data from SDA")
+})  })
+
+renderUI( {
+    inputPanel({
+      textInput("musym.pattern",label="MUSYM (ReGeX)", value=".*")
+    })
+})
+
+renderUI( {
+    inputPanel({
+      textInput("compname.pattern",label="Component Name (ReGeX)", value=".*")
+    })
+})
+
+renderUI( {
+    inputPanel({
+      textInput("localphase.pattern",label="Local Phase (ReGeX)", value=".*")
+    })
+})
+
+renderUI( {  inputPanel({
+    checkboxInput("majcmpflag", label="Consider major components only?")
+})  })
+
+renderUI( {  inputPanel({
+    numericInput("comppct_threshold", label="Minimum (sum of) component % per MUSYM:", value=50)
+})  })
+
+# renderUI( { inputPanel({
+#     fileInput("extent_shapefile",label="Select custom extent shapefile")
+# })  })
+# 
+# renderUI( {  inputPanel({
+#   actionButton("load_custom_spatial", "Fetch Spatial Data from File")
+# })  })
+
+renderUI( {  inputPanel({
+  actionButton("export_report", "Export Report")
+})  })
+```
+
+
+Column {.tabset}
+-------------------------------------
+### Set Soil Survey Area(s)
+```{r}
+ssa_set <- eventReactive(input$add_ssa, {
+  config$ssa_sub <<- unique(rbind(config$ssa_sub, config$ssa_all[which(input$ssa == config$ssa_all$areasymbol),]))
+  config$ssa_sub
+})
+
+ssa_set2 <- eventReactive(input$clear_ssa, {
+  config$ssa_sub <- ssa_sub[0,]
+  config$ssa_sub
+})
+
+renderTable(ssa_set(), striped=TRUE, hover=TRUE)
+```
+
+### View Matching Components
+
+```{r}
+# I broke this part :o -AGB 8/23/19
+
+get_component_data <- function() {
+  comp_all <- fetchSDA_component(WHERE = paste0("areasymbol IN ", format_SQL_in_statement(ssa_sub$areasymbol)), duplicates = TRUE)
+  apply_component_filters()
+}
+
+apply_component_filters <- function() {
+  comp_all$is_major <- (comp_all$majcompflag == 'Yes') | is.null(input$majcompflag)
+  
+  comp_all <- comp_all[grepl(comp_all$compname, pattern = input$compname.pattern) & comp_all$is_major,]
+  
+  comp_all <- comp_all[grepl(comp_all$localphase, pattern = input$localphase.pattern),]
+  
+  l_comp_all <- unlist(lapply(split(comp_all, f = comp_all$mukey, drop = F), function(s) {
+    sum(s$comppct_r)
+  }))
+  
+  comp_all <- comp_all[comp_all$mukey %in% names(l_comp_all[l_comp_all >= input$comppct_threshold]),]
+}
+
+observeEvent(input$refresh_tabular, {
+  get_component_data() 
+  apply_component_filters()
+})
+
+observeEvent(input$refilter, apply_component_filters())
+
+component_set <- eventReactive(comp_all, {
+  #renderRagGrid(aggrid(site(comp_all)))
+  renderTable(site(comp_all))
+})
+```
+
+### View Spatial Extent
+```{r}
+# observeEvent(input$load_custom_spatial, {
+#   print(input$extent_shapefile$datapath)
+#   try(spatial_extent <- readOGR(input$extent_shapefile$datapath))
+# })
+
+spatial_set <- eventReactive(input$refresh_spatial, {
+  mukey.list <- unique(site(comp_all)$mukey)
+  q <- paste0("SELECT G.MupolygonWktWgs84 as geom, mapunit.mukey, nationalmusym FROM mapunit 
+                CROSS APPLY SDA_Get_MupolygonWktWgs84_from_Mukey(mapunit.mukey) as G 
+                WHERE mukey IN ", format_SQL_in_statement(mukey.list))
+      
+  sp.res.sub <- soilDB::SDA_query(q)
+
+  res <-  soilDB::processSDA_WKT(sp.res.sub)
+  
+  if(!dir.exists('output'))
+    dir.create('output')
+  
+  writeOGR(res, 'output', paste0(input$outputfileprefix, "_spatial"), driver = 'ESRI Shapefile')
+  spatial_all <<- spatial_set()
+  
+  res
+})
+
+renderLeaflet({
+  if(is.null(spatial_all)) {
+    mapview()@map
+  } else {
+    mapview(spatial_all)@map # use renderLeaflet() & access the leaflet map slot directly for shiny render  
+  }
+})
+```
+
+### Select Raster Data Inputs
+```{r}
+
+```
+
+### Advanced Options
+```{r}
+
+```
