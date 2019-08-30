@@ -10,7 +10,7 @@
 ## version number
 
 .report.name <- 'mu-comparison'
-.report.version <- '3.3.7'
+.report.version <- '3.3.8'
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 
 .paths.to.copy <- c('report.Rmd','custom.R','config.R','categorical_definitions.R','README.md','changes.txt')
