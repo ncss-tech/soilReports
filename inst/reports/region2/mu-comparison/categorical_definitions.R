@@ -1,5 +1,15 @@
 ###TODO: EXTRACT DESCRIPTION FROM XML METADATA OF RASTER?
 
+categorical.defs[['SMR']] <- list(header="Newhall SMR",
+
+                                        description="Soil moisture regime as predicted by Newhall Simulation Model and PRISM data, assuming 200mm AWC.",
+                                        usage="Use the graphical summary to identify patterns, then consult the tabular representation for specifics.\n",
+                                        decimals=2,
+                                        levels = 1:6, 
+                                        labels = c('Aridic', 'Xeric', 'Ustic', 'Udic', 'Perudic', 'Underfined'),
+                                        colors=c(brewer.pal(5, 'Spectral'), 'grey'),
+                                        keep.all.classes=TRUE)
+
 categorical.defs[['curvature']] <- list(header="Slope Shape (Curvature) Summary",
                                         # set names: from Field Guide for description of soils
                                         ## source data: opposite convention
@@ -47,8 +57,8 @@ categorical.defs[['nlcd']] <- list(header="National Land Cover Dataset (NLCD)",
                                               "#E2E2C1", "#C9C977", "#99C147", "#77AD93", "#DBD83D", "#AA7028", 
                                               "#BAD8EA", "#70A3BA"))
 
-categorical.defs[['nass']] <- list(header="CropScapes 2017 (NASS)",
-                                   description="These values are from the [2011 NLCD](https://www.mrlc.gov/nlcd2011.php) (30m) database.",
+categorical.defs[['nass']] <- list(header="NASS Cropland Data Layer (2017)",
+                                   description="These values are from the [2017 CDL](https://www.nass.usda.gov/Research_and_Science/Cropland/Release/index.php) (30m) database.",
                                    usage="Use the graphical summary to identify patterns, then consult the tabular representation for specifics.",
                                    decimals=2,
                                    levels = c(0L, 1L, 2L, 3L, 4L, 5L, 6L, 10L, 11L, 12L, 13L, 14L, 21L, 22L, 
