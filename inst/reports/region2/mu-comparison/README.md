@@ -28,7 +28,7 @@ Updates to report templates, documentation, and custom functions are available *
 
 ```r
 # get latest version of package + report templates
-devtools::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE)
+remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade=FALSE, build=FALSE)
 
 # load this library
 library(soilReports)
