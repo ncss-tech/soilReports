@@ -60,7 +60,7 @@ render(input = "C:/workspace2/mupolygon_summary/report.Rmd",
        params = list(
               projectname = "EVAL - MLRA 111D - Fincastle silt loam, Southern Ohio Till Plain, 2 to 4 percent slopes",
               geodatabase = "RTSD_MLRA_11-IND_FY18.gdb",
-              project_data_file_path = "M:/geodata/project_data/",
+              project_data = "M:/geodata/project_data/",
               ssoffice = "11-IND"
               ))
 ```
