@@ -53,13 +53,15 @@ copyReport(reportName = "region11/mupolygon_summary_by_project", outputDir = "C:
 ## run the report via commandline
 reports = listReports()
 reports = subset(reports, name == "region11/mupolygon_summary_by_project")
-render(input = reports$file.path, 
+render(input = "C:/workspace2/mupolygon_summary/report.Rmd", 
        output_dir = "C:/workspace2", 
        output_file = "C:/workspace2/mupolygon_summary.html", 
        envir = new.env(), 
-       params = list(geodatabase = "RTSD_Region_11-IND_FY19.gdb",
-                     project_data_file_path = "M:/geodata/project_data/",
-                     ssoffice = "11-IND"
-                     ))
+       params = list(
+              projectname = "EVAL - MLRA 111D - Fincastle silt loam, Southern Ohio Till Plain, 2 to 4 percent slopes",
+              geodatabase = "RTSD_MLRA_11-IND_FY18.gdb",
+              project_data_file_path = "M:/geodata/project_data/",
+              ssoffice = "11-IND"
+              ))
 ```
 
