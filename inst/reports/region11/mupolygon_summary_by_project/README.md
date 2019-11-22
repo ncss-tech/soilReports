@@ -59,7 +59,7 @@ render(input = reports$file.path,
        envir = new.env(), 
        params = list(geodatabase = "RTSD_Region_11-IND_FY19.gdb",
                      project_data_file_path = "M:/geodata/project_data/",
-                     ssoffice = "11IND"
+                     ssoffice = "11-IND"
                      ))
 ```
 
