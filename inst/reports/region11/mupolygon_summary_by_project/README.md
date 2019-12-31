@@ -2,7 +2,7 @@
 
 This report summarizes the zonal statistics for an MUPOLYGON layer within a file geodatabase. The spatial variables summarized include: elevation, slope, aspect, relief, preciptation, temperature, frost free period, and landcover. The report assumes the spatial data follows the proper folder hierachy and naming conventions (e.g. C:/geodata/project_data/11IND).
 
-The spatial extent for the summary is derived from an MUPOLYGON layer contained in a file geodatabase. To select the desired map units for analysis specify the NASIS projectname. The projectname will be used to query NASIS via a web report and the nationalmusym linked to the proejct will be identified and used to subset the MUPOLYGON layer.
+The spatial extent for the summary is derived from an MUPOLYGON layer contained in a file geodatabase. To select the desired map units for analysis specify the NASIS projectname. The projectname will be used to query NASIS via a web report and the nationalmusym linked to the project will be identified and used to subset the MUPOLYGON layer.
 
 
 ## Report Parameters
