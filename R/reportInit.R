@@ -3,6 +3,9 @@
 reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport=FALSE) {
   # output is saved in working dir when not specified
   
+  if(is.null(reportName) | is.na(reportName) | reportName == "")
+    stop('argument "reportName" is missing, with no default', call.=FALSE)
+  
   # get base directory where reports are stored within package
   base.dir <- system.file(paste0('reports/', reportName), package='soilReports')
   # all reports must have setup.R file
@@ -31,8 +34,6 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
     if(exists('.update.paths.to.copy', envir = env)) {
       pa <- get('.update.paths.to.copy', envir = env)
       lapply(pa, FUN=copyPath, base.dir, outputDir, overwrite=TRUE)
-      # TODO: should there be a check that required components are present? check against ".paths.to.copy"? only look for R/Rmds?
-      #      how about a check to verify correct (possibly vintage) versions of R packages are installed?
     } else stop("Failed to update report -- no update paths to copy specified in setup.R!")
   }
   
