@@ -9,7 +9,7 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
   # get base directory where reports are stored within package
   base.dir <- system.file(paste0('reports/', reportName), package='soilReports')
   # all reports must have setup.R file
-  setup.file <- paste0(base.dir, '/', 'setup.R')
+  setup.file <- paste0(base.dir, '/setup.R')
   
   # source file into temp environment
   env <- new.env()
@@ -39,21 +39,33 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
   
   # Add HTML comment containing report name, version and instance creation date/time above YAML header at top of report.Rmd
   metadat_vars <- c(".report.name",".report.version",".report.description")
-  if(exists('.report.name', envir=env) & exists('.report.version', envir=env) & exists('.report.description', envir=env)) {
+  if(exists('.report.name', envir=env) & 
+     exists('.report.version', envir=env) & 
+     exists('.report.description', envir=env)) {
+    
     rname <- get('.report.name', env)
     rvers <- get('.report.version', env)
     rdesc <- get('.report.description', env)
-    headtxt <- paste0("<!-- ",  rname," (v", rvers, ") -- instance created ", Sys.time(), "-->  \n")
+    
+    headtxt <- paste0("<!-- ",  rname," (v", rvers, ") -- instance created ", 
+                      Sys.time(), "-->  \n")
+    
     report.file <- paste0(outputDir,'/report.Rmd')
+    shiny.file <- paste0(outputDir,'/shiny.Rmd')
     
-    print(paste0(rname," (v", rvers, ") report instance created in ",outputDir,". [updateReport=", updateReport,"; overwrite=",overwrite,"]"))
+    print(paste0(rname," (v", rvers, ") report instance created in ",
+                 outputDir,". [updateReport=", updateReport,"; overwrite=",overwrite,"]"))
     
-    defineInCodeChunk(report.file,metadat_vars,c(paste0("\'",rname,"\'"),paste0("\'",rvers,"\'"),paste0("\'",rdesc,"\'")))
+    defineInCodeChunk(report.file, metadat_vars, c(paste0("\'",rname,"\'"),
+                                                  paste0("\'",rvers,"\'"),
+                                                  paste0("\'",rdesc,"\'")))
     appendBelowYAML(report.file, headtxt)
     
-    if(exists('.has.shiny.interface')) { #put note at top of shiny file if one is defined.
-      shiny.file <- paste0(outputDir,'/shiny.Rmd')
-      defineInCodeChunk(shiny.file,metadat_vars,c(paste0("\'",rname,"\'"),paste0("\'",rvers,"\'"),paste0("\'",rdesc,"\'")))
+    if(exists('.has.shiny.interface')) { #put note at top of shiny.Rmd file if one is defined.
+      
+      defineInCodeChunk(shiny.file, metadat_vars, c(paste0("\'",rname,"\'"),
+                                                  paste0("\'",rvers,"\'"),
+                                                  paste0("\'",rdesc,"\'")))
       appendBelowYAML(shiny.file, headtxt)
     }
   }
@@ -62,10 +74,14 @@ reportInit <- function(reportName, outputDir=NULL, overwrite=FALSE, updateReport
 copyPath <- function(fname, srcDir, outputDir, overwrite = F) { 
   src <- paste0(srcDir, '/', fname)
   dst <- paste0(outputDir, '/', fname)
-  if(!dir.exists(src)) { #files will return false 
-    if(file.exists(src)) {#but need to make sure it actually is a file
+  
+  #files will return false 
+  if(!dir.exists(src)) { 
+    #but need to make sure it actually is a file
+    if(file.exists(src)) {
       #OK we have a path to a file
-      if(overwrite | !file.exists(dst)) #but need to make sure that we can overwrite... or that it is not already extant
+      #but need to make sure that we can overwrite... or that it is not already extant
+      if(overwrite | !file.exists(dst)) 
         file.copy(from=src, to=outputDir, overwrite = overwrite)
     } else {
       #we have a path to a directory
@@ -129,7 +145,13 @@ defineInYAMLHeader <- function(filepath, param.name, param.value) {
 
 reportUpdate <- function(reportName, outputDir=NULL) {
   # Uses report init, only with overwrite and updateReport default value override
-  reportInit(reportName, outputDir, overwrite = TRUE, updateReport = TRUE)
+  if(dir.exists(outputDir))
+    reportInit(reportName, outputDir, overwrite = TRUE, updateReport = TRUE)
+  else {
+    message(sprintf("%s does not exist -- creating new report instance"))
+    reportInit(reportName, outputDir, overwrite = TRUE, updateReport = FALSE)
+  }
+    
 }
 
 # renaming reportInit(), more intuitive
