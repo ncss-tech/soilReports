@@ -85,7 +85,7 @@ if(!cache_data) {
     
     pedons_raw <- loafergopher
   } else {
-    pedons_raw <- fetchNASIS(stringsAsFactors = TRUE)
+    pedons_raw <- fetchNASIS()
   }
   components <- try(fetchNASIS('components'))
   mu <- try(readOGR(dsn = poly.dsn, layer = poly.layer, stringsAsFactors=FALSE))

@@ -16,17 +16,19 @@ getPedonsByPattern <- function(input, s.pedons, musym,
       upid <- ".*"
     upidmatch <- grepl(pattern=upid, s.pedons$pedon_id)
     
-    s.pedons$taxonname[is.na(s.pedons$taxonname)]  <- ""
+    taxname <- as.character(s.pedons$taxonname)
+    taxname[is.na(s.pedons$taxonname)]  <- ""
     #print(paste0("compname:",compname))
     if(is.null(compname) | !length(compname))
       compname <- ".*"
-    compmatch <- grepl(pattern=compname, s.pedons$taxonname)
+    compmatch <- grepl(pattern=compname, taxname)
     
-    s.pedons$localphase[is.na(s.pedons$localphase)]  <- ""
+    localphase <- as.character(s.pedons$phasename)
+    localphase[is.na(s.pedons$localphase)]  <- ""
     #print(paste0("phasename:",phasename))
     if(is.null(phasename))
       phasename <- ".*"
-    phasematch <- grepl(pattern=phasename, s.pedons$localphase)
+    phasematch <- grepl(pattern=phasename, localphase)
     
     
     #print(paste0("taxon_kind:",taxon_kind))
