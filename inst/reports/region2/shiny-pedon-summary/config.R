@@ -15,7 +15,7 @@ library(knitr)
 
 ### set options
   # in demo mode, loafercreek and gopheridge datasets are used from soilDB
-  demo_mode <- TRUE
+  demo_mode <- FALSE
   
   # store pedons etc in Rda files?
   cache_data <- FALSE
@@ -33,7 +33,7 @@ library(knitr)
   ml.profile.smoothing <- 0.65
 
 options(p.low.rv.high=p.low.rv.high, q.type=q.type, 
-        ml.profile.smoothing=ml.profile.smoothing, warn=-1)
+        ml.profile.smoothing=ml.profile.smoothing)
 
 # "generic" gen.hz.rules for CA630 use
 #   TODO: handle caret, primes etc.
@@ -79,24 +79,26 @@ if(!cache_data) {
     loafergopher <- aqp::union(list(loafercreek, gopheridge))
     
     hzidname(loafergopher) <- 'phiid'
+    
     loafergopher$musym <- rep('<missing>', length(loafergopher))  
+    loafergopher$taxonname <- factor(loafergopher$taxonname)
     
     pedons_raw <- loafergopher
   } else {
-    pedons_raw <- fetchNASIS()
+    pedons_raw <- fetchNASIS(stringsAsFactors = TRUE)
   }
   components <- try(fetchNASIS('components'))
   mu <- try(readOGR(dsn = poly.dsn, layer = poly.layer, stringsAsFactors=FALSE))
   rasters <- try(list(
-    gis_ppt=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAP_mm_800m.tif'),
-    gis_tavg=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAAT_800m.tif'),
-    gis_ffd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/ffd_mean_800m.tif'),
-    gis_gdd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/gdd_mean_800m.tif'),
-    gis_elev=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/elevation_30m.tif'),
-    gis_solar=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/beam_rad_sum_mj_30m.tif'),
-    gis_mast=raster('S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model.tif'),
-    gis_slope=raster('L:/NRCS/MLRAShared/Geodata/elevation/10_meter/ca630_slope'),
-    gis_geomorphons=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/forms10.tif')
+    # gis_ppt=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAP_mm_800m.tif'),
+    # gis_tavg=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAAT_800m.tif'),
+    # gis_ffd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/ffd_mean_800m.tif'),
+    # gis_gdd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/gdd_mean_800m.tif'),
+    # gis_elev=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/elevation_30m.tif'),
+    # gis_solar=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/beam_rad_sum_mj_30m.tif'),
+    # gis_mast=raster('S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model.tif'),
+    # gis_slope=raster('L:/NRCS/MLRAShared/Geodata/elevation/10_meter/ca630_slope'),
+    gis_geomorphons=raster('L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif')
   ))
 }
 

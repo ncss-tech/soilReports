@@ -258,12 +258,11 @@ summarise.pedon.gis.data <- function(d) {
 
 ##  texture class
 summarize.texture.class <- function(i) {
-  # texcl or inlieu -- no modifiers
-  toi <- i$texcl
-  toi.idx <- is.na(toi) & !is.na(i$lieutex)
-  toi[toi.idx] <- i$lieutex[toi.idx] 
-    
-  tt <- sort(round(prop.table(table(toi)), 2), decreasing=TRUE)
+  # # texcl or inlieu -- no modifiers
+  # toi <- i$texcl
+  # toi.idx <- is.na(toi) & !is.na(i$lieutex)
+  # toi[toi.idx] <- i$lieutex[toi.idx] 
+  tt <- sort(round(prop.table(table(i$texture)), 2), decreasing=TRUE)
   tt.formatted <- paste(paste(toupper(names(tt)), ' (', tt, ')', sep=''), collapse=', ' )
   
   # return blank when there are no values
@@ -305,6 +304,7 @@ summarize.component <- function(f.i) {
   missing.some.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) any(is.na(i$genhz)))
   missing.genhz.IDs <- join(missing.all.genhz.IDs, missing.some.genhz.IDs, by='pedon_id')
   names(missing.genhz.IDs) <- c('pedon_id', 'missing.all', 'missing.some')
+  
   # determine type of missing data
   missing.genhz.IDs$missing.genhz <- apply(missing.genhz.IDs[, -1], 1, function(i) {
     if(any(i) & ! all(i))
