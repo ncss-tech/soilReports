@@ -1,96 +1,68 @@
-#utility_functions.R
+#util.R
 
-getMapunitPedons <- function(targetmu) {
-  pedons$MUSYM[is.na(pedons$MUSYM)] <-  "" #this will include pedons outside survey/shapefile bounary if a regex pattern is used that matches blank ""
-  return(pedons[grepl(targetmu, pedons$MUSYM)]) #set of pedons from target MU
-}
-
-getPedonsByPattern <- function(compname,upid,pedon_list,taxon_kind,phasename) {
-  peds <- data.frame()
+getPedonsByPattern <- function(input, s.pedons, musym, 
+                               compname, upid,
+                               pedon_list, taxon_kind,                                   phasename) {
   
-  upidmatch <- grepl(pattern=upid,s.pedons$pedon_id)
-  
-  s.pedons$taxonname[is.na(s.pedons$taxonname)]  <- ""
-  compmatch <- grepl(pattern=compname,s.pedons$taxonname)
-  
-  s.pedons$localphase[is.na(s.pedons$localphase)]  <- ""
-  phasematch <- grepl(pattern=phasename,s.pedons$localphase)
-  
-  if(taxon_kind == "any") {
-    taxon_kind = ".*"
-  }
-  taxkindmatch <- grepl(pattern=taxon_kind, s.pedons$taxonkind)
-  
-  idx.match=rep(TRUE, length(s.pedons$pedon_id))
-  if(pedon_list != "." & pedon_list != "") { #If there has been a list of pedons specified, use that in lieu of all other patterns
-    plist <- strsplit(pedon_list,",",fixed=T) #TODO use regex and handle whitespace before or after comma in list?
-    if(length(plist[[1]]) >= 1) { #length should always be 1 or more?
-      idx.match = (s.pedons$pedon_id %in% plist[[1]]) #should this allow for regex too? would comma-delimited regex patterns be potentially ambiguous? comma not a special char
-    }
+  if(!is.null(isolate(input))) {
+    #print(isolate(input))
+    #print(paste0("musym:",musym))
+    if(is.null(musym))
+      musym <- ".*"
+    musymmatch <- grepl(pattern=musym, s.pedons$musym)
+    
+    #print(paste0("upid:",upid))
+    if(is.null(upid))
+      upid <- ".*"
+    upidmatch <- grepl(pattern=upid, s.pedons$pedon_id)
+    
+    s.pedons$taxonname[is.na(s.pedons$taxonname)]  <- ""
+    #print(paste0("compname:",compname))
+    if(is.null(compname) | !length(compname))
+      compname <- ".*"
+    compmatch <- grepl(pattern=compname, s.pedons$taxonname)
+    
+    s.pedons$localphase[is.na(s.pedons$localphase)]  <- ""
+    #print(paste0("phasename:",phasename))
+    if(is.null(phasename))
+      phasename <- ".*"
+    phasematch <- grepl(pattern=phasename, s.pedons$localphase)
+    
+    
+    #print(paste0("taxon_kind:",taxon_kind))
+    if(is.null(taxon_kind))
+      taxon_kind <- ".*"
+    if(taxon_kind == "any")
+      taxon_kind = ".*"
+    taxkindmatch <- grepl(pattern=taxon_kind, s.pedons$taxonkind)
+    
+    # idx.match <- rep(TRUE, length(s.pedons$pedon_id))
+    # # If there has been a list of pedons specified, 
+    # #  use that in lieu of all other patterns
+    # if(pedon_list != "." & pedon_list != "") { 
+    #   
+    #   #TODO: use regex and handle whitespace before or after comma in list?
+    #   plist <- strsplit(pedon_list,",",fixed=T) 
+    #   
+    #   if(length(plist[[1]]) >= 1) {
+    #     # length should always be 1 or more?
+    #     idx.match <- (s.pedons$pedon_id %in% plist[[1]]) 
+    #     # should this allow for regex too? 
+    #   }
+    #} else {
+      idx.match <- which(upidmatch & compmatch & phasematch & taxkindmatch)
+    #}
+    
+    if(inherits(s.pedons, 'SoilProfileCollection'))
+      peds <- s.pedons[idx.match,] 
+    else stop("not a spc")
+    
+      # TODO: assign ghz
+    return(peds)
   } else {
-    idx.match <- upidmatch & compmatch & phasematch & taxkindmatch
+    return(numeric(0))
   }
-  
-  
-  peds <- s.pedons[idx.match,]
-  peds$musym <- peds$MUSYM #TODO: trace this to see what functions rely on lowercase 'musym'
-  
-  #apply generalized horizon labels, currently requires taxon-specific regex pattern for mapping field horizons to generalized
-  #TODO: support interactive development of genhz pattern? 
-  #TODO: support probabilistic assignment of GHZ?  using permutation of hz assignment and optimizing on "reliability" factor??
-  
-  #SET NA genhz from NASIS to not used, to ensure report will run regardless of NASIS db status 
-  horizons(peds)$genhz[is.na(horizons(peds)$genhz)] <- "not-used"
-  
-  #NOTE: explicitly makes genhz a factor to preserve ordering so that alphabetical order does not take precedent?
-  #       for cases where non-regex ghz is applied would it be possible to _infer_ genhz order based on a modal pedon?
-  
-  if(use_regex_ghz) {
-    newhz <- c(gen.hz.rules[[1]]$n,'not-used')
-    horizons(peds)$genhz <- newhz[as.numeric(generalize.hz(x=peds$hzname,new=gen.hz.rules[[1]]$n,pat=gen.hz.rules[[1]]$p))]
-    horizons(peds)$genhz <- factor(horizons(peds)$genhz,levels=newhz) #TODO:make this aware of component-specific patterns...
-  } else {
-    #this should handle proper ordering of genhz in a depth-dependent (not alphabetical) manner
-    horizons(peds)$genhz
-  }
-  return(peds)
 }
-
-getSuitePedons <- function(targetsuite) {
-  #TODO: set up a way to interactively generate the musuite pattern
-  return(pedons[grepl(pattern=s.musuite,x=pedons$MUSYM)]) #extended set of pedons from MU suite
-}
-
-# getMapunitComponents <- function(targetmu) {
-#   #TODO: handle DMUDESC more generically? or just use MUSYM? is there ever a case where using MUSYM would be ambiguous?
-#   s.dmu <- paste0("CA630",targetmu)  
-#   s.comp <- components[grepl(s.dmu,components$dmudesc),]
-#   
-#   ###### split pedon data into component sets
-#   for(c in 1:nrow(s.comp)) {
-#     comp <- s.comp[c,]
-#     comp.pedons[c] <- list(site(getMapunitPedons(targetmu))$taxonname %in% comp$compname)
-#     #comp.pedons.es[c] <- list(site(es.pedons)$taxonname %in% comp$compname)
-#   }
-#   
-#   #run a check to make sure you have at least one NASIS record for each component in the DMU
-#   lackdoc <- which(lapply(comp.pedons,FUN=sum)==0)
-#   
-#   #only return names of components that have pedon data
-#   #TODO: perhaps return a separate list of lacking components, so full list (w/ assigned percentages) scan be displayed on interface
-#   return(s.comp[!(1:length(s.comp$compname) %in% lackdoc),])
-#   
-#   #TODO: handling of extended set and output of missing data components
-#   #lackdoc.es <- which(lapply(comp.pedons.es,FUN=sum)==0)
-#   # 
-#   # print("The following components lack a NASIS pedon within the target MU extent: ")
-#   # print(paste0("   ",s.comp[lackdoc,]$compname, "; Is major component? ",as.logical(s.comp[lackdoc,]$majcompflag),"; Is misc. area? ",as.logical(s.comp[lackdoc,]$compkind=="Miscellaneous area")))
-#   # 
-#   # print("The following components lack a NASIS pedon within the suite extent: ")
-#   # print(paste0("   ",s.comp[lackdoc.es,]$compname, "; Is major component? ",as.logical(s.comp[lackdoc.es,]$majcompflag),"; Is misc. area? ",as.logical(s.comp[lackdoc.es,]$compkind=="Miscellaneous area")))
-#   
-#   #this creates a set of component names for target MU that we have data for -- used for making plots
-# }
 
 #########Dylan functions
 
@@ -181,8 +153,8 @@ conditional.l.rv.h.summary <- function(x, p=getOption('p.low.rv.high'), qt=getOp
   v <- na.omit(x$value) # extract column, from long-formatted input data
   n <- length(v) # get length of actual data
   ci <- quantile(v, na.rm=TRUE, probs=p, type=qt)
-  mn <- min(v, na.rm=TRUE)
-  mx <- max(v, na.rm=TRUE)
+  mn <- suppressWarnings(min(v, na.rm=TRUE))
+  mx <- suppressWarnings(max(v, na.rm=TRUE))
   low <- ci[1] # low
   rv <- ci[2] #  median
   high <- ci[3] # high
@@ -286,7 +258,12 @@ summarise.pedon.gis.data <- function(d) {
 
 ##  texture class
 summarize.texture.class <- function(i) {
-  tt <- sort(round(prop.table(table(i$texture)), 2), decreasing=TRUE)
+  # texcl or inlieu -- no modifiers
+  toi <- i$texcl
+  toi.idx <- is.na(toi) & !is.na(i$lieutex)
+  toi[toi.idx] <- i$lieutex[toi.idx] 
+    
+  tt <- sort(round(prop.table(table(toi)), 2), decreasing=TRUE)
   tt.formatted <- paste(paste(toupper(names(tt)), ' (', tt, ')', sep=''), collapse=', ' )
   
   # return blank when there are no values
@@ -300,7 +277,6 @@ summarize.texture.class <- function(i) {
 # f.i: subset of the SPC containing only pedons to aggregate
 # comp: the name of the current component
 summarize.component <- function(f.i) {
-  
   ## TODO: this is wasteful, as we only need 'pedon_id' from @site
   # extract horizon+site as data.frame
   h.i <- as(f.i, 'data.frame')
@@ -381,7 +357,7 @@ summarize.component <- function(f.i) {
   original.levels <- attr(gen.hz.aggregate, 'original.levels')
   
   #drop not-used level
-   original.levels <- original.levels[original.levels != 'not-used']
+  #original.levels <- original.levels[original.levels != 'not-used']
   
   # melt into long format, accomodating illegal column names (e.g. 2Bt)
   gen.hz.aggregate.long <- melt(gen.hz.aggregate, id.vars='top', measure.vars=make.names(original.levels))

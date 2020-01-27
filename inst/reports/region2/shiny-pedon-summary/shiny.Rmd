@@ -1,510 +1,1064 @@
 ---
-title: "Interactive Component Report"
+title: "SHINY PEDON SUMMARY"
 output: flexdashboard::flex_dashboard
 runtime: shiny
 ---
 
-```{r, echo=FALSE, message=FALSE, results='hide'}
-#re-vamped component report 
-
-#projected workflow (not complete)
-#      start with NASIS selected set containing all potential pedons (could be entire survey area) and DMU(s) to be populated
-#      set MU suite (defines an extended spatial extent with similar geology/climate/geography etc. for borrowing pedons in order to develop ranges
-#      set criteria for borrowing (set of simple options/rules, can be defined on a regional basis; defined in terms of sets of attributes and related rules)
-#      set target MU (by MUSYM/DMUID) - this will be what the report is generated for
-#      get the components being used in the DMU; needs at least a stub record with name for each component (no HZ data required)
-#      auto-fill pedon sets for each component using taxon name (could also use other attributes such as depth/drainage) using data from within target MU
-#        generate grouped profile plot, allow for user interaction to drop "outliers" and reassign groupings; outliers will be excluded from range calculations
-#      generate an "extended set" of pedons using taxon name and indices of similarity from the MU suite extent
-#        generate grouped profile plot, allow for user interaction to include similar pedons from MU suite; these will be included in range calculation
-#      generate grouped profile plot, clearly showing selected data from within and outside MU
-#        calculate provisional ranges and estimate "representativeness" of each pedon WITHIN THE MU extent
-#        allow user to select representative pedons (at least one per component in DMU) - need not agree with numerical "representative" index.
-#      show representative pedons for each component
-#        interactive horizon aggregation (stepwise construction of a base regex pattern, applied to the rep pedon)
-#        as pattern for aggregation changes, update a plot of just that component's selected data; highlight horizons that are currently not being aggregated
-#        allow pattern to be edited explicitly; or "dumbly" by simply piping hz designations on following user selection
-#      once a generalized horizon pattern has been developed allow the patterns to be saved (timestamped) to an output folder
-#      generate horizonagg.txt for NASIS import
-
-source('config.R')            #REPORT SETTINGS (many of these can be ported over to Shiny inputs)
-source('utility_functions.R') #ABSTRACTED/MODULAR APPLICATION LOGIC
-source('main.R')              #LOADS DATA, DOES OVERLAYS, ETC. 
-```
-
 Inputs {.sidebar}
 -------------------------------------
 ### INPUT
-```{r, echo=FALSE}  
-inputPanel(
-    #selectInput("s.mu", label = "Select target map unit: ",choices = c("",levels(factor(site(pedons)$MUSYM))), selectize=T)
-    textInput("s.mu",label="Enter pattern for matching MUSYM",value=".*") 
-)
+```{r, warning=FALSE, echo=FALSE, results='hide', message=FALSE}  
+# REPORT SETTINGS 
+source('config.R')
+    
+# ABSTRACTED APPLICATION LOGIC
+source('util.R')
+```        
 
-renderUI( {
-  #s.comp <<- getMapunitComponents(input$s.mu)
-  s.pedons <<- getMapunitPedons(input$s.mu)
-  inputPanel( {textInput("component_name",label="Component name:",value="") })
-})
+```{r, warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+if(!exists("loaded"))
+  loaded <<- FALSE
 
-renderUI( {
-  inputPanel( {
-    textInput("pedon_pattern",label="Pattern for matching pedon taxonname:",value=".*") 
-  })
-})
+loadReportData <- function() {
+  if(!loaded) {
+      if(!any(file.exists(c("pedon_cache.Rda"))) | !cache_data) { 
+        
+        if(!inherits(pedons_raw, 'try-error')) {
+          # keep only pedons with non-NA coord
+          good.idx <- which(!is.na(pedons_raw$x_std)) 
+          pedons <- pedons_raw[good.idx, ]           
+          
+          #initalize spatial object
+          coordinates(pedons) <- ~ x_std + y_std     
+          
+          # set spatial reference
+          proj4string(pedons) <- '+proj=longlat +datum=WGS84'
+          
+          # extract spatial data + site level attributes for each pedon
+          pedons_spdf <- as(pedons, 'SpatialPointsDataFrame')
+          
+          if(!inherits(mu, 'try-error')) {
+            #transform to polygon coordinate reference system
+            pedons_spdf <- spTransform(pedons_spdf, proj4string(mu)) 
+            
+            # do the overlay on linework
+            musymz <- (pedons_spdf %over% mu)$MUSYM 
+            
+            if(all(is.na(musymz)))
+              musymz <- rep("<missing>", length(pedons))
+            
+            # note: that this copies the MUSYM attribute back to the
+            # __non-transformed__ SPC object.
+            site(pedons)$MUSYM <- musymz  
+            site(pedons)$musym <- musymz
+            
+            #makes sure musym is also available in the SPDF object. 
+            pedons_spdf$MUSYM <- musymz  
+            pedons_spdf$musym <- musymz
+          }
+          
+          if(!inherits(rasters, 'try-error')) {
+            
+            # transform to raster coordinate reference 
+            #  system (assumes common between all rasters)
+            pedons_spdf <- spTransform(pedons_spdf,
+                                       proj4string(rasters[[1]]))
+            
+            # extract from raster stack at points
+            l.res <- lapply(rasters, extract, pedons_spdf)
+            
+            # attach raster data to site-level data of SPC
+            l.res <- as.data.frame(l.res, stringsAsFactors=FALSE)
+            l.res$peiid <- pedons_spdf$peiid
+            
+            site(pedons) <- l.res
+            
+            if(!is.null(pedons$gis_geomorphons)) {
+              # assign geomorphon labels
+              geomorphon.labels <- c('flat', 'summit', 'ridge', 'shoulder', 
+                                     'spur', 'slope', 'hollow', 'footslope',
+                                     'valley', 'depression')
+              pedons$gis_geomorphons <- factor(pedons$gis_geomorphons, 
+                                               levels=1:10, 
+                                               labels=geomorphon.labels)
+            }
+          }
+        }
+        
+        if(cache_data) {
+          #if there was no cache but caching is on, save the data for next time
+          save(pedons,file = "pedon_cache.Rda") 
+        }
+        
+      } else if (file.exists("pedon_cache.Rda")) { 
+        #if there is a cache...
+         if(cache_data) { 
+           
+           # and caching is ON, load the data from file rather than NASIS
+           load("pedon_cache.Rda")
+           load("component_cache.Rda")
+           load("spatial_cache.Rda")
+           print("Loaded data from cache.")
+          
+         } else { 
+           
+           # and caching is OFF, make it a backup 
+           file.rename(from="pedon_cache.Rda",
+                       to="pedon_cache.Rda.bak")
+           file.rename(from="component_cache.Rda",
+                       to="component_cache.Rda.bak")
+           file.rename(from="spatial_cache.Rda",
+                       to="spatial_cache.Rda.bak")
+         }
+      }
+    loaded <<- TRUE
+  }
+  return(list(pedons=pedons, pedons_spdf=pedons_spdf))
+}
 
-renderUI( {
-  inputPanel( {
-    textInput("phase_pattern",label="Pattern for matching pedon local phase:",value="*") 
-  })
-})
+res <- loadReportData()
 
-renderUI( {
-  inputPanel({
-    foo <- input$s.mu
-    selectInput("taxon_kind", label = "Select taxon kind: ",
-                choices = c("any","family","series","taxadjunct","taxon above family")) 
+# global variables pedons and pedons_spdf shared between chunks
+pedons <<- res$pedons
+pedons_spdf <<- res$pedons_spdf
+```
+
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+    inputPanel({
+        #selectInput("s.mu", label = "Select target map unit: ",choices = c("",levels(factor(site(pedons)$MUSYM))), selectize=T)
+        textInput("s.mu",
+                  label="Enter pattern for matching MUSYM",
+                  value=".*")
     })
-})
-
-renderUI( {  
-  inputPanel( {
-    textInput("upid_pattern",label="Pattern for matching userpedonid:",value="*") 
-  })
-})
-
-renderUI( {  
-  inputPanel( {
-    textInput("pedon_list",label="Comma-delimited list of pedons (in lieu of above):",value="") 
-  })
-})
-
-renderUI( {
-  inputPanel({
-    foo <- input$s.mu
-    peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-    selectInput("modal_pedon", label = "Select modal pedon (peiid:userpedonid): ",
-                choices = paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")) 
-                #TODO: Is it possible to set default to the pedon currently tagged to component? 
-                #rep pedon is not returned by component fetch
+    inputPanel({
+        textInput("report_name",
+                              label="Report name:",
+                              value=paste0("ReportName_",Sys.Date()))
+      
     })
-})
-
-inputPanel(
-  selectInput("thematic_field", label = "Select horizon attribute data to plot: ",
-              choices = c("clay","sand","phfield","total_frags_pct","moist_soil_color","dry_soil_color"), selected = "clay")
-)
-
-#inputPanel( {
-actionButton("refresh_tabular", "Refresh Tabular (TODO)")
-actionButton("export_report", "Export Report")
-#})
-
-observeEvent(input$refresh_tabular, {
-  #TODO: abstract different parts of the data loading in main.R for re-use, add checking to verify new records/update spatial overlays etc
-  source('main.R')      
-})
-
-observeEvent(input$export_report, {
-  s.pedons <<- getMapunitPedons(input$s.mu)
-  render(input='report.Rmd', output_file=paste0("output/report_",paste(levels(factor(s.pedons$MUSYM)),collapse="-"),"_",input$component_name,".html"))
-})
+    inputPanel({
+        textInput("pedon_pattern", 
+                  label="Pattern for matching pedon taxonname:",
+                  value=".*")
+    })
+      inputPanel( {
+        textInput("phase_pattern", 
+                  label="Pattern for matching pedon local phase:",
+                  value=".*") 
+      })
+      inputPanel({
+        selectInput("taxon_kind", 
+                    label = "Select taxon kind: ",
+                    choices = c(".*","family","series",
+                                "taxadjunct","taxon above family")) 
+        })
+  
+  inputPanel({
+    textInput("upid_pattern",
+              label="Pattern for matching userpedonid:",
+              value=".*") 
+  })
+  
+  # renderUI( {  
+  #   inputPanel( {
+  #     textInput("pedon_list",
+  #               label="Comma-delimited list of pedons (in lieu of above):",
+  #               value="") 
+  #   })
+  # })
+  if(!is.null(isolate(input))) {
+    #print(isolate(input))
+    renderUI(inputPanel({
+      peds <- getPedonsByPattern(input, pedons, 
+                                  input$s.mu,
+                                  input$pedon_pattern, 
+                                  input$upid_pattern,
+                                  input$pedon_list,
+                                  input$taxon_kind,
+                                  input$phase_pattern)
+       
+      selectInput("modal_pedon", 
+                   label = "Select modal pedon (peiid:userpedonid): ",
+                   choices = paste(site(peds)$peiid,
+                                   site(peds)$pedon_id,
+                                   sep=":")) 
+  # TODO: Is it possible to copedon rv
+       }))
+  }
+  
+  inputPanel(selectInput("thematic_field", 
+              label = "Select horizon attribute data to plot: ",  
+              choices = c("clay", "sand", "phfield",                                "total_frags_pct", "moist_soil_color",     
+              "dry_soil_color"), selected = "clay"))
+  
+  #inputPanel( {
+  actionButton("refresh_tabular", "Refresh Tabular (TODO)")
+  actionButton("export_report", "Export Report")
+  #})
+  
+  observeEvent(input$refresh_tabular, {
+    loaded <<- FALSE
+  })
+    
+  observeEvent(input$export_report, {
+    # create output folder if needed
+    if(!dir.exists("output"))
+      dir.create("output")
+    
+    # build report environment with user-selected filter settings
+    my.env <- new.env()
+    sys.source('config.R', my.env)
+    sys.source('util.R', my.env)
+    res <- loadReportData()
+    my.env$input <- input
+    my.env$pedons <- res$pedons
+    
+    # render in constructed environment
+    render(input='export.Rmd', envir = my.env,
+           output_file=paste0("output/report_",
+                              input$report_name,".html"))
+  })
+}
 ```
 
 Column {.tabset}
 -------------------------------------
 ### Grouped profile plot
-```{r}
-renderPlot(
-  {
-    sourcemu <- input$s.mu #ensures that plotting relies on selected MU (ensures reactive update when mu is changed)
-    comp <- s.comp
-    peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot(
+    {
+      if(!is.null(isolate(input)) & length(pedons)) {
+        #print(isolate(input))
+        peds <- getPedonsByPattern(input, pedons,
+                                   input$s.mu,
+                                   input$pedon_pattern,
+                                   input$upid_pattern,
+                                   input$pedon_list,
+                                   input$taxon_kind,
+                                   input$phase_pattern)
+        if(length(peds)) {
+          peds$taxonname <- factor(peds$taxonname)
     
-    groupedProfilePlot(peds,groups = 'taxonname', label='pedon_id', 
-                         print.id = TRUE, id.style = 'side', cex.id=1.2, 
-                         cex.names=1, cex.depth.axis=1.25,y.offset=7, 
-                         axis.line.offset=-3.0, group.name.cex=1, 
-                         group.name.offset = c(-6,-10), color=input$thematic_field,
-                         width=0.1,shrink=T,shrink.cutoff=3)
-      options=list(
-        width="100%", height=700
-      )
-  }
-)
+          # fix for single-group sets 
+          gno <-  c(-6,-10)
+          if(length(levels(peds$taxonname)) == 1)
+            gno <- -8
+            
+          groupedProfilePlot(peds, groups = 'taxonname',
+                              label='pedon_id',
+                              print.id = TRUE, id.style = 'side', cex.id=1.2,
+                              cex.names=1, cex.depth.axis=1.25,y.offset=7,
+                              axis.line.offset=-3.0, group.name.cex=1,
+                              group.name.offset = gno,
+                              color=input$thematic_field,
+                              width=0.1,shrink=T,shrink.cutoff=3)
+            options=list(
+              width="100%", height=700
+            )  
+        }
+        
+      }
+    }
+  )
+}
 ```
 
 ### Map view
-```{r}
-renderLeaflet({
-    sourcemu <- input$s.mu #ensures that plotting relies on selected MU (ensures reactive update when mu is changed)
-    comp <- s.comp
-    peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-    pedon_locations <- as(peds,'SpatialPointsDataFrame')
-    mapview(pedon_locations)@map #  here we just access the leaflet map slot directly for shiny rendering and use renderLeaflets
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderLeaflet({
+  
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds) & 
+       inherits(slot(peds,'sp'), 'Spatial') &
+        ncol(slot(slot(peds, 'sp'),'coords')) > 1) {
+      pedon_locations <- as(peds,'SpatialPointsDataFrame')
+      
+      #  access leaflet map slot directly for renderLeaflet()
+      slot(mapview(pedon_locations), 'map') 
+    }
+  })
+}
 ```
 
 ### Slab-wise Profile plot
 
-Blue line shows the median slab value for the selected set of pedons, with the 25th to 75th percentile envelope shown in gray. Thick red line shows the values from selected modal pedon.
-```{r}
-renderPlot(
-  {
-    sourcemu <- input$s.mu 
-    comp <- s.comp
-    peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-    
-    s <- slab(peds, fm = as.formula(paste0(" ~ ",input$thematic_field)))
-    
-    a <- xyplot(top ~ p.q50, data=s, ylab='Depth',
-             xlab=paste0(input$thematic_field,'\nmedian bounded by 25th and 75th percentiles'),
-             lower=s$p.q25, upper=s$p.q75, ylim=c(250,-5),
-             panel=panel.depth_function, 
-             prepanel=prepanel.depth_function,
-             cf=s$contributing_fraction,
-             layout=c(1,1), scales=list(x=list(alternating=1)))
-    #b <- slab(peds[1,], fm = as.formula(paste0(" ~ ",input$thematic_field)))
-    if(!is.na(input$modal_pedon)) {
-      modalped <- horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),]) 
+Blue line shows the median slab value for the selected set of pedons, with the 5th to 95th percentile envelope shown in gray. Thick red line shows the values from selected modal pedon. Slabs with less than 1% of pedon data contributing have been omitted for clarity.
+
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot(
+    {
+      peds <- getPedonsByPattern(input, pedons, 
+                                 input$s.mu,
+                                 input$pedon_pattern, 
+                                 input$upid_pattern,
+                                 input$pedon_list,
+                                 input$taxon_kind,
+                                 input$phase_pattern)
+      #print(profile_id(peds))
       
-      #TODO: select modal pedon, need to query additional component data? or use dropdown box of available peds
-      modalped$middepth <- modalped$hzdept + (modalped$hzdepb - modalped$hzdept)/2
-      
-      foo <- 1:(length(modalped$middepth)*3)
-      modalpedplot <- data.frame(foo)
-      modalpedplot$y <- 1:length(foo)
-      modalpedplot$y[which((foo %% 3)==1)] <- modalped$hzdept
-      modalpedplot$y[which((foo %% 3)==2)] <- modalped$middepth
-      modalpedplot$y[which((foo %% 3)==0)] <- modalped$hzdepb
-      modalpedplot$x <- rep(modalped[[input$thematic_field]],each=3)
-      b <- xyplot(y~x,data=modalpedplot, type="l", col="RED",lwd=2,ylim=c(250,-5),layout=c(1,1), scales=list(x=list(alternating=1)),par.settings = list(superpose.line = list(lwd=3)))
-      (a + as.layer(b))
-    } else {
-      a
+      if(length(peds) & length(input$thematic_field)) {
+        if(!input$thematic_field %in% 
+           c("moist_soil_color","dry_soil_color")) {
+          
+          s <- slab(peds, fm = as.formula(sprintf( " ~ %s", 
+                                                  input$thematic_field)))
+          # max depth is <1% contributing fraction
+          max.idx <- which(s$contributing_fraction <= 0.01)
+          if(!length(max.idx))
+            max.idx <- nrow(s)
+          s.sub <- s[1:max.idx[1],]
+          s.sub <- s.sub[complete.cases(s.sub),]
+          #print((s.sub))
+          
+          a <- xyplot(top ~ p.q50, data=s.sub, ylab='Depth',
+                      xlab=paste0(input$thematic_field,
+                           '\nmedian bounded by 5th and 95th percentiles'), 
+                      lower=s$p.q5, upper=s$p.q95, 
+                      ylim=c(max(s.sub$bottom, na.rm=TRUE),-5),
+                      panel=panel.depth_function, 
+                      prepanel=prepanel.depth_function,
+                      cf=s$contributing_fraction,
+                      layout=c(1,1), scales=list(x=list(alternating=1)))
+          
+          b <- slab(peds[1,], fm = as.formula(paste0(" ~ ",input$thematic_field)))
+  
+          if(length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+            modalped <- horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                                       site(peds)$pedon_id,
+                                                                       sep=":")),])
+  
+            #TODO: select modal pedon from RV copedon
+            modalped$middepth <- modalped$hzdept + (modalped$hzdepb - modalped$hzdept)/2
+  
+            foo <- 1:(length(modalped$middepth)*3)
+            modalpedplot <- data.frame(foo)
+  
+            modalpedplot$y <- 1:length(foo)
+            modalpedplot$y[which((foo %% 3) == 1)] <- modalped$hzdept
+            modalpedplot$y[which((foo %% 3) == 2)] <- modalped$middepth
+            modalpedplot$y[which((foo %% 3) == 0)] <- modalped$hzdepb
+  
+            modalpedplot$x <- rep(modalped[[input$thematic_field]],each=3)
+            b <- xyplot(y ~ x, data=modalpedplot, type="l",
+                        col="RED", lwd=3, ylim=c(250,-5), layout=c(1,1),
+                        scales=list(x=list(alternating=1)),
+                        par.settings = list(superpose.line = list(lwd=3)))
+            (a + as.layer(b))
+          } else {
+            a
+          }
+        } else {
+          print("Color quantiles by depth coming soon")
+        }
+      }
     }
-  }
-)
+  )
+}
 ```
 
 ### Generalized GPP
-```{r}
-renderPlot(
-  {
-    sourcemu <- input$s.mu 
-    comp <- s.comp
-    peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-    peds$genhzraw <- as.character(peds$genhz) #this plot function gets mad if name is a factor...
-    groupedProfilePlot(peds,name='genhzraw',groups = 'taxonname', label='pedon_id', 
-                         print.id = TRUE, id.style = 'side', cex.id=1.2, 
-                         cex.names=1, cex.depth.axis=1.25,y.offset=7, 
-                         axis.line.offset=-3.0, group.name.cex=1, 
-                         group.name.offset = c(-6,-10), color=input$thematic_field,
-                         width=0.1,shrink=T,shrink.cutoff=3)
-      options=list(
-        width="100%", height=700
-      )
-  }
-)
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot(
+    {
+      peds <- getPedonsByPattern(input, pedons, 
+                                 input$s.mu,
+                                 input$pedon_pattern, 
+                                 input$upid_pattern,
+                                 input$pedon_list,
+                                 input$taxon_kind,
+                                 input$phase_pattern)
+      if(length(peds)) {
+        # this plot function gets mad if hzname is a factor...
+        # but taxonname must be a factor
+        peds$genhzraw <- as.character(peds$genhz) 
+        peds$taxonname <- factor(peds$taxonname)
+        
+        # fix for single-group sets 
+        gno <-  c(-6,-10)
+        if(length(levels(peds$taxonname)) == 1)
+          gno <- -8
+        
+        groupedProfilePlot(peds, name='genhzraw', 
+                           groups = 'taxonname', label='pedon_id',
+          print.id = TRUE, id.style = 'side', cex.id=1.2,
+          cex.names=1, cex.depth.axis=1.25,y.offset=7,
+          axis.line.offset=-3.0, group.name.cex=1,
+          group.name.offset = gno, color=input$thematic_field,
+          width=0.1, shrink=T, shrink.cutoff=3)
+    
+        options=list(
+          width="100%", height=700
+        )
+      }
+    }
+  )
+}
 ```
 
 ### Generalized Hz Probability
-```{r}
-renderPlot(
-  {
-    sourcemu <- input$s.mu 
-    comp <- s.comp
-    peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-    s <- summarize.component(peds)
-    s$ml.hz.plot
-  }
-)
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot(
+    {
+      peds <- getPedonsByPattern(input, pedons, 
+                                 input$s.mu,
+                                 input$pedon_pattern, 
+                                 input$upid_pattern,
+                                 input$pedon_list,
+                                 input$taxon_kind,
+                                 input$phase_pattern)
+      if(length(peds)) {
+        s <- suppressWarnings(summarize.component(peds))
+        return(s$ml.hz.plot)
+      }
+    }
+  )
+}
+```
+
+### Depth Class
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds)) {
+      depthz <- profileApply(peds, estimateSoilDepth,
+                                       p="Cr|Cd|R|qm")
+      
+      return({plot(density(depthz,
+                          na.rm=TRUE),
+                          main="Density plot of depth to Cr, Cd, R, or *qm horizon",
+                          xlab="Depth, centimeters")
+              abline(v=c(25,50,100,150))
+        })
+    }
+  })
+}
+```
+
+### Depth Table
+
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderTable( {
+    peds <- getPedonsByPattern(input, pedons, 
+                             input$s.mu,
+                             input$pedon_pattern, 
+                             input$upid_pattern,
+                             input$pedon_list,
+                             input$taxon_kind,
+                             input$phase_pattern)
+  
+    if(length(peds)) {
+      table(aqp::getSoilDepthClass(peds, p="Cr|Cd|R|qm")$depth.class)
+    }
+  }, striped=TRUE, rownames = FALSE)
+}
 ```
 
 ### Geomorphology
 
 #### Hillslope position (2D)
-```{r}
-renderTable( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$hillslopeprof)
-  df
-}, striped=T)
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderTable( {
+    
+    if(!length(input) | !length(pedons))
+      return(data.frame())
+    
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds)) {
+      return(categorical.prop.table(peds$hillslopeprof))
+    }
+  }, striped=T)
 
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$hillslopeprof))
-  }
-})
+  renderUI( {
+    sourcemu <- input$s.mu 
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
+      print(paste0("Modal pedon value: ", modal$hillslopeprof))
+    }
+  })
+}
 ```
 
 #### Geomorphic position - Hills (3D)
-```{r}
-renderTable( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$geomposhill)
-  df
-}, striped=T)
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$geomposhill))
-  }
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderTable( {
+    peds <- getPedonsByPattern(input, pedons,  
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & any(!is.na(peds$geomposhill))) {
+      categorical.prop.table(peds$geomposhill) 
+    } else {
+      print("No Hill 3D Geomorph")
+    }
+  }, striped=T)
+  
+  renderUI( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
+      print(paste0("Modal pedon value: ", modal$geomposhill))
+    }
+  })
+}
 ```
 
 #### Geomorphic position - Mountains (3D)
-```{r}
-renderTable( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$geomposmntn)
-  df
-}, striped=T)
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderTable( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds) & any(!is.na(peds$geomposmntn))) {
+      categorical.prop.table(peds$geomposmntn) 
+    } else {
+      print("No Mountain 3D Geomorph")
+    }
+  }, striped=T)
+  
+  renderUI( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
       print(paste0("Modal pedon value: ",modal$geomposmntn))
-  }
-})
+    }
+  })
+}
 ```
 
 #### Geomorphons
-```{r}
-renderTable( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$gis_geomorphons)
-  df
-}, striped=T)
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$gis_geomorphons))
-  }
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderTable( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+  
+    if(length(peds) & ("gis_geomorphons" %in% siteNames(peds))) {  
+      return(categorical.prop.table(peds$gis_geomorphons))
+    } else {
+      print("Could not find attribute `gis_geomorphons` in `pedon` object.")
+    }
+  }, striped=T)
+  
+  renderUI( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+      if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+        modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,                                                site(peds)$pedon_id,sep=":")),]
+        if("gis_geomorphons" %in% siteNames(modal)) {   
+          print(paste0("Modal pedon value: ", modal$gis_geomorphons))
+        } else {
+          print("Could not find attribute `gis_geomorphons` in selected modal pedon")
+        }
+      }
+  })
+}
 ```
 
 #### Drainage class
-```{r}
-renderTable( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <- categorical.prop.table(peds$drainagecl)
-  df
-}, striped=T)
-
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+    
+  renderTable( { 
+      peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+      if(length(peds) & any(!is.na(peds$drainagecl))) {
+        return(categorical.prop.table(peds$drainagecl))
+      }
+    }, striped=T)
+  
+  renderUI( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
       print(paste0("Modal pedon value: ",modal$drainagecl))
-  }
-})
+    }
+  })
+}
 ```
 
 #### Surface Shape (DOWN/ACROSS)
-```{r}
-renderTable( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  down <- factor(as.character(peds$shapedown),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
-  acro <- factor(as.character(peds$shapeacross),labels =  c("V","L","C"), levels=c("convex","linear","concave"))
-  shape <- factor(paste(as.character(down),as.character(acro),sep="/"))
-  shape[grepl(shape,pattern="NA")] <- NA
-  shape <- factor(shape)
-  df <- categorical.prop.table(shape)
-  df
-}, striped=T)
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+    
+  renderTable( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds)) {  
+      # make combined curvature classes
+      down <- factor(as.character(peds$shapedown),
+                     labels =  c("V","L","C"),
+                     levels=c("convex","linear","concave"))
+      
+      acro <- factor(as.character(peds$shapeacross),
+                     labels =  c("V","L","C"),
+                     levels=c("convex","linear","concave"))
+      shape <- factor(paste(as.character(down),
+                            as.character(acro),
+                            sep="/"))
+      
+      shape[grepl(shape,pattern="NA")] <- NA
+      shape <- factor(shape)
+      
+      return(categorical.prop.table(shape))
+    }
+  }, striped=T)
 
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$shapedown,modal$shapeacross))
-  }
-})
+  renderUI( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
+      print(paste0("Modal pedon value: ",
+                   modal$shapedown,
+                   modal$shapeacross))
+    }
+  })
+}
 ```
 
 ### Aspect
-```{r}
-renderPlot({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(nrow(site(peds)) > 2)
-    aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
-})
-
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$aspect_field))
-  }
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+    
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    # cannot make aspect plot with 3 or less profiles
+    if(length(peds) & length(peds) > 2)
+      aspect.plot(peds$aspect_field, q=p.low.rv.high,
+                  plot.title=input$pedon_pattern, pch=21,
+                  bg='RoyalBlue', col='black', cex=0.75,
+                  arrow.col=c('darkgrey', 'blue', 'darkgrey'))
+    else return(-1)
+  })
+  
+  renderUI( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
+      print(paste0("Modal pedon value: ", modal$aspect_field))
+    }
+  })
+}
 ```
 
 ### Ecology
 
 #### Ecological site
-```{r}
-renderTable( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  df <-  categorical.prop.table(peds$ecositeid)
-  df
-}, striped=T)
-
-renderUI( {
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
-      print(paste0("Modal pedon value: ",modal$ecositeid))
-  }
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+ if(loaded) {
+  renderTable( { 
+    peds <- getPedonsByPattern(input, pedons,
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    df <-  categorical.prop.table(peds$ecositeid)
+    df
+  }, striped=T)
+  
+  renderUI( {
+    sourcemu <- 
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
+      print(paste0("Modal pedon value: ", modal$ecositeid))
+    }
+  })
+}
 ```
 
 #### Plant list
-TODO: Print component plant data
+TODO: Print vegplot data
 
 ### Horizon
 
 #### Field-described versus Generalized Horizonation
-```{r} 
-renderTable({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  xtable(table(peds$genhz,peds$hzname))
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE} 
+if(loaded) {
+  renderTable({
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds))
+      xtable(table(peds$genhz,peds$hzname))
+    else return(-1)
+  })
+}
 ```
 
-#### Horizonation Network Graph
-```{r}
-renderPlot({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern) 
-  # convert contingency table -> adj. matrix
-  m <- genhzTableToAdjMat(table(peds$genhz,peds$hzname))
-  
-  plotSoilRelationGraph(m, graph.mode = 'directed', edge.arrow.size=0.5, vertex.label.family='sans')
-})
+### Horizon Relation
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons,
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern) 
+    if(length(peds)) { 
+      # convert contingency table -> adj. matrix
+      m <- genhzTableToAdjMat(table(peds$genhz, peds$hzname))
+      if(nrow(m))
+        plotSoilRelationGraph(m, graph.mode = 'directed', 
+                            edge.arrow.size=0.5, 
+                            vertex.label.family='sans')
+    }
+  })
+}
 ```
 
 ### Modal
-```{r}
 
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
 #### Modal pedon (field horizonation : generalized horizonation)
-renderPlot({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  par(mar=c(1,1,1,1))
-  if(!is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+if(loaded) {
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & length(input$modal_pedon) & !is.na(input$modal_pedon)) {
+      
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
       modal$hzagg <- paste0(modal$hzname,":",modal$genhz)
-      groupedProfilePlot(modal,name='hzagg',groups="taxonname", label='pedon_id', 
+      
+      if(length(modal))
+        groupedProfilePlot(modal, name='hzagg',
+                         groups="taxonname", label='pedon_id', 
                          print.id = TRUE, id.style = 'side', cex.id=1.2, 
                          cex.names=1, cex.depth.axis=1.25,y.offset=7, 
                          axis.line.offset=-3.0, group.name.cex=1, 
-                         group.name.offset = -6, color=input$thematic_field,
+                         group.name.offset = -6,
+                         color=input$thematic_field,
                          width=0.1,shrink=T,shrink.cutoff=3)
       options=list(
         width="100%", height=700
       )
-  }
-})
+    }
+  })
+  ```
+  
+  ### Texture
+  ```{r, warning=FALSE, echo=FALSE, error=FALSE}
+  renderTable({ 
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds)) { 
+      s <- suppressWarnings(summarize.component(peds))
+      s$tt
+    }
+  })
+}
 ```
 
-### Texture
-```{r}
-renderTable({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  s <- summarize.component(peds)
-  df <- s$tt
-  df
-})
-
-renderPlot({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  
-  plot(texture.triangle.low.rv.high(data.frame(sand=peds$sand,silt=peds$silt,clay=peds$clay), p=c(0.05, 0.5, 0.95)))
-})
+### Texture Triangle
+```{r, warning=FALSE, warning=FALSE, results='asis'}
+if(loaded) {
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds)) {
+      x <- na.omit(data.frame(genhz=peds$genhz, sand=peds$sand, silt=peds$silt, clay=peds$clay))
+      
+      if(nrow(x)) {
+        x <- x[rowSums(x[,2:4]) == 100,]
+        
+        aqp::textureTriangleSummary(x[,2:4],
+                                    pch=".",
+                                    range.col='darkgreen')
+        # x$genhz <- factor(x$genhz)
+        # # try to set up table structure
+        # res <- lapply(split(x, x$genhz), function(hz) {
+        #   if(nrow(hz) >= 3) {
+        #     aqp::textureTriangleSummary(hz[,2:4], 
+        #                                 pch=".", 
+        #                                 range.col='darkgreen',
+        #                                 main=sprintf("Textures (%s)",
+        #                                              unique(hz$genhz)))
+        #   }
+        # })
+        # do.call('rbind', res)
+      }
+    }
+  })
+}
 ```
 
 ### Color
-```{r}
-renderPlot({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  aggregateColorPlot(aggregateColor(peds, groups = 'genhz', col = 'soil_color'), label.font = 2, label.cex = 0.95, print.n.hz = TRUE)
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds)) {
+      aggregateColorPlot(aggregateColor(peds, groups = 'genhz', 
+                                      col = 'soil_color'),
+                       label.font = 2, label.cex = 0.95, print.n.hz = TRUE)
+    }
+  })
+}
 ```
 
 ### Morphology
-```{r}
-renderTable({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  s <- summarize.component(peds)
-  df <- s$rt
-  df
-})
+
+Numeric attributes summarized by: min, 5th-50th-95th percentiles, max and aggregated by generalized horizon label (NASIS `phorizon` "Component Layer ID"").
+
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  
+  renderTable({
+    peds <- getPedonsByPattern(input, pedons,
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds)) {
+      s <- suppressWarnings(summarize.component(peds))
+      return(s$rt)
+    }
+  })
+}
 ```
 
 ### Surface Fragments
-```{r}
-renderTable({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  s <- summarize.component(peds)
-  df <- s$sf
-  df
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderTable({
+    peds <- getPedonsByPattern(input, pedons,
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds)) {
+      s <- suppressWarnings(summarize.component(peds))
+      return(s$sf)
+    }
+  })
+#}
 ```
 
 ### Diagnostics
-```{r}
-renderTable({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  s <- summarize.component(peds)
-  df <- s$dt
-  df
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderTable({
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu, 
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds)) {
+      s <- suppressWarnings(summarize.component(peds))
+      s$dt
+    }
+  })
+}
 ```
 
 ### Diagnostics plot
-```{r}
-renderPlot({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  
-  diagnosticPropertyPlot2(peds, v=c('lithic.contact', 'paralithic.contact', 'argillic.horizon', 'cambic.horizon', 'ochric.epipedon', 'mollic.epipedon', 'very.shallow', 'shallow', 'mod.deep', 'deep', 'very.deep'), k=4)
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons,
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds)) {
+      diagnosticPropertyPlot2(peds, v=c('lithic.contact', 'paralithic.contact',
+                                      'argillic.horizon', 'cambic.horizon',
+                                      'ochric.epipedon', 'mollic.epipedon',
+                                      'very.shallow', 'shallow', 'mod.deep',
+                                      'deep', 'very.deep'), k=4)
+    }
+  })
+}
 ```
-  
+
 ### Mapunit Summary
-```{r}
-renderPlot({
-  sourcemu <- input$s.mu 
-  peds <- getPedonsByPattern(input$pedon_pattern,input$upid_pattern,input$pedon_list,input$taxon_kind,input$phase_pattern)
-  s <- summarize.component(peds)
-  print(s$pmg)
-})
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded) {
+  renderPlot({
+    peds <- getPedonsByPattern(input, pedons,
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds)) {
+      s <- suppressWarnings(summarize.component(peds))
+      print(s$pmg)
+    }
+  })
+}
 ```

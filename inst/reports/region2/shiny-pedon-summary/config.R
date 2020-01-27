@@ -1,3 +1,5 @@
+# load packages
+library(aqp)
 library(soilDB)
 library(sharpshootR)
 library(rgdal)
@@ -11,13 +13,27 @@ library(reshape2)
 library(xtable)
 library(knitr)
 
-cache_data=F
-use_regex_ghz=T
+### set options
+  # in demo mode, loafercreek and gopheridge datasets are used from soilDB
+  demo_mode <- TRUE
+  
+  # store pedons etc in Rda files?
+  cache_data <- FALSE
+  
+  # use regex-assigned generalized horizons?
+  use_regex_ghz <- TRUE
+  
+  # probability levels for quantile l-rv-h
+  p.low.rv.high <- c(0.05, 0.5, 0.95)
+  
+  # quantile type
+  q.type <- 7
+  
+  # maximum-likelihood horizon curve smoothing parameter
+  ml.profile.smoothing <- 0.65
 
-#these are defaults to ensure that the report has inputs necessary to generate plots on startup
-input <- data.frame(1) #create input dataframe
-input$s.mu = '.' #all mapunits
-input$pedon_list="" #no pedon list specified (no initial filter)
+options(p.low.rv.high=p.low.rv.high, q.type=q.type, 
+        ml.profile.smoothing=ml.profile.smoothing, warn=-1)
 
 # "generic" gen.hz.rules for CA630 use
 #   TODO: handle caret, primes etc.
@@ -48,24 +64,53 @@ gen.hz.rules <- list(list(
         '^[2-9]?(C[dr]t?|Rt?)[1-9]?')
 ))
 
-
-poly.dsn = "L:/NRCS/MLRAShared/CA630/FG_CA630_OFFICIAL.gdb"
-poly.layer = "ca630_a"
+# path to folder or geodatabase
+poly.dsn = "."
+# layer or shapefile name (without .shp)
+poly.layer = "gopheridge_spatial"
+# bounding polygon layer (currently not used)
 poly.bounds = "ca630_b"
 
-p.low.rv.high <- c(0.05, 0.5, 0.95)
-q.type <- 7
-ml.profile.smoothing <- 0.65
-options(p.low.rv.high=p.low.rv.high, q.type=q.type, ml.profile.smoothing=ml.profile.smoothing)
+if(!cache_data) {
+  if(demo_mode) {
+    # load two datasets from soilDB
+    data("loafercreek", package="soilDB")
+    data("gopheridge", package="soilDB")
+    loafergopher <- aqp::union(list(loafercreek, gopheridge))
+    
+    hzidname(loafergopher) <- 'phiid'
+    loafergopher$musym <- rep('<missing>', length(loafergopher))  
+    
+    pedons_raw <- loafergopher
+  } else {
+    pedons_raw <- fetchNASIS()
+  }
+  components <- try(fetchNASIS('components'))
+  mu <- try(readOGR(dsn = poly.dsn, layer = poly.layer, stringsAsFactors=FALSE))
+  rasters <- try(list(
+    gis_ppt=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAP_mm_800m.tif'),
+    gis_tavg=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAAT_800m.tif'),
+    gis_ffd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/ffd_mean_800m.tif'),
+    gis_gdd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/gdd_mean_800m.tif'),
+    gis_elev=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/elevation_30m.tif'),
+    gis_solar=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/beam_rad_sum_mj_30m.tif'),
+    gis_mast=raster('S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model.tif'),
+    gis_slope=raster('L:/NRCS/MLRAShared/Geodata/elevation/10_meter/ca630_slope'),
+    gis_geomorphons=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/forms10.tif')
+  ))
+}
 
-rasters <- list(
-  gis_ppt=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAP_mm_800m.tif'),
-  gis_tavg=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAAT_800m.tif'),
-  gis_ffd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/ffd_mean_800m.tif'),
-  gis_gdd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/gdd_mean_800m.tif'),
-  gis_elev=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/elevation_30m.tif'),
-  gis_solar=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/beam_rad_sum_mj_30m.tif'),
-  gis_mast=raster('S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model.tif'),
-  gis_slope=raster('L:/NRCS/MLRAShared/Geodata/elevation/10_meter/ca630_slope'),
-  gis_geomorphons=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/forms10.tif')
-)
+
+#these are defaults to ensure that the report won't error on startup
+# you can adjust them if you have a preset pattern in mind, 
+# ...but do so at your own risk
+input <- list()
+input$pedon_pattern <- ".*"
+input$upid_pattern <- ".*"
+input$pedon_list <- ".*"
+input$taxon_kind <- ".*"
+input$phase_pattern <- ".*"
+input$modal_pedon <- NA
+input$thematic_field <- "clay"
+input$s.mu <- '.*' #all mapunits
+input$pedon_list <- "" #no pedon list specified (no initial filter)
