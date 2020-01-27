@@ -299,7 +299,7 @@ summarize.component <- function(f.i) {
   pedon.surface.frags.table <- summarise.pedon.surface.frags(site.i)
   
   #make not-used placeholder values na
-  #h.i$genhz[h.i$genhz == 'not-used'] <- NA
+  h.i$genhz[h.i$genhz == 'not-used'] <- NA
   
   # ## check for missing genhz labels by pedon
   missing.all.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) all(is.na(i$genhz)))
@@ -339,6 +339,7 @@ summarize.component <- function(f.i) {
   
   ## tables
   # long -> wide
+  s.i$genhz <- factor(s.i$genhz, levels=guessGenHzLevels(f.i)$levels)
   prop.by.genhz.table <- dcast(s.i, genhz ~ variable, value.var='range')
   names(prop.by.genhz.table) <- var.names
   
@@ -347,7 +348,9 @@ summarize.component <- function(f.i) {
   names(texture.table) <- c('Generalized HZ', 'Texture Classes')
   
   # diagnostic hz tables
-  diag.hz.table <- ddply(diagnostic_hz(f.i), c('featkind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
+  diag.hz.table <- data.frame(t(c(1,1,1,1,1)))[0,]
+  if(nrow(diagnostic_hz(f.i)))
+    diag.hz.table <- ddply(diagnostic_hz(f.i), c('featkind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
   names(diag.hz.table) <- c('kind', 'N', 'top', 'bottom', 'thick')
   
   ## ML-horizonation
@@ -365,7 +368,9 @@ summarize.component <- function(f.i) {
   gen.hz.aggregate.long <- melt(gen.hz.aggregate, id.vars='top', measure.vars=make.names(original.levels))
   
   # replace corrupted horizon designations with original values
-  gen.hz.aggregate.long$variable <- factor(gen.hz.aggregate.long$variable, levels=levels(gen.hz.aggregate.long$variable), labels=original.levels)
+  gen.hz.aggregate.long$variable <- factor(gen.hz.aggregate.long$variable, 
+                                           levels=levels(gen.hz.aggregate.long$variable), 
+                                           labels=original.levels)
   
   # replace very small probabilities with NA
   gen.hz.aggregate.long$value[gen.hz.aggregate.long$value < 0.001] <- NA

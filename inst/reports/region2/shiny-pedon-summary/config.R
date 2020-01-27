@@ -26,7 +26,7 @@ library(reshape2)
   # use regex-assigned generalized horizons?
   # default uses gen.hz.rules.generic defined below
   # TODO: allow compname/regex-pattern specific gen.hz.rules to be defined
-  use_regex_ghz <- FALSE
+  use_regex_ghz <- TRUE
   
   # probability levels for quantile l-rv-h
   p.low.rv.high <- c(0.05, 0.5, 0.95)
@@ -94,9 +94,9 @@ if(!cache_data) {
   }
   
   if(use_regex_ghz | !("genhz" %in% horizonNames(pedons_raw)))
-    pedons_raw$genhz <- aqp::generalize.hz(as.character(pedons_raw$hzname), 
+    pedons_raw$genhz <- factor(aqp::generalize.hz(as.character(pedons_raw$hzname), 
                                             new = gen.hz.rules.generic$n,
-                                            pat = gen.hz.rules.generic$p)
+                                            pat = gen.hz.rules.generic$p))
   
   
   #components <- try(fetchNASIS('components'))

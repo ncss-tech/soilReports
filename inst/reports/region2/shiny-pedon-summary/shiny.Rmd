@@ -219,7 +219,7 @@ pedons_spdf <<- res$pedons_spdf
     my.env$s <- summarize.component(my.env$peds)
     
     my.env$peds$genhz <- factor(my.env$peds$genhz, 
-                           levels = guessGenHzLevels(my.env$peds)$levels)
+                           levels = guessGenHzLevels(res$pedons)$levels)
     
     # render in constructed environment
     render(input='report.Rmd', envir = my.env,
@@ -418,7 +418,10 @@ if(loaded)
                                  input$pedon_list,
                                  input$taxon_kind,
                                  input$phase_pattern)
-      peds$genhz <- factor(peds$genhz, levels = guessGenHzLevels(peds)$levels)
+      
+      peds$genhz <- factor(peds$genhz, 
+                           levels = guessGenHzLevels(peds)$levels)
+      
       if(length(peds)) {
         s <- suppressWarnings(summarize.component(peds))
         return(s$ml.hz.plot)
@@ -1022,12 +1025,14 @@ if(loaded)
                                input$pedon_list,
                                input$taxon_kind,
                                input$phase_pattern)
-    if(length(peds)) {
+    if(length(peds) & nrow(diagnostic_hz(peds))) {
       diagnosticPropertyPlot2(peds, v=c('lithic.contact', 'paralithic.contact',
                                       'argillic.horizon', 'cambic.horizon',
                                       'ochric.epipedon', 'mollic.epipedon',
                                       'very.shallow', 'shallow', 'mod.deep',
                                       'deep', 'very.deep'), k=4)
+    } else {
+      print("No pedons matching criteria or diagnostic features populated.")
     }
   })
 ```
