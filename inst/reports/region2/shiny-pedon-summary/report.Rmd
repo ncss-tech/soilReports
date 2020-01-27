@@ -7,6 +7,13 @@ jquery: null
 smart: no
 keep_md: no
 ---
+<!-- shiny-pedon-summary (v1.0) -- instance created 2020-01-27 14:16:49-->  
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'shiny-pedon-summary'
+	.report.version <- '1.0'
+	.report.description <- 'Interactively subset and summarize NASIS pedon data from one or more map units'
+```
   <!-- shiny-pedon-summary (v0.2) -- instance created 2018-01-03 08:11:25-->  
   
 ```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}

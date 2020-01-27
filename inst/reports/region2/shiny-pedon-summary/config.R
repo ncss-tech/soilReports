@@ -2,16 +2,19 @@
 library(aqp)
 library(soilDB)
 library(sharpshootR)
+
 library(rgdal)
 library(raster)
 library(leaflet)
 library(mapview)
-library(latticeExtra)
-library(rmarkdown)
-library(plyr)
-library(reshape2)
+
 library(xtable)
 library(knitr)
+library(latticeExtra)
+library(rmarkdown)
+
+library(plyr)
+library(reshape2)
 
 ### set options
   # in demo mode, loafercreek and gopheridge datasets are used from soilDB
@@ -21,7 +24,9 @@ library(knitr)
   cache_data <- FALSE
   
   # use regex-assigned generalized horizons?
-  use_regex_ghz <- TRUE
+  # default uses gen.hz.rules.generic defined below
+  # TODO: allow compname/regex-pattern specific gen.hz.rules to be defined
+  use_regex_ghz <- FALSE
   
   # probability levels for quantile l-rv-h
   p.low.rv.high <- c(0.05, 0.5, 0.95)
@@ -35,9 +40,9 @@ library(knitr)
 options(p.low.rv.high=p.low.rv.high, q.type=q.type, 
         ml.profile.smoothing=ml.profile.smoothing)
 
-# "generic" gen.hz.rules for CA630 use
+# "generic" gen.hz.rules
 #   TODO: handle caret, primes etc.
-gen.hz.rules <- list(list(
+gen.hz.rules.generic <- list(
   n = c('Oi',
         'A',
         'BA',
@@ -62,7 +67,7 @@ gen.hz.rules <- list(list(
         '^[2-9]?BCt?c?g[1-9]?$',
         '^[2-9]?C[^r]?t?[1-9]?$',
         '^[2-9]?(C[dr]t?|Rt?)[1-9]?')
-))
+)
 
 # path to folder or geodatabase
 poly.dsn = "."
@@ -87,8 +92,17 @@ if(!cache_data) {
   } else {
     pedons_raw <- fetchNASIS()
   }
-  components <- try(fetchNASIS('components'))
+  
+  if(use_regex_ghz | !("genhz" %in% horizonNames(pedons_raw)))
+    pedons_raw$genhz <- aqp::generalize.hz(as.character(pedons_raw$hzname), 
+                                            new = gen.hz.rules.generic$n,
+                                            pat = gen.hz.rules.generic$p)
+  
+  
+  #components <- try(fetchNASIS('components'))
+  
   mu <- try(readOGR(dsn = poly.dsn, layer = poly.layer, stringsAsFactors=FALSE))
+  
   rasters <- try(list(
     # gis_ppt=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAP_mm_800m.tif'),
     # gis_tavg=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAAT_800m.tif'),

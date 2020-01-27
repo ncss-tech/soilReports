@@ -205,7 +205,9 @@ pedons_spdf <<- res$pedons_spdf
     my.env <- new.env()
     sys.source('config.R', my.env)
     sys.source('util.R', my.env)
+    
     res <- loadReportData()
+    
     my.env$input <- isolate(input)
     my.env$peds <- getPedonsByPattern(input, res$pedons,
                                    input$s.mu,
@@ -215,7 +217,8 @@ pedons_spdf <<- res$pedons_spdf
                                    input$taxon_kind,
                                    input$phase_pattern)
     my.env$s <- summarize.component(my.env$peds)
-    my.env$genhz <- factor(my.env$peds$genhz, 
+    
+    my.env$peds$genhz <- factor(my.env$peds$genhz, 
                            levels = guessGenHzLevels(my.env$peds)$levels)
     
     # render in constructed environment
