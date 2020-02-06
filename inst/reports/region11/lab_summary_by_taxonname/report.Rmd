@@ -12,7 +12,7 @@ output:
       smooth_scroll: no
 params:
    series: !r as.character("Miami")
-   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/lab_summary_by_taxonname/Generic_rules.R"))
+   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/lab_summary_by_taxonname/genhz_rules/Generic_rules.R"))
 editor_options: 
   chunk_output_type: console
 ---
