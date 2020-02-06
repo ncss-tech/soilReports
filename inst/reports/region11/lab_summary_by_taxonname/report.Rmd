@@ -62,7 +62,7 @@ trellis.par.set(tpg)
 ```{r fetch and format}
 # load NASIS data
 l <- fetchNASISLabData()
-f <- fetchNASIS_pedons()
+f <- fetchNASIS()
 
 lh <- horizons(l)
 lp <- site(l)
