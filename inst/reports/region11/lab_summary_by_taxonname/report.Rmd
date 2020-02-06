@@ -12,7 +12,7 @@ output:
       smooth_scroll: no
 params:
    series: !r as.character("Miami")
-   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/lab_summary_by_taxonname/genhz_rules/Generic_rules.R"))
+   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/lab_summary_by_taxonname/Generic_rules.R"))
 editor_options: 
   chunk_output_type: console
 ---
@@ -174,7 +174,7 @@ for (i in unique(idx)){
 
 ## Profile Plots
 
-```{r profile plots}
+```{r profile plots, eval=FALSE}
 cols <- brewer.pal(n = length(levels(l$genhz)), name = "Set1") 
 hz.names <- levels(l$genhz)
 l$genhz.soil_color <- cols[match(l$genhz, hz.names)] # assign a color to each generalized horizon label
