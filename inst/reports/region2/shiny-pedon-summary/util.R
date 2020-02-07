@@ -310,11 +310,11 @@ summarize.component <- function(f.i) {
   # determine type of missing data
   missing.genhz.IDs$missing.genhz <- apply(missing.genhz.IDs[, -1], 1, function(i) {
     if(any(i) & ! all(i))
-      return('<span style="color:orange; font-weight:bold;">some</span>')
+      return('some')
     if(all(i))
-      return('<span style="color:red; font-weight:bold;">all</span>')
+      return('all')
     else
-      return('<span style="color:green;">none</span>')
+      return('none')
   })
 
   

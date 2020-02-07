@@ -7,34 +7,7 @@ jquery: null
 smart: no
 keep_md: no
 ---
-<!-- shiny-pedon-summary (v1.0) -- instance created 2020-02-03 16:34:25-->  
 
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-	.report.name <- 'shiny-pedon-summary'
-	.report.version <- '1.0'
-	.report.description <- 'Interactively subset and summarize NASIS pedon data from one or more map units'
-```
-<!-- shiny-pedon-summary (v1.0) -- instance created 2020-01-27 14:35:53-->  
-
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-	.report.name <- 'shiny-pedon-summary'
-	.report.version <- '1.0'
-	.report.description <- 'Interactively subset and summarize NASIS pedon data from one or more map units'
-```
-<!-- shiny-pedon-summary (v1.0) -- instance created 2020-01-27 14:16:49-->  
-
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-	.report.name <- 'shiny-pedon-summary'
-	.report.version <- '1.0'
-	.report.description <- 'Interactively subset and summarize NASIS pedon data from one or more map units'
-```
-  <!-- shiny-pedon-summary (v0.2) -- instance created 2018-01-03 08:11:25-->  
-  
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-.report.name <- 'shiny-pedon-summary'
-.report.version <- '1.0'
-.report.description <- 'interactively subset and summarize NASIS pedon data from one or more map units'
-```
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='center', fig.retina=2, dev='png', antialias='cleartype')
 ```
@@ -77,12 +50,12 @@ groupedProfilePlot(peds, groups = 'taxonname', label='pedon_id',
 ```
 
 ### Slab-wise Profile plot
-Blue line shows the median slab value for the selected set of pedons, with the 25th to 75th percentile envelope shown in gray. Thick red line shows the values from selected modal pedon.
+Blue line shows the median slab value for the selected set of pedons, with the 5th to 95th percentile envelope shown in gray. Thick red line shows the values from selected modal pedon.
 ```{r,fig.width=8, fig.height=8}
 sl <- slab(peds, fm = as.formula(paste0(" ~ ",input$thematic_field)))
 a <- xyplot(top ~ p.q50, data=sl, ylab='Depth',
-            xlab=paste0(input$thematic_field,'\nmedian bounded by 25th and 75th percentiles'),
-            lower=sl$p.q25, upper=sl$p.q75, ylim=c(250,-5),
+            xlab=paste0(input$thematic_field,'\nmedian bounded by 5th and 95th percentiles'),
+            lower=sl$p.q5, upper=sl$p.q95, ylim=c(250,-5),
             panel=panel.depth_function, 
             prepanel=prepanel.depth_function,
             cf=sl$contributing_fraction, aspect = 1.5,
