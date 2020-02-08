@@ -62,7 +62,7 @@ trellis.par.set(tpg)
 ```{r fetch and format}
 # load NASIS data
 l <- fetchNASISLabData()
-f <- fetchNASIS_pedons()
+f <- fetchNASIS()
 
 lh <- horizons(l)
 lp <- site(l)
@@ -174,7 +174,7 @@ for (i in unique(idx)){
 
 ## Profile Plots
 
-```{r profile plots}
+```{r profile plots, eval=FALSE}
 cols <- brewer.pal(n = length(levels(l$genhz)), name = "Set1") 
 hz.names <- levels(l$genhz)
 l$genhz.soil_color <- cols[match(l$genhz, hz.names)] # assign a color to each generalized horizon label

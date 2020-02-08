@@ -50,7 +50,8 @@ remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dep
      + [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
      + [DMU Difference Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/dmu-diff)
      + [QA Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/QA-summary)
-
+     + [Shiny Pedon Summary](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/shiny-pedon-summary)
+     
   * Region 11
      + [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
      + [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/mupolygon_summary_by_project)
@@ -66,6 +67,8 @@ remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dep
   * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
   * [DMU differences](http://ncss-tech.github.io/example-reports/dmu-diff-example.html)
   * [QA Summary](http://ncss-tech.github.io/example-reports/QA-summary-example.html)
+  * [NEW: Shiny Pedon Summary - interactive plots and tables for pedon data](https://ncss-tech.github.io/soilReports/docs/shiny-pedon-summary/shiny-pedon_loafercreek-taxadjuncts.PNG)
+
 
 
 ## Run a Report - Example: Map Unit Comparison report

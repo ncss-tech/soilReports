@@ -19,7 +19,7 @@ library(reshape2)
 
 ### set options
   # in demo mode, loafercreek and gopheridge datasets are used from soilDB
-  demo_mode <- FALSE
+  demo_mode <- TRUE
   
   # store pedons etc in Rda files?
   cache_data <- FALSE

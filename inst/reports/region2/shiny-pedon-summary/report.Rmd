@@ -69,7 +69,7 @@ if(!input$thematic_field %in% c("moist_soil_color","dry_soil_color")) {
               prepanel=prepanel.depth_function,
               cf=sl$contributing_fraction, aspect = 1.5,
               layout=c(1,1), scales=list(x=list(alternating=1)))
-  
+
   if(!is.na(input$modal_pedon)) {
     modalped <- horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),]) 
     #TODO: select modal pedon, need to query additional component data? or use dropdown box of available peds
@@ -181,7 +181,7 @@ if(!is.na(input$modal_pedon)) {
 
 ### Aspect
 ```{r,fig.width=8, fig.height=8}
-if(nrow(site(peds)) > 2)
+if(sum(!is.na(peds$aspect_field)) > 2)
   aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
 if(!is.na(input$modal_pedon)) {
   modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
