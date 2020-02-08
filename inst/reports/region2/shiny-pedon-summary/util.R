@@ -66,6 +66,30 @@ getPedonsByPattern <- function(input, s.pedons, musym,
   }
 }
 
+diaghzplot2 <- function (f, v, grid.label = "pedon_id") 
+{
+  id <- idname(f)
+  s <- site(f)
+  v <- names(s)[na.omit(match(v, names(s)))]
+  m <- s[, v]
+  m <- as.data.frame(lapply(m, factor, levels = c("FALSE", "TRUE")))
+  m.plot <- t(as.matrix(as.data.frame(lapply(m, as.numeric))))
+  n.vars <- ncol(m)
+  n.profiles <- nrow(m)
+  if(n.vars > 0 & n.profiles > 0) {
+    par(mar = c(1, 6, 6, 1))
+    image(x = 1:n.vars, y = 1:n.profiles, z = m.plot, axes = FALSE, col = c(grey(0.9), "RoyalBlue"), 
+          xlab = "", ylab = "", ylim = c(0.5, n.profiles + 0.5))
+    axis(side = 2, at = 1:n.profiles, labels = s[[grid.label]], 
+         las = 1, cex.axis = 1, tick = FALSE)
+    axis(side = 3, at = 1:n.vars, labels = v, las = 2, 
+         cex.axis = 1)
+    abline(h = 1:(n.profiles + 1) - 0.5)
+    abline(v = 1:(n.vars + 1) - 0.5)
+  }
+}
+
+
 #########Dylan functions
 
 tps.standard <- list(plot.symbol=list(col=1, cex=1, pch=1), 

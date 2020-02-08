@@ -7,6 +7,7 @@ library(rgdal)
 library(raster)
 library(leaflet)
 library(mapview)
+library(leafem)
 
 library(xtable)
 library(knitr)
@@ -41,10 +42,11 @@ options(p.low.rv.high=p.low.rv.high, q.type=q.type,
         ml.profile.smoothing=ml.profile.smoothing)
 
 # "generic" gen.hz.rules
-#   TODO: handle caret, primes etc.
+#   TODO: handle caret, primes, virgule etc.
 gen.hz.rules.generic <- list(
   n = c('Oi',
         'A',
+        'E',
         'BA',
         'Bt',
         'Bw',
@@ -56,8 +58,9 @@ gen.hz.rules.generic <- list(
         'C',
         'Cr'),
   p = c('O',
-        '^[2-9]?[AE]B?C?p?d?t?[1-9]?$',
-        '^[2-9]?BA?E?t?[1-9]?$',
+        '^[2-9]?AB?C?p?d?t?[1-9]?$',
+        'E',
+        '^[2-9]?BA?t?[1-9]?$',
         '^[2-9]?Btb?[1-9]?$',
         '^[2-9]?Bw[1-9]?$',
         '^[2-9]?Btqc?m?[1-9]?$',
@@ -69,10 +72,15 @@ gen.hz.rules.generic <- list(
         '^[2-9]?(C[dr]t?|Rt?)[1-9]?')
 )
 
+# mapview options
+mapviewOptions(basemaps = mapviewGetOption("basemaps")[c(4,5,3)])
+
 # path to folder or geodatabase
-poly.dsn = "."
+poly.dsn = "/path/to/GDB/yourGDBorFolder"
+
 # layer or shapefile name (without .shp)
-poly.layer = "gopheridge_spatial"
+poly.layer = "ca630_a"
+
 # bounding polygon layer (currently not used)
 poly.bounds = "ca630_b"
 
@@ -81,6 +89,9 @@ if(!cache_data) {
     # load two datasets from soilDB
     data("loafercreek", package="soilDB")
     data("gopheridge", package="soilDB")
+    
+    site(loafercreek)$mollic.epipedon <- FALSE
+    
     loafergopher <- aqp::union(list(loafercreek, gopheridge))
     
     hzidname(loafergopher) <- 'phiid'
