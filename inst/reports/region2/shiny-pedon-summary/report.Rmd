@@ -51,7 +51,7 @@ groupedProfilePlot(peds, groups = 'taxonname', label='pedon_id',
 
 ```{r width=40, height=30}
 pedon_locations <- sf::st_as_sf(as(peds,'SpatialPointsDataFrame'))
-      slot(mapView(pedon_locations, label=pedon_locations$pedon_id, map.types=c("Stamen.TopOSMRelief",
+      slot(mapView(pedon_locations, height=2000, width=2000, label=pedon_locations$pedon_id, map.types=c("Stamen.TopOSMRelief",
                                                 "Esri.WorldTopoMap",
                                                 "Esri.WorldImagery",
                                                 "OpenStreetMap.Mapnik")), 'map') 
