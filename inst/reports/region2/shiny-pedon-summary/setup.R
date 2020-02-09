@@ -5,11 +5,11 @@
 
 ## note: this will not update installed packages... could lead to dependency-related errors
 ## packages + deps from CRAN
-.packages.to.get <- c('soilDB','sharpshootR','rgdal',
-                      'raster','leaflet','mapview',
+.packages.to.get <- c('aqp','soilDB','sharpshootR','rgdal',
+                      'raster','leaflet','mapview','leafem',
                       'latticeExtra','rmarkdown','plyr',
                       'reshape2','xtable','knitr',
-                      'shiny','flexdashboard')
+                      'shiny','flexdashboard','DT')
 
 
 ## packages from GH, no deps

@@ -30,7 +30,7 @@ f <- peds
 site(f) <- s$mgz
 site.i <- site(f)
 
-kable(site.i[order(site.i$musym, site.i$pedon_id), c('musym', 'pedon_id', 'taxonname', 'taxonkind', 'pedontype', 'bedrckdepth', 'taxpartsize', 'taxsubgrp', 'missing.genhz')])
+kable(site.i[order(site.i$musym, site.i$pedon_id), c('musym', 'pedon_id', 'taxonname', 'taxonkind', 'pedontype', 'bedrckdepth', 'taxpartsize', 'taxsubgrp', 'missing.genhz')], row.names = FALSE, align = 'c')
 ```
 
 ## MUSYM: `r input$s.mu`; Component: `r input$component_name`; Modal: `r input$modal_pedon`
@@ -209,7 +209,23 @@ TODO: Print component plant data
 
 #### Field-described versus Generalized Horizonation
 ```{r} 
-kable(table(peds$genhz,peds$hzname))
+    if(length(peds)) {
+      m <- as.matrix(table(peds$hzname,peds$genhz))
+      colz <- colnames(m)
+      rowz <- rownames(m)
+      x <- length(colz)
+      y <- length(rowz)
+      buf <- data.frame(field.hz=rowz)
+      for(i in 1:x) {
+        buf <- cbind(buf, data.frame(m[,i]))
+      }
+      colnames(buf) <- c("Field HZ", colz)
+      rownames(buf) <- NULL
+      DT::datatable(buf, options = list(
+        pageLength = 250
+      ))
+    }
+#kable(table(peds$genhz,peds$hzname))
 ```
 
 #### Horizonation Network Graph
@@ -245,7 +261,7 @@ kable(s$dt)
 ```
 
 ### Diagnostics plot
-```{r,fig.width=12, fig.height=8}
+```{r,fig.width=12, fig.height=10}
  if(length(peds) & nrow(diagnostic_hz(peds))) {
       #return(diagnostic_hz(peds))
       v.possible <- c("anthropic epipedon","abrupt textural change",
@@ -283,8 +299,8 @@ kable(s$dt)
 ```
 
 ### Mapunit Summary
-```{r}
-print(s$pmg,fig.width=12, fig.height=8)
+```{r fig.height=30, fig.width=15}
+print(s$pmg)
 ```
 
 -----------------------------------------

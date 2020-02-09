@@ -1,6 +1,7 @@
 ---
 title: "SHINY PEDON SUMMARY"
-output: flexdashboard::flex_dashboard
+output: 
+  flexdashboard::flex_dashboard
 runtime: shiny
 ---
 
@@ -8,11 +9,12 @@ Inputs {.sidebar data-width=300}
 -------------------------------------
 ### INPUT
 ```{r, warning=FALSE, echo=FALSE, results='hide', message=FALSE}  
-# REPORT SETTINGS 
-source('config.R')
     
 # ABSTRACTED APPLICATION LOGIC
 source('util.R')
+
+# REPORT SETTINGS 
+source('config.R')
 ```        
 
 ```{r, warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
@@ -20,99 +22,6 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE, fig.align='c
                       
 if(!exists("loaded"))
   loaded <<- FALSE
-
-loadReportData <- function() {
-  if(!loaded) {
-      if(!any(file.exists(c("pedon_cache.Rda"))) | !cache_data) { 
-        source("config.R")
-        if(!inherits(pedons_raw, 'try-error')) {
-          # keep only pedons with non-NA coord
-          good.idx <- which(!is.na(pedons_raw$x_std)) 
-          pedons <- pedons_raw[good.idx, ]           
-          
-          #initalize spatial object
-          coordinates(pedons) <- ~ x_std + y_std     
-          
-          # set spatial reference
-          proj4string(pedons) <- '+proj=longlat +datum=WGS84'
-          
-          pedons$musym <- rep("<missing>", length(pedons))
-          
-          # extract spatial data + site level attributes for each pedon
-          pedons_spdf <- as(pedons, 'SpatialPointsDataFrame')
-          
-          if(!inherits(mu, 'try-error')) {
-            #transform to polygon coordinate reference system
-            pedons_spdf <- spTransform(pedons_spdf, proj4string(mu)) 
-            
-            # do the overlay on linework
-            musymz <- (pedons_spdf %over% mu)$MUSYM 
-            
-            # note: that this copies the MUSYM attribute back to the
-            # __non-transformed__ SPC object.
-            site(pedons)$MUSYM <- musymz  
-            site(pedons)$musym <- musymz
-            
-            #makes sure musym is also available in the SPDF object. 
-            pedons_spdf$MUSYM <- musymz  
-            pedons_spdf$musym <- musymz
-          }
-          
-          pedons$musym <- factor(pedons$musym)
-          pedons$taxonname <- factor(pedons$taxonname)
-          
-          if(!inherits(rasters, 'try-error')) {
-            
-            # transform to raster coordinate reference 
-            #  system (assumes common between all rasters)
-            pedons_spdf <- spTransform(pedons_spdf,
-                                       proj4string(rasters[[1]]))
-            
-            # extract from raster stack at points
-            l.res <- lapply(rasters, extract, pedons_spdf)
-            
-            # attach raster data to site-level data of SPC
-            l.res <- as.data.frame(l.res, stringsAsFactors=FALSE)
-            l.res$peiid <- pedons_spdf$peiid
-            
-            site(pedons) <- l.res
-            
-            if(!is.null(pedons$gis_geomorphons)) {
-              # assign geomorphon labels
-              geomorphon.labels <- c('flat', 'summit', 'ridge', 'shoulder', 
-                                     'spur', 'slope', 'hollow', 'footslope',
-                                     'valley', 'depression')
-              pedons$gis_geomorphons <- factor(pedons$gis_geomorphons, 
-                                               levels=1:10, 
-                                               labels=geomorphon.labels)
-            }
-          }
-        }
-        
-        if(cache_data) {
-          #if there was no cache but caching is on, save the data for next time
-          save(pedons,file = "pedon_cache.Rda") 
-        }
-        
-      } else if (file.exists("pedon_cache.Rda")) { 
-        #if there is a cache...
-         if(cache_data) { 
-           
-           # and caching is ON, load the data from file rather than NASIS
-           load("pedon_cache.Rda")
-           print("Loaded data from cache.")
-          
-         } else { 
-           
-           # and caching is OFF, make it a backup 
-           file.rename(from="pedon_cache.Rda",
-                       to="pedon_cache.Rda.bak")
-         }
-      }
-    loaded <<- TRUE
-  }
-  return(list(pedons=pedons, pedons_spdf=pedons_spdf))
-}
 
 res <- loadReportData()
 
@@ -123,16 +32,14 @@ pedons_spdf <<- res$pedons_spdf
 
 ```{r, warning=FALSE, echo=FALSE, error=FALSE}
     inputPanel({
-        #selectInput("s.mu", label = "Select target map unit: ",choices = c("",levels(factor(site(pedons)$MUSYM))), selectize=T)
         textInput("s.mu",
-                  label="Pattern [musym]:",
+                  label=sprintf("Pattern [%s]:", musym.col),
                   value=".*")
     })
     inputPanel({
         textInput("report_name",
-                              label="Report name:",
-                              value=paste0("ReportName_",Sys.Date()))
-      
+                  label="Report name:",
+                  value=paste0("ReportName_", Sys.Date()))
     })
     inputPanel({
         textInput("pedon_pattern", 
@@ -148,7 +55,8 @@ pedons_spdf <<- res$pedons_spdf
         selectInput("taxon_kind", 
                     label = "Select [taxonkind]: ",
                     choices = c(".*","family","series",
-                                "taxadjunct","taxon above family")) 
+                                "taxadjunct",
+                                "taxon above family")) 
     })
   
     inputPanel({
@@ -186,8 +94,10 @@ pedons_spdf <<- res$pedons_spdf
   
   inputPanel(selectInput("thematic_field", 
               label = "Select horizon data to plot: ",  
-              choices = c("clay", "sand", "phfield",                                "total_frags_pct", "moist_soil_color",     
-              "dry_soil_color"), selected = "clay"))
+              choices = c("clay", "sand", "phfield",
+                          "total_frags_pct", 
+                          "moist_soil_color",
+                           "dry_soil_color"), selected = "clay"))
   
   #inputPanel( {
   actionButton("refresh_tabular", "Refresh Tabular")
@@ -200,7 +110,6 @@ pedons_spdf <<- res$pedons_spdf
     # global variables pedons and pedons_spdf shared between chunks
     pedons <<- res$pedons
     pedons_spdf <<- res$pedons_spdf
-    print("foo")
   })
     
   observeEvent(input$export_report, {
@@ -453,11 +362,9 @@ if(loaded)
                                input$phase_pattern)
     
     if(length(peds)) {
-      depthz <- profileApply(peds, estimateSoilDepth,
-                                       p="Cr|Cd|R|qm")
+      depthz <- profileApply(peds, estimateSoilDepth, p="Cr|Cd|R|qm")
       
-      return({plot(density(depthz,
-                          na.rm=TRUE),
+      return({plot(density(depthz, na.rm=TRUE),
                           main="Density plot of depth to Cr, Cd, R, or *qm horizon",
                           xlab="Depth, centimeters")
               abline(v=c(25,50,100,150))
@@ -470,7 +377,7 @@ if(loaded)
 
 ```{r, warning=FALSE, echo=FALSE, error=FALSE}
 if(loaded)
-  renderTable( {
+  renderDataTable( {
     peds <- getPedonsByPattern(input, pedons, 
                              input$s.mu,
                              input$pedon_pattern, 
@@ -480,7 +387,18 @@ if(loaded)
                              input$phase_pattern)
   
     if(length(peds)) {
-      table(aqp::getSoilDepthClass(peds, p="Cr|Cd|R|qm")$depth.class)
+      dc <- aqp::getSoilDepthClass(peds, p="Cr|Cd|R|qm")$depth.class
+      dc <- factor(as.character(dc), 
+                   levels = c("very.shallow","shallow",
+                              "mod.deep","deep","very.deep"),
+                   labels = c("very shallow","shallow",
+                              "moderately deep","deep","very deep"))
+      dct <- as.data.frame(base::table(dc))
+      names(dct) <- c("Depth Class", "# of Profiles")
+      DT::datatable(dct, options = list(
+        bPaginate = FALSE
+        
+      ))
     }
   }, striped=TRUE, rownames = FALSE)
 ```
@@ -815,7 +733,7 @@ TODO: Print vegplot data
 #### Field-described versus Generalized Horizonation
 ```{r, warning=FALSE, echo=FALSE, error=FALSE} 
 if(loaded)
-  renderTable({
+  renderDataTable({
     peds <- getPedonsByPattern(input, pedons, 
                                input$s.mu,
                                input$pedon_pattern, 
@@ -823,9 +741,22 @@ if(loaded)
                                input$pedon_list,
                                input$taxon_kind,
                                input$phase_pattern)
-    if(length(peds))
-      xtable(table(peds$genhz,peds$hzname))
-    else return(-1)
+    if(length(peds)) {
+      m <- as.matrix(table(peds$hzname,peds$genhz))
+      colz <- colnames(m)
+      rowz <- rownames(m)
+      x <- length(colz)
+      y <- length(rowz)
+      buf <- data.frame(field.hz=rowz)
+      for(i in 1:x) {
+        buf <- cbind(buf, data.frame(m[,i]))
+      }
+      colnames(buf) <- c("Field HZ", colz)
+      rownames(buf) <- NULL
+      DT::datatable(buf, options = list(
+        pageLength = 10
+      ))
+    }
   })
 ```
 

@@ -13,6 +13,8 @@ library(xtable)
 library(knitr)
 library(latticeExtra)
 library(rmarkdown)
+library(shiny)
+library(DT)
 
 library(plyr)
 library(reshape2)
@@ -76,13 +78,16 @@ gen.hz.rules.generic <- list(
 mapviewOptions(basemaps = mapviewGetOption("basemaps")[c(4,5,3)])
 
 # path to folder or geodatabase
-poly.dsn = "/path/to/GDB/yourGDBorFolder"
+poly.dsn <- "/home/andrew/geodata/soils/loafergopher"
 
 # layer or shapefile name (without .shp)
-poly.layer = "ca630_a"
+poly.layer <- "loafergopher"
+
+# column name for group (musym) in shapefile
+musym.col <- "ntnlmsy"
 
 # bounding polygon layer (currently not used)
-poly.bounds = "ca630_b"
+poly.bounds <- "ca630_b"
 
 if(!cache_data) {
   if(demo_mode) {
@@ -126,7 +131,40 @@ if(!cache_data) {
     gis_geomorphons=raster('L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif')
   ))
 }
+# keep only pedons with non-NA coord
+good.idx <- which(!is.na(pedons_raw$x_std)) 
+pedons <- pedons_raw[good.idx, ]           
 
+#initalize spatial object
+coordinates(pedons) <- ~ x_std + y_std     
+
+# set spatial reference
+proj4string(pedons) <- '+proj=longlat +datum=WGS84'
+
+pedons$musym <- rep("<missing>", length(pedons))
+
+# extract spatial data + site level attributes for each pedon
+pedons_spdf <- as(pedons, 'SpatialPointsDataFrame')
+
+if(!inherits(mu, 'try-error')) {
+  #transform to polygon coordinate reference system
+  pedons_spdf <- spTransform(pedons_spdf, proj4string(mu)) 
+  
+  # do the overlay on linework
+  musymz <- (pedons_spdf %over% mu)[[musym.col]]
+  
+  # note: that this copies the MUSYM attribute back to the
+  # __non-transformed__ SPC object.
+  pedons$MUSYM <- musymz  
+  pedons$musym <- musymz
+  
+  #makes sure musym is also available in the SPDF object. 
+  pedons_spdf$MUSYM <- musymz  
+  pedons_spdf$musym <- musymz
+}
+
+pedons$musym <- factor(pedons$musym)
+pedons$taxonname <- factor(pedons$taxonname)
 
 #these are defaults to ensure that the report won't error on startup
 # you can adjust them if you have a preset pattern in mind, 

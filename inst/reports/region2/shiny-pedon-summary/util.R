@@ -1,5 +1,65 @@
 #util.R
 
+loadReportData <- function() {
+  if(!loaded) {
+    if(!any(file.exists(c("pedon_cache.Rda"))) | !cache_data) {
+      
+      if(!inherits(pedons_raw, 'try-error')) {
+        
+        if(!inherits(rasters, 'try-error')) {
+          
+          # transform to raster coordinate reference 
+          #  system (assumes common between all rasters)
+          pedons_spdf <- spTransform(pedons_spdf,
+                                     proj4string(rasters[[1]]))
+          
+          # extract from raster stack at points
+          l.res <- lapply(rasters, extract, pedons_spdf)
+          
+          # attach raster data to site-level data of SPC
+          l.res <- as.data.frame(l.res, stringsAsFactors=FALSE)
+          l.res$peiid <- pedons_spdf$peiid
+          
+          site(pedons) <- l.res
+          
+          if(!is.null(pedons$gis_geomorphons)) {
+            # assign geomorphon labels
+            geomorphon.labels <- c('flat', 'summit', 'ridge', 'shoulder', 
+                                   'spur', 'slope', 'hollow', 'footslope',
+                                   'valley', 'depression')
+            pedons$gis_geomorphons <- factor(pedons$gis_geomorphons, 
+                                             levels=1:10, 
+                                             labels=geomorphon.labels)
+          }
+        }
+      }
+      
+      if(cache_data) {
+        #if there was no cache but caching is on, save the data for next time
+        save(pedons,file = "pedon_cache.Rda") 
+      }
+      
+    } else if (file.exists("pedon_cache.Rda")) { 
+      #if there is a cache...
+      if(cache_data) { 
+        
+        # and caching is ON, load the data from file rather than NASIS
+        load("pedon_cache.Rda")
+        print("Loaded data from cache.")
+        
+      } else { 
+        
+        # and caching is OFF, make it a backup 
+        file.rename(from="pedon_cache.Rda",
+                    to="pedon_cache.Rda.bak")
+      }
+    }
+    loaded <<- TRUE
+  }
+  return(list(pedons=pedons, pedons_spdf=pedons_spdf))
+}
+
+
 getPedonsByPattern <- function(input, s.pedons, musym, 
                                compname, upid,
                                pedon_list, taxon_kind,                                   phasename) {
@@ -10,28 +70,26 @@ getPedonsByPattern <- function(input, s.pedons, musym,
     if(is.null(musym))
       musym <- ".*"
     musymmatch <- grepl(pattern=musym, s.pedons$musym)
+    #print(musymmatch)
     
-    #print(paste0("upid:",upid))
     if(is.null(upid))
       upid <- ".*"
     upidmatch <- grepl(pattern=upid, s.pedons$pedon_id)
     
     taxname <- as.character(s.pedons$taxonname)
     taxname[is.na(s.pedons$taxonname)]  <- ""
-    #print(paste0("compname:",compname))
+    
     if(is.null(compname) | !length(compname))
       compname <- ".*"
     compmatch <- grepl(pattern=compname, taxname)
     
     localphase <- as.character(s.pedons$phasename)
     localphase[is.na(s.pedons$localphase)]  <- ""
-    #print(paste0("phasename:",phasename))
+    
     if(is.null(phasename))
       phasename <- ".*"
     phasematch <- grepl(pattern=phasename, localphase)
     
-    
-    #print(paste0("taxon_kind:",taxon_kind))
     if(is.null(taxon_kind))
       taxon_kind <- ".*"
     if(taxon_kind == "any")
@@ -52,7 +110,7 @@ getPedonsByPattern <- function(input, s.pedons, musym,
     #     # should this allow for regex too? 
     #   }
     #} else {
-      idx.match <- which(upidmatch & compmatch & phasematch & taxkindmatch)
+      idx.match <- which(musymmatch & upidmatch & compmatch & phasematch & taxkindmatch)
     #}
     
     if(inherits(s.pedons, 'SoilProfileCollection'))
@@ -333,15 +391,18 @@ summarize.component <- function(f.i) {
   
   # determine type of missing data
   missing.genhz.IDs$missing.genhz <- apply(missing.genhz.IDs[, -1], 1, function(i) {
-    if(any(i) & ! all(i))
-      return('some')
+    if(all(is.na(i)))
+      return('<span style="color:red; font-weight:bold;">all</span>')
+    
+    if(any(i) & !all(i))
+      return('<span style="color:yellow; font-weight:bold;">some</span>')
+    
     if(all(i))
-      return('all')
-    else
-      return('none')
+      return('<span style="color:red; font-weight:bold;">all</span>')
+    
+    return('<span style="color:green;">none</span>')
   })
 
-  
   ## check generalized hz classification
   gen.hz.classification.table <- table(h.i$genhz, h.i$hzname)
   

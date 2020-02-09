@@ -1,3 +1,4 @@
+2020-02-11: major aesthetic upgrade; adds DT::datatable dependency -> version 1.0.1
 2020-01-26: major rework and cleanup of code; better error handling -> version 1.0
 2017-12-20: incorporated filtering option local phase (also, added to soilDB and fetchNASIS)
 2017-09-06: incorporated filtering option for taxon kind
