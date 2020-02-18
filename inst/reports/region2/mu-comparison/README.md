@@ -45,3 +45,12 @@ reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
 1. Make sure that all raster data sources are [GDAL-compatible formats](http://www.gdal.org/formats_list.html): GeoTiff, ERDAS IMG, ArcGRID, etc. (not ESRI FGDB)
 2. Make sure that the map unit polygon data source is an [OGR-compatible format](http://www.gdal.org/ogr_formats.html): ESRI SHP, ESRI FGDB, etc.
 
+You may have to manually install the `latticeExtra` and `caTools` packages.
+```r
+# install previous version of latticeExtra until we are at R >= 3.6.0
+install.packages('https://cran.r-project.org/src/contrib/Archive/latticeExtra/latticeExtra_0.6-28.tar.gz', repos = NULL)
+
+# temporary CRAN fix - get previous version of caTools
+install.packages('https://cran.microsoft.com/snapshot/2019-04-15/bin/windows/contrib/3.6/caTools_1.17.1.2.zip', repos = NULL)
+```
+
