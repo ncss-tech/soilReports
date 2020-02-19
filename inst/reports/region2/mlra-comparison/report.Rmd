@@ -8,7 +8,6 @@ output:
     keep_md: no
 ---
 
-
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 # setup
 library(knitr, quietly=TRUE)
@@ -33,6 +32,7 @@ library(cluster, quietly=TRUE)
 library(clhs, quietly=TRUE)
 library(randomForest, quietly=TRUE)
 library(ggplot2, quietly = TRUE)
+library(kableExtra, quietly = TRUE)
 
 
 ## load report-specific functions
@@ -131,6 +131,8 @@ Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki
  * Non-overlapping boxes are a strong indication that the central tendencies (of select raster data) differ.
  * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
 
+
+#### PRISM
 ```{r, echo=FALSE, fig.width=8, fig.height=15}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
@@ -152,6 +154,8 @@ bwplot(mlra ~ value | variable, data=mlra.prism.data.long,
 ```
 
 
+#### ISSR-800
+Aggregate [soil properties](https://github.com/ncss-tech/ISSR-800/) developed from SSURGO/STATSGO at 800m resolution.
 ```{r, echo=FALSE, fig.width=8, fig.height=10}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
@@ -171,6 +175,7 @@ bwplot(mlra ~ value | variable, data=mlra.soil.data.long,
        })
 ```
 
+#### Gamma Spectroscopy
 ```{r, echo=FALSE, fig.width=8, fig.height=10}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
@@ -190,6 +195,7 @@ bwplot(mlra ~ value | variable, data=mlra.namrad.data.long,
        })
 ```
 
+#### Population Density
 ```{r, echo=FALSE, fig.width=8, fig.height=6}
 tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.5), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
 
@@ -222,22 +228,33 @@ These plots are a smooth alternative ([denisty estimation](https://en.wikipedia.
    + narrow peaks vs. wide "mounds"
    + short vs. long "tails"
 
-```{r, echo=FALSE, fig.width=8, fig.height=15}
+#### PRISM
+```{r, echo=FALSE, fig.width=8, fig.height=3, results='hide'}
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 
 # dynamic setting of columns in legend
 n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 
+## TODO: this is simple syntax but very wasteful memory management
 # compute densities and re-scale to {0,1}
 density.plot.data <- ddply(mlra.prism.data.long, c('mlra', 'variable'), scaled.density)
 
-xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.prism.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+# split into list
+zzz <- split(density.plot.data, density.plot.data$variable)
 
-rm(density.plot.data)
+lapply(zzz, function(i) {
+  
+  xyplot(y ~ x | variable, groups=mlra, data=i, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+  
+})
+
+# cleanup
+rm(density.plot.data, zzz)
 ```
 
-
-```{r, echo=FALSE, fig.width=8, fig.height=9}
+#### ISSR-800
+Aggregate [soil properties](https://github.com/ncss-tech/ISSR-800/) developed from SSURGO/STATSGO at 800m resolution.
+```{r, echo=FALSE, fig.width=8, fig.height=3, results='hide'}
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 
 # dynamic setting of columns in legend
@@ -246,13 +263,21 @@ n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 # compute densities and re-scale to {0,1}
 density.plot.data <- ddply(mlra.soil.data.long, c('mlra', 'variable'), scaled.density)
 
-xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.soil.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+# split into list
+zzz <- split(density.plot.data, density.plot.data$variable)
 
-rm(density.plot.data)
+lapply(zzz, function(i) {
+  
+  xyplot(y ~ x | variable, groups=mlra, data=i, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+  
+})
+
+# cleanup
+rm(density.plot.data, zzz)
 ```
 
-
-```{r, echo=FALSE, fig.width=8, fig.height=9}
+#### Gamma Spectroscopy
+```{r, echo=FALSE, fig.width=8, fig.height=3, results='hide'}
 tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
 
 # dynamic setting of columns in legend
@@ -261,9 +286,17 @@ n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
 # compute densities and re-scale to {0,1}
 density.plot.data <- ddply(mlra.namrad.data.long, c('mlra', 'variable'), scaled.density)
 
-xyplot(y ~ x | variable, groups=mlra, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(unique(mlra.namrad.data.long$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+# split into list
+zzz <- split(density.plot.data, density.plot.data$variable)
 
-rm(density.plot.data)
+lapply(zzz, function(i) {
+  
+  xyplot(y ~ x | variable, groups=mlra, data=i, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, auto.key=list(lines=TRUE, points=FALSE, columns=n.cols), par.settings=tps, type=c('l','g'))
+  
+})
+
+# cleanup
+rm(density.plot.data, zzz)
 ```
 
 
@@ -464,7 +497,18 @@ mu.stats <- ddply(mlra.prism.data.long, c('variable', 'mlra'), f.summary, p=p.qu
 # print medians
 dg <- c(0, rep(2, times=length(unique(mu.stats$variable))))
 mu.stats.wide <- dcast(mu.stats, mlra ~ variable, value.var = 'Q50')
-kable(mu.stats.wide, row.names=FALSE, caption = 'Median Values', align = 'r', digits=dg, col.names=c('MLRA', names(mu.stats.wide)[-1]))
+
+kable_styling(
+  kable(
+    mu.stats.wide, 
+    row.names=FALSE, 
+    caption = 'Median Values', 
+    align = 'r', 
+    digits=dg, 
+    col.names=c('MLRA', names(mu.stats.wide)[-1])
+  ), 
+  font_size = 12
+)
 ```
 
 ```{r, echo=FALSE, results='asis'}
@@ -475,7 +519,12 @@ l_ply(split(mu.stats, mu.stats$variable), function(i) {
   var.name <- unique(i$variable)
   i$variable <- NULL
   dg <- c(0, rep(2, times=length(p.quantiles)), 3)
-  print(kable(i, caption = var.name, row.names=FALSE, align = 'r', digits=dg, col.names=c('MLRA', names(i)[-1])))
+  
+  print(
+    kable_styling(
+      kable(i, caption = var.name, row.names=FALSE, align = 'r', digits=dg, col.names=c('MLRA', names(i)[-1]))
+      , font_size = 12, full_width = FALSE)
+  )
 })
 
 ```
@@ -520,7 +569,10 @@ if(length(unique(mlra.geomorphons.data$mlra)) > 1) {
 
 ```{r, echo=FALSE}
 # print and truncate to 2 decimal places
-kable(mlra.geomorphons.data.wide, digits = 3, caption = '')
+kable_styling(
+  kable(mlra.geomorphons.data.wide, digits = 3, caption = 'Geomorphon Proportions')
+  , font_size = 12, full_width = FALSE
+)
 ```
 
 
@@ -558,7 +610,11 @@ barchart(mlra ~ Freq, groups=nlcd, data=mlra.nlcd.data, horiz=TRUE, stack=TRUE, 
 ```{r, echo=FALSE}
 # print and truncate to 2 decimal places
 mlra.nlcd.data.wide <- dcast(mlra.nlcd.data, mlra ~ nlcd, value.var = 'Freq')
-kable(mlra.nlcd.data.wide, digits = 2, caption = '')
+
+kable_styling(
+  kable(mlra.nlcd.data.wide, digits = 2, caption = 'Landcover Proportions')
+  , font_size = 10, full_width = FALSE
+)
 ```
 
 
