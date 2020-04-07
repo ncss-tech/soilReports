@@ -13,5 +13,5 @@
 .has.shiny.interface <- FALSE
 
 # packages + deps from CRAN
-packages.to.get <- c('rmarkdown', 'rgdal', 'raster', 'plyr', 'reshape2', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools')
+packages.to.get <- c('rmarkdown', 'rgdal', 'raster', 'plyr', 'reshape2', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools','RColorBrewer')
 gh.packages.to.get <- c("ncss-tech/aqp","ncss-tech/soilDB","ncss-tech/sharpshootR")

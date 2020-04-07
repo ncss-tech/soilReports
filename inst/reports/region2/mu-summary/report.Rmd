@@ -140,6 +140,7 @@ library(latticeExtra, quietly=TRUE)
 library(cluster, quietly=TRUE)
 library(MASS, quietly=TRUE)
 library(clhs, quietly=TRUE)
+library(RColorBrewer, quietly=TRUE)
 
 # load configuration
 source('config.R')

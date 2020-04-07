@@ -26,7 +26,7 @@ options(width=100, stringsAsFactors=FALSE)
 ### TODO: verify they are not running an old report version that might rely on outdated packages?
 
 ### check if needed CRAN packages are installed
-packz <- c("MASS","rgdal","rgeos","raster","plyr","latticeExtra","cluster","clhs","randomForest","spdep","reshape2","aqp","sharpshootR")
+packz <- c("MASS","rgdal","rgeos","raster","plyr","latticeExtra","cluster","clhs","randomForest","spdep","reshape2","aqp","sharpshootR","RColorBrewer")
 newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
 
 # Last two (aqp and sharpshootR) are (in general) installed from GitHub. Maybe in the future (when more stable) we will rely more heavily on CRAN.

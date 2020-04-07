@@ -16,7 +16,7 @@
 .paths.to.copy <- c('report.Rmd','custom.R','config.R','categorical_definitions.R','README.md','changes.txt')
 .update.paths.to.copy <- c('report.Rmd','custom.R', 'categorical_definitions.R','README.md','changes.txt')
 
-.packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'reshape2', 'raster', 'plyr', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071')
+.packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'reshape2', 'raster', 'plyr', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071','RColorBrewer')
 
 ## packages from GH
 # dependencies should be satisfied by installing CRAN version first
