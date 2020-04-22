@@ -1,0 +1,611 @@
+---
+title: "PLSS DATA LOCATOR"
+output: 
+  flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+Column {.tabset data-width=200}
+-------------------------------------
+### Input PLSS Info
+```{r, warning=FALSE, echo=FALSE, results='hide', message=FALSE}  
+    
+# ABSTRACTED APPLICATION LOGIC - not needed yet
+#source('util.R')
+
+# REPORT SETTINGS 
+source('config.R')
+```        
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE, fig.align='center', fig.retina=2, dev='png', antialias='cleartype')
+
+observeEvent(input$export_report, {
+    # create output folder if needed
+    if(!dir.exists("output"))
+      dir.create("output")
+    
+    # build report environment with user-selected filter settings
+    my.env <- new.env()
+    sys.source('config.R', my.env)
+    sys.source('util.R', my.env)
+    
+    my.env$input <- isolate(input)
+    #jscode <- "shinyjs.clear = function() { history.go(0); }"
+   
+  })
+
+```
+
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+      # fluidPage(
+      # shinyjs::useShinyjs(),  
+      #   div(
+      # id="form",
+      fluidRow(
+        verbatimTextOutput("plot_clickinfo")
+      )
+      inputPanel({
+          textInput('id', "Site ID","0001")
+     }) 
+      inputPanel({
+          textInput('obsdate', "Observation Date (9/18/1987)","")
+     }) 
+      inputPanel({
+      textInput('m', "Meridian","MT20") #convert to choice list
+      # supply as a lookup list
+      #selectInput('m', "Meridian (MT20)", selected = paste(plssMeridians$state, plssMeridians$meridian, #sep=''), choices = paste(plssMeridians$state, plssMeridians$meridian, plssMeridians$meridan_name, sep=', '), width = '400px')
+      })
+      inputPanel({
+      textInput('s', "Section ('20')","14")
+      })
+      inputPanel({
+      textInput('t', "Township ('16N')","16N")
+      })
+      inputPanel({
+      textInput('r', "Range ('26W')","26W")
+      })
+      # inputPanel({
+      # checkboxInput("mlxy", "Run Most-likely XY", FALSE)
+      # })
+      # inputPanel({
+      # list(
+      #   #selectInput('q', "Q-Section", list("NW","NE","SE","SW"), selected = FALSE, multiple = FALSE, selectize = FALSE, size = 4, width = 100),
+      #   #selectInput('qq', "QQ-Section", list("NW","NE","SE","SW"), selected = FALSE, multiple = FALSE, selectize = FALSE, size = 4, width = 100)
+      #   textInput('q', "Q-Section ('NW')","", width = 100),
+      #   textInput('qq', "QQ-Section ('NE')","", width = 100)
+      #   )
+      # })
+      # inputPanel({
+      # 
+      # })
+      inputPanel({
+      actionButton("submit","Write XY to table", width = 140)
+      })
+      inputPanel({
+      actionButton("clear","Clear features", width = 140)
+      })
+      # )
+      # )
+      
+      
+    
+```
+
+
+```{r, warning=FALSE, echo=FALSE, error=FALSE}    
+reactive({
+    #if (input$submit > 0) {
+      df <- isolate(data.frame(id=input$id, obsdate=input$obsdate, m=input$m,s=as.numeric(input$s),t=input$t,r=input$r,q='',qq='',
+      asp=input$asp,slp=input$slp,elev=input$elev))
+      print(df)
+      df <- cbind(df, lat=input$mymap_draw_new_feature$geometry$coordinates[[2]], lon=input$mymap_draw_new_feature$geometry$coordinates[[1]],
+      radius_m=round(input$mymap_draw_new_feature$properties$radius[[1]], 0))
+      
+      
+      #write.csv(df, 'C:\\PLSS_test\\PLSS_data.csv', row.names=FALSE, append=TRUE)
+      #write.csv(df, paste(path, "PLSS_data.csv", sep=''), row.names=FALSE, append=TRUE)
+      #print(df)
+      #print(input$mymap_draw_new_feature$geometry$coordinates[[2]])
+      #return(list(df=df))
+  #  }
+
+  })
+  
+  output$plot_clickinfo <- renderPrint({
+    cat("Clicked Coordinates:\n", lat=input$mymap_draw_new_feature$geometry$coordinates[[2]], lon=input$mymap_draw_new_feature$geometry$coordinates[[1]])
+  })
+     
+```  
+
+### Input Site Info
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+ 
+      inputPanel({
+      textInput('asp', "Aspect(degrees) ('270')","")
+      })
+      inputPanel({
+      textInput('slp', "Slope(%) ('15')","")
+      })
+      inputPanel({
+      textInput('elev', "Elevation(ft) ('6240')","")
+      })
+      inputPanel({
+      actionButton("mlxy","Most-likely location")
+      })
+
+```
+
+Column {.tabset data-width=800}
+-------------------------------------
+### Interactive Map
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+# set up initial map state
+output$mymap <- renderLeaflet({
+    # example data - plot sectional geometry
+    
+    #p.1 <- data.frame(m='MT20', t='16N', r='26W', s='14', q='', qq='', lon=0, lat=0, slp=15, asp=180, elev=4000, stringsAsFactors = FALSE)
+    #p.1 <- data.frame(m=input$m,s=as.numeric(input$s),t=input$t,r=input$r,q=input$q,qq=input$qq, stringsAsFactors = FALSE)
+    p.1 <- data.frame(m=input$m,s=as.numeric(input$s),t=input$t,r=input$r, q='', qq='', stringsAsFactors = FALSE)
+    # make a copy of the original input df for later use in most-likely section or reconstruct from original reactive inputs?
+    d.1 <- p.1
+    f <- formatPLSS(p.1)
+    p.1 <- PLSS2LL_1(f)
+    #print(p.1$plssid)
+    p.plss <- LL2PLSS(p.1$lon[1], p.1$lat[1], returnlevel = 'S')
+    
+    r <- raster(ncol=4, nrow=4)
+    cells <- cellFromRowColCombine(r, 1:4, 1:4)
+    extent(r) <- extent(p.plss$geom)
+    r[] <- cells
+    r <- rasterToPolygons(r) 
+    
+    # TODO: add optional QQQ grid and labels to the mapview layers? Too much detail since the webservice only fetches down to QQ?
+    r@data$qqlabels <- c('NWNW','NENW','NWNE','NENE','SWNW','SENW','SWNE','SENE','NWSW','NESW','NWSE','NESE','SWSW','SESW','SWSE','SESE')
+    #row.names(r) <- r$qqlabels
+    
+      leaflet() %>%
+      addProviderTiles("Esri.WorldImagery") %>%
+      addProviderTiles("OpenTopoMap", group ='OpenTopoMap') %>%
+      addProviderTiles("Stamen.TopOSMRelief", group ='Stamen.TopOSMRelief') %>% 
+      addPolygons(data=r, group = 'section layout', fillOpacity = 0, color="orange", weight = 2) %>%
+      addPolygons(data=r, group = 'subsection labels', fillOpacity = 0, color="orange", weight = 0, label = ~qqlabels, labelOptions = labelOptions(textOnly=TRUE, textsize = "14px", fillopacity=2, opacity=1)) %>% 
+      #addPolygons(data=p.plss$geom[1], group = 'section boundary', fillOpacity = 0, color="blue", weight = 2) %>%
+      #addCircles(data=a5[idx, ], radius=10, fillOpacity = 0.5, color="orange", group = 'most-likely location') %>%
+      #addMarkers(data=p.1, group = 'centroid') %>%
+      addDrawToolbar(
+        targetGroup='draw', 
+        polylineOptions = drawPolylineOptions(metric=FALSE, 
+        shapeOptions = drawShapeOptions(stroke = TRUE, color = "#03f", weight = 3, opacity = 1, fill = TRUE, fillColor = "#03f", fillOpacity = 0.4, dashArray = NULL, lineCap = NULL, lineJoin = NULL, clickable = TRUE, pointerEvents = NULL, smoothFactor = 1, noClip = TRUE)), 
+        circleOptions = drawCircleOptions(metric=TRUE), 
+        polygonOptions = FALSE, rectangleOptions = FALSE, markerOptions = FALSE, 
+        editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))  %>%
+      addLayersControl(baseGroups = c("Esri.WorldImagery", "OpenTopoMap", "Stamen.TopOSMRelief"), overlayGroups = c('section layout', 'subsection labels', 'most-likely location', 'draw'), options = layersControlOptions(collapsed=FALSE)
+      )
+    })
+    
+leafletOutput("mymap")    
+
+
+######## Observers ########
+## most-likely location triggered by clicking action button on site info tab once inputs are entered
+observeEvent(input$mlxy, {  
+    # conditional - check for slp, asp, elev inputs here first, not sure how to make this work?  Do I need to check for all inputs here?
+    output$mymap <- renderLeaflet({
+      df <- try(data.frame(id=input$id,
+                   obsdate=input$obsdate,
+                   m=input$m,
+                   s=as.numeric(input$s),
+                   t=input$t,
+                   r=input$r, 
+                   q='',
+                   qq='',
+                   asp=input$asp,
+                   slp=input$slp,
+                   elev=input$elev,
+                   lat=input$mymap_draw_new_feature$geometry$coordinates[[2]],
+                   lon=input$mymap_draw_new_feature$geometry$coordinates[[1]],
+                   radius_m=round(input$mymap_draw_new_feature$properties$radius[[1]], 0)
+                   ))
+
+  if(inherits(df, 'try-error')) {
+    stop("Missing input")
+  }
+
+    p.1 <- data.frame(m=input$m,s=as.numeric(input$s),t=input$t,r=input$r, q='', qq='', stringsAsFactors = FALSE)
+    # make a copy of the original input df for later use in most-likely section or reconstruct from original reactive inputs?
+    d.1 <- p.1
+    f <- formatPLSS(p.1)
+    p.1 <- PLSS2LL_1(f)
+    #print(p.1$plssid)
+    p.plss <- LL2PLSS(p.1$lon[1], p.1$lat[1], returnlevel = 'S')
+    
+    r <- raster(ncol=4, nrow=4)
+    cells <- cellFromRowColCombine(r, 1:4, 1:4)
+    extent(r) <- extent(p.plss$geom)
+    r[] <- cells
+    r <- rasterToPolygons(r) 
+    
+    # determine most-likely location within the section
+    # lower z here downloads fast and then does not need to be resampled later on
+    x <- try(get_elev_raster(p.plss$geom, z = 9, src = "aws"))
+    
+    # extract extent
+    d <- extent(p.plss$geom)
+    # expand extent slightly
+    dd <- d*1.20
+    # crop to section geometry extent
+    x3 <- try(crop(x, dd))
+    
+    if(inherits(x, 'try-error')) {
+    stop("Missing input")
+    }
+
+    # create raster stack of slope and aspect - slope in percent!
+    rs <- terrain(x3, opt=c('slope', 'aspect'), unit='degrees')
+    # add elevation to raster stack and convert to feet
+    rs$elevation <- x3*3.28
+    # convert aspect degrees to radians
+    #rs$aspect <-  (rs$aspect * (180/pi))
+    # transform to cos(aspect_rad)
+    #rs$aspect <- cos(rs$aspect)
+
+    # sample points
+    a <- sampleRegular(rs, ncell(rs), sp=TRUE)
+    #points(a, add=TRUE)
+
+    # slope and elev and aspect_cos
+    a1 <- a@data[, c(1,3,2)]
+    #d5 <- as.data.frame(d1@data[idx.pt, c('slope','elevation', 'aspect_cos')])
+    d5 <- as.data.frame(input$slp,input$elev,cos(input$asp))
+    d5 <- as.data.frame(d.1[, c('slp','elev', 'asp')]) # could be built from the reactive inputs
+    #d5 <- as.data.frame(slp=15,elev=4500,asp=cos(200))
+    names(d5) <- c('slope', 'elevation', 'aspect')
+    a1 <- rbind(a1, d5)
+
+    # run dissimilarity calc
+    a2 <- as.matrix(daisy(a1, metric='euclidean', stand = TRUE))
+
+    # trim matrix to last column, also removing last value from last column
+    a4 <- a2[-(nrow(a)+1), -c(1:nrow(a))]
+
+    # rank distances
+    a$distance <- a4
+    # get index to minimum distance value
+    idx <- which.min(a$distance)
+    # plot min distance point
+    #points(a[idx, ], pch=0, cex=1, lwd=2, add=TRUE)
+
+    # create a grid  based on our elevation grid
+    rg <- rs$elevation
+    # convert points in 'a' to pixels
+    r1 <- rasterize(a, rg, a@data$distance)
+
+    # removes edge effects from raster
+    r1[cellFromRow(r1, 1)] <- NA
+    r1[cellFromRow(r1, nrow(r1))] <- NA
+    r1[cellFromCol(r1, 1)] <- NA
+    r1[cellFromCol(r1, ncol(r1))] <- NA
+
+    # remove edge effects - NA's from sampled data - warning this could be blowing up the row indexing!
+    idx <- complete.cases(a@data)
+    a5 <- a[idx, ]
+
+    idx <- which( a5$distance < quantile(a5$distance)[2])
+    # test plot - working to this point, still need to add to the leaflet output below!!!!
+    plot(rs$elevation)
+    points(a5[idx, ], pch=0, cex=1, lwd=2)
+    
+    
+    leaflet() %>%
+      addProviderTiles("Esri.WorldImagery") %>%
+      addProviderTiles("OpenTopoMap", group ='OpenTopoMap') %>%
+      addProviderTiles("Stamen.TopOSMRelief", group ='Stamen.TopOSMRelief') %>% 
+      addPolygons(data=r, group = 'section layout', fillOpacity = 0, color="orange", weight = 2) %>%
+      addPolygons(data=r, group = 'subsection labels', fillOpacity = 0, color="orange", weight = 0, label = ~qqlabels, labelOptions = labelOptions(textOnly=TRUE, textsize = "14px", fillopacity=2, opacity=1)) %>% 
+      #addPolygons(data=p.plss$geom[1], group = 'section boundary', fillOpacity = 0, color="blue", weight = 2) %>%
+      addCircles(data=a5[idx, ], radius=10, fillOpacity = 0.5, color="orange", group = 'most-likely location') %>%
+      #addMarkers(data=p.1, group = 'centroid') %>%
+      addDrawToolbar(
+        targetGroup='draw', 
+        polylineOptions = drawPolylineOptions(metric=FALSE, 
+        shapeOptions = drawShapeOptions(stroke = TRUE, color = "#03f", weight = 3, opacity = 1, fill = TRUE, fillColor = "#03f", fillOpacity = 0.4, dashArray = NULL, lineCap = NULL, lineJoin = NULL, clickable = TRUE, pointerEvents = NULL, smoothFactor = 1, noClip = TRUE)), 
+        circleOptions = drawCircleOptions(metric=TRUE), 
+        polygonOptions = FALSE, rectangleOptions = FALSE, markerOptions = FALSE, 
+        editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))  %>%
+      addLayersControl(baseGroups = c("Esri.WorldImagery", "OpenTopoMap", "Stamen.TopOSMRelief"), overlayGroups = c('section layout', 'subsection labels', 'most-likely location', 'draw'), options = layersControlOptions(collapsed=FALSE)
+      )
+    })
+    
+    
+leafletOutput("mymap")    
+
+})
+
+ #renderPrint({
+
+  observeEvent(input$mymap_draw_new_feature,{
+    feature <- input$mymap_draw_new_feature
+    print(feature)
+
+  })
+
+## write inputs to table, after map has been clicked and write XY button is clicked  
+  observeEvent(input$submit, {
+    # condition - check that map has been clicked
+    #if(!is.null(mymap_draw_new_feature$geometry$coordinates)) {
+    
+    #setup empty table
+  df0 <- data.frame(id=character(0),
+                    obsdate=character(0), 
+                    m=character(0),
+                    s=character(0),
+                    t=character(0),
+                    r=character(0),
+                    q=character(0),
+                    qq=character(0),
+                    asp=character(0),
+                    slp=character(0),
+                    elev=character(0),
+                    lat=character(0), 
+                    lon=character(0), 
+                    radius_m=character(0))
+  
+  # make file if it doesnt exist using empty df
+  if(!file.exists(sprintf("%s/PLSS_data.csv", path))) {
+    write.csv(df0, sprintf("%s/PLSS_data.csv", path), row.names=FALSE)
+  }
+  
+  # catch errors with incomplete inputs -- to add a new value you need to have put a point on map
+  # AB: I think this operation (adding a record) should probably happen automatically 
+  # i.e. when you click leaflet map, or some other button, not here, as the table is rendered...
+  
+  df <- try(data.frame(id=input$id,
+                   obsdate=input$obsdate,
+                   m=input$m,
+                   s=as.numeric(input$s),
+                   t=input$t,
+                   r=input$r, 
+                   q='',
+                   qq='',
+                   asp=input$asp,
+                   slp=input$slp,
+                   elev=input$elev,
+                   lat=input$mymap_draw_new_feature$geometry$coordinates[[2]],
+                   lon=input$mymap_draw_new_feature$geometry$coordinates[[1]],
+                   radius_m=round(input$mymap_draw_new_feature$properties$radius[[1]], 0)))
+
+  if(inherits(df, 'try-error')) {
+    stop("Missing input")
+  }
+  
+# return the QQ parts from the clicked location - via webservice
+qq.plss <- LL2PLSS(input$mymap_draw_new_feature$geometry$coordinates[[1]],
+                   input$mymap_draw_new_feature$geometry$coordinates[[2]],
+                   returnlevel = 'I') 
+qq <- substr(qq.plss$plss, nchar(qq.plss$plss) - 3, nchar(qq.plss$plss))
+
+#print(qq)
+df$q <- substr(qq, 1, 2)
+df$qq <- substr(qq, 3, 4)
+
+# return the QQ parts from the clicked location - spatial intersection with idealized sectional layout
+xy.c <- data.frame(x=input$mymap_draw_new_feature$geometry$coordinates[[2]], y=input$mymap_draw_new_feature$geometry$coordinates[[1]])
+xy.c <- data.frame(x=x, y=y)
+coordinates(xy.c) <- ~ x + y
+proj4string(xy.c) <- proj4string(r)
+qq1 <- over(xy.c, r)
+#print(qq1)
+
+#df$q <- substr(qq1, 1, 2)
+#df$qq <- substr(qq1, 3, 4)
+#print(qq.plss$plss) #Not always getting the expected output here for protracted section parts!
+
+# write output - need to use write.table to be able to use append
+if(nrow(df)) {
+  write.table(df, sprintf("%s/PLSS_data.csv", path), na="<NA>", 
+              row.names=FALSE, col.names = FALSE, sep = ",", append = TRUE)
+}
+renderDataTable({
+# read back in
+d <- read.csv(sprintf("%s/PLSS_data.csv", path), header = TRUE, stringsAsFactors = TRUE)
+
+# produce table output for render
+DT::datatable(d, options = list(pageLength = 100))
+
+    })
+    #}
+  })
+  
+  ## clear coordinates and refresh map to clear features
+  observeEvent(input$clear, { 
+    output$plot_clickinfo <- renderPrint({
+      cat("Clicked Coordinates:\n")
+    })
+    
+    output$mymap <- renderLeaflet({
+     p.1 <- data.frame(m=input$m,s=as.numeric(input$s),t=input$t,r=input$r, q='', qq='', stringsAsFactors = FALSE)
+    # make a copy of the original input df for later use in most-likely section or reconstruct from original reactive inputs?
+    d.1 <- p.1
+    f <- formatPLSS(p.1)
+    p.1 <- PLSS2LL_1(f)
+    #print(p.1$plssid)
+    p.plss <- LL2PLSS(p.1$lon[1], p.1$lat[1], returnlevel = 'S')
+    
+    r <- raster(ncol=4, nrow=4)
+    cells <- cellFromRowColCombine(r, 1:4, 1:4)
+    extent(r) <- extent(p.plss$geom)
+    r[] <- cells
+    r <- rasterToPolygons(r) 
+    
+    # TODO: add optional QQQ grid and labels to the mapview layers? Too much detail since the webservice only fetches down to QQ?
+    r@data$qqlabels <- c('NWNW','NENW','NWNE','NENE','SWNW','SENW','SWNE','SENE','NWSW','NESW','NWSE','NESE','SWSW','SESW','SWSE','SESE')
+    #row.names(r) <- r$qqlabels
+    
+    leaflet() %>%
+      addProviderTiles("Esri.WorldImagery") %>%
+      addProviderTiles("OpenTopoMap", group ='OpenTopoMap') %>%
+      addProviderTiles("Stamen.TopOSMRelief", group ='Stamen.TopOSMRelief') %>% 
+      addPolygons(data=r, group = 'section layout', fillOpacity = 0, color="orange", weight = 2) %>%
+      addPolygons(data=r, group = 'subsection labels', fillOpacity = 0, color="orange", weight = 0, label = ~qqlabels, labelOptions = labelOptions(textOnly=TRUE, textsize = "14px", fillopacity=2, opacity=1)) %>% 
+      #addPolygons(data=p.plss$geom[1], group = 'section boundary', fillOpacity = 0, color="blue", weight = 2) %>%
+      #addCircles(data=a5[idx, ], radius=10, fillOpacity = 0.5, color="orange", group = 'most-likely location') %>%
+      #addMarkers(data=p.1, group = 'centroid') %>%
+      addDrawToolbar(
+        targetGroup='draw', 
+        polylineOptions = drawPolylineOptions(metric=FALSE, 
+        shapeOptions = drawShapeOptions(stroke = TRUE, color = "#03f", weight = 3, opacity = 1, fill = TRUE, fillColor = "#03f", fillOpacity = 0.4, dashArray = NULL, lineCap = NULL, lineJoin = NULL, clickable = TRUE, pointerEvents = NULL, smoothFactor = 1, noClip = TRUE)), 
+        circleOptions = drawCircleOptions(metric=TRUE), 
+        polygonOptions = FALSE, rectangleOptions = FALSE, markerOptions = FALSE, 
+        editOptions = editToolbarOptions(selectedPathOptions = selectedPathOptions()))  %>%
+      addLayersControl(baseGroups = c("Esri.WorldImagery", "OpenTopoMap", "Stamen.TopOSMRelief"), overlayGroups = c('section layout', 'subsection labels', 'most-likely location', 'draw'), options = layersControlOptions(collapsed=FALSE)
+      )
+    })
+    
+leafletOutput("mymap")
+    
+  })
+    
+
+```
+
+### Table
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+renderDataTable({
+  #setup empty table
+  df0 <- data.frame(id=character(0),
+                    obsdate=character(0),
+                    m=character(0),
+                    s=character(0),
+                    t=character(0),
+                    r=character(0),
+                    q=character(0),
+                    qq=character(0),
+                    asp=character(0),
+                    slp=character(0),
+                    elev=character(0),
+                    lat=character(0),
+                    lon=character(0),
+                    radius_m=character(0))
+
+  # make file if it doesnt exist using empty df
+  if(!file.exists(sprintf("%s/PLSS_data.csv", path))) {
+    write.csv(df0, sprintf("%s/PLSS_data.csv", path), row.names=FALSE)
+  } 
+  # else {
+  # # read back in
+  # d <- read.csv(sprintf("%s/PLSS_data.csv", path), header = TRUE, stringsAsFactors = TRUE)
+  # }
+#   
+#   # catch errors with incomplete inputs -- to add a new value you need to have put a point on map
+#   # AB: I think this operation (adding a record) should probably happen automatically 
+#   # i.e. when you click leaflet map, or some other button, not here, as the table is rendered...
+#   
+#   df <- try(data.frame(id=input$id,
+#                    obsdate=input$obsdate,
+#                    m=input$m,
+#                    s=as.numeric(input$s),
+#                    t=input$t,
+#                    r=input$r, 
+#                    q='',
+#                    qq='',
+#                    asp=input$asp,
+#                    slp=input$slp,
+#                    elev=input$elev,
+#                    lat=input$mymap_draw_new_feature$geometry$coordinates[[2]],
+#                    lon=input$mymap_draw_new_feature$geometry$coordinates[[1]],
+#                    radius_m=input$mymap_draw_new_feature$properties$radius[[1]]))
+# 
+#   if(inherits(df, 'try-error')) {
+#     stop("Missing input")
+#   }
+#   
+# # return the QQ parts from the clicked location
+# qq.plss <- LL2PLSS(input$mymap_draw_new_feature$geometry$coordinates[[1]],
+#                    input$mymap_draw_new_feature$geometry$coordinates[[2]],
+#                    returnlevel = 'I') 
+# qq <- substr(qq.plss$plss, nchar(qq.plss$plss) - 3, nchar(qq.plss$plss))
+# 
+# #print(qq)
+# df$q <- substr(qq, 1, 2)
+# df$qq <- substr(qq, 3, 4)
+# #print(qq.plss$plss) #Not always getting the expected output here for protracted section parts!
+# 
+# # write output - need to use write.table to be able to use append
+# if(nrow(df)) {
+#   write.table(df, sprintf("%s/PLSS_data.csv", path), na="<NA>", 
+#               row.names=FALSE, col.names = FALSE, sep = ",", append = TRUE)
+# }
+
+# read back in
+d <- read.csv(sprintf("%s/PLSS_data.csv", path), header = TRUE, stringsAsFactors = TRUE)
+
+# produce table output for render
+DT::datatable(d, options = list(pageLength = 100))
+
+})
+
+
+```
+
+### Outputs
+
+#### Download and Export Options
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+# add output section back in once reactivity is working better in this version
+fluidRow(tags$br(),
+                      column(width = 6, offset = 3,
+                             wellPanel(downloadButton(outputId = 'dl_ppc',
+                                                      label = 'Import file for Pedon PC',
+                                                      class = 'dlb'),
+                                       tags$br(), tags$br(),
+                                       downloadButton(outputId = 'dl_gpx',
+                                                      label = 'GPX file for import to NASIS',
+                                                      class = 'dlb'),
+                                       tags$br(), tags$br(),
+                                       downloadButton(outputId = 'dl_kml',
+                                                      label = 'Google Earth KML file for viewing',
+                                                      class = 'dlb'),
+                                       tags$br(), tags$br(),
+                                       downloadButton(outputId = 'dl_shp',
+                                                      label = 'Shapefile for viewing',
+                                                      class = 'dlb'),
+                                       tags$br(), tags$br(),
+                                       downloadButton(outputId = 'dl_png',
+                                                      label = 'png file of plot graphic',
+                                                      class = 'dlb'),
+                                       tags$head(tags$style(".dlb{width: 100%;}"))
+                            ) #wellpanel end
+                      )  # tabpanel end
+              )  # fluidrow end
+```
+
+
+### About
+
+#### PLSS Data Locator App
+
+This app is designed to help with locating soil survey data located in the Public Land Survey System (PLSS).  The app relies on the PLSS web services provided by the Bureau of Land Management(BLM).  There is a standard format which these services digest.  Additional functionality allows for deriving a mostly-like location within a sectional area based on the slope percent, slope aspect and elevation associated with each site location. The app depends on functions in the 'sharpshootR' package.
+
+#### Instructions for use
+
+The app can be run by either starting from scratch and building a data table of locations or modifying a pre-compiled set of PLSS data.
+
+#### To start:  
+
+1) Simply Enter the Meridian, township, range and section. 
+
+2) Use the GIS drawing tools to create a point by clicking on the interactive map.
+
+3) Clicked outputs can be viewed in the Table tab and are written out to a .csv file at the following system location:
+C:\Workspace2
+
+4) Enter optional site information to use the additional decision support provided by the 'most-likely location' feature.
+
+#### Update History
+
+3-30-2020: Initial concept
+
+
+
+
