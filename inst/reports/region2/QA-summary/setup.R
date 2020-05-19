@@ -10,13 +10,13 @@
 ## version number
 
 .report.name <- 'QA-summary'
-.report.version <- '0.4'
+.report.version <- '0.5'
 .report.description <- 'QA Summary Report'
 
 .paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
 .update.paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
 
-.packages.to.get <- c('knitr', 'rmarkdown', 'soilDB', 'latticeExtra', 'sharpshootR', 'ggplot2')
+.packages.to.get <- c('knitr', 'rmarkdown', 'soilDB', 'aqp', 'latticeExtra', 'sharpshootR', 'ggplot2', 'kableExtra')
 
 ## packages from GH, no deps
 .gh.packages.to.get <- c('soilDB', 'aqp', 'sharpshootR')
