@@ -10,11 +10,11 @@
 ## version number
 
 .report.name <- 'mu-comparison'
-.report.version <- '3.3.8'
+.report.version <- '3.3.9'
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 
-.paths.to.copy <- c('report.Rmd','custom.R','config.R','categorical_definitions.R','README.md','changes.txt')
-.update.paths.to.copy <- c('report.Rmd','custom.R', 'categorical_definitions.R','README.md','changes.txt')
+.paths.to.copy <- c('report.Rmd','custom.R','config.R','categorical_definitions.R','README.md','changes.txt','create-NASIS-import-files.R')
+.update.paths.to.copy <- c('report.Rmd','custom.R', 'categorical_definitions.R','README.md','changes.txt','create-NASIS-import-files.R')
 
 .packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'reshape2', 'raster', 'plyr', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071','RColorBrewer')
 

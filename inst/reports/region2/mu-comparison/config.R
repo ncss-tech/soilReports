@@ -113,12 +113,23 @@ scaleDensityCurves <- TRUE
 ### default will include a file-specific prefix and full list of MUSYMs summarized  #
 ### do not include .shp extension for shapefiles; automatically added by writeOGR() #
 #####################################################################################
-# shp.unsampled.fname <- 'un-sampled-polygons'# shapefile containing any unsampled polygons (usually too small or odd shape)
-# shp.stats.fname <- 'polygons-with-stats' # shapefile containing median values / most likely classes by delineation
-# shp.qc.fname <- 'poly-qc' # shapefile containing "proportion of samples outside 5-95% quantile range" by delineation
+# shapefile containing any unsampled polygons (usually too small or odd shape)
+# shp.unsampled.fname <- 'un-sampled-polygons'
 
-# csv.stats.fname <- 'poly-stats.csv' # comma-separated value file containing median values / most likely classes by delineation
-# csv.qc.fname <- 'poly-qc.csv' # comma-separated value file containing "proportion of samples outside 5-95% quantile range" by delineation
+# shapefile containing median values / most likely classes by delineation
+# shp.stats.fname <- 'polygons-with-stats' 
+
+# shapefile containing "proportion of samples outside 5-95% quantile range" by delineation
+# shp.qc.fname <- 'poly-qc' 
+
+# comma-separated value file containing quantiles by mapunit column level
+# csv.mucol.stats.fname <- 'mucol-stats.csv' 
+
+# comma-separated value file containing median values / most likely classes by delineation
+# csv.stats.fname <- 'poly-stats.csv' 
+
+# comma-separated value file containing "proportion of samples outside 5-95% quantile range" by delineation
+# csv.qc.fname <- 'poly-qc.csv' 
 
 ########################################################
 ### Add estimate of confidence to box and whisker plots ###
