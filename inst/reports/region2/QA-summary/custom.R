@@ -6,7 +6,7 @@ get_project_meta <- function(SS=TRUE, fixLineEndings=TRUE) {
   if(!requireNamespace('RODBC'))
     stop('please install the `RODBC` package', call.=FALSE)
   
-  q <- "SELECT projectiid, uprojectid, projectname, projectdesc
+  q <- "SELECT projectiid, uprojectid, projectname, CAST(projectdesc AS ntext) AS projectdesc
   
   FROM 
   project_View_1
