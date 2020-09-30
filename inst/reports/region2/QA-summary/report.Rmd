@@ -318,6 +318,8 @@ groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.ce
 
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85)
 
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ecec_r', col.label='ECEC (cmol[+] / kg)', col.legend.cex=0.85)
+
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.85)
 
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='base.sat', col.label='Base Saturation @ pH 7 (%)', col.legend.cex=0.85)
@@ -336,7 +338,6 @@ groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.ce
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85)
 
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ksat_r', col.label='Ksat (um/s)', col.legend.cex=0.85)
-
 
 groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='om_r', col.label='Organic Matter (%)', col.legend.cex=0.85)
 
@@ -431,5 +432,4 @@ update(p, xlab='', ylab='')
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")` and `aqp` version `r utils::packageDescription("aqp", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
-
 
