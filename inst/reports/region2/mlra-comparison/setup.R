@@ -7,7 +7,7 @@
 
 ## note: this will not update installed packages... could lead to dependency-related errors
 ## packages + deps from CRAN
-.packages.to.get <- c('knitr', 'rmarkdown', 'plyr', 'reshape2', 'clhs', 'devtools', 'randomForest', 'vegan', 'ggplot2', 'kableExtra')
+.packages.to.get <- c('knitr', 'rmarkdown', 'plyr', 'reshape2', 'clhs', 'devtools', 'randomForest', 'vegan', 'ggplot2', 'kableExtra', 'RColorBrewer')
 
 
 ## packages from GH, no deps

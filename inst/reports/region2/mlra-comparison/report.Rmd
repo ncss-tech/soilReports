@@ -33,7 +33,7 @@ library(clhs, quietly=TRUE)
 library(randomForest, quietly=TRUE)
 library(ggplot2, quietly = TRUE)
 library(kableExtra, quietly = TRUE)
-
+library(RColorBrewer, quietly = TRUE)
 
 ## load report-specific functions
 source('custom.R')
