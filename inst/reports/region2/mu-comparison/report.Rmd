@@ -35,6 +35,14 @@ if (sum(as.numeric(loaded)) != length(packz)) {
   geterrmessage()
 }
 
+### SANITY CHECK #2: make sure required report files are present
+required_src_files <- c("custom.R", "config.R", "categorical_definitions.R") 
+required_src <- required_src_files %in% list.files()
+
+if (any(!required_src)) {
+  stop("Required report files (%s) are missing in current directory (%s). Re-install your report instance with `soilReports::reportInit()`", paste0(required_src_files[required_src], collapse=","), getwd(), call. = FALSE)
+}
+
 ## load report-specific functions
 source('custom.R')
 
@@ -43,9 +51,18 @@ source('custom.R')
 # TODO: allow for batching from a basic report.Rmd
 source('config.R')
 
-### SANITY CHECK #2 - make sure the shapefile to be summarized exists and has the specified column
+# load the structures that define value:label:color for categorical plot. 
+#this defines the aliases and label:value:color sets for displaying categorical variables
+categorical.defs <- list()
+source("categorical_definitions.R") 
+#  updates the "section_toggle" variable defined at top of report 
+#  which will knit the appropriate plots for the specified categoricals from config.R
+
+
+### SANITY CHECK #3 - make sure the shapefile to be summarized exists and has the specified column
 ## load map unit polygons from OGR data source
 mu <- try(readOGR(dsn=mu.dsn, layer = mu.layer, stringsAsFactors = FALSE))
+
 if (class(mu) == 'try-error')
   stop(paste0('Cannot read map unit polygon/feature file: "', 
               mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
@@ -94,15 +111,16 @@ if (exists('mu.set')) {
 
 
 ### -----
-### Sanity check #4 - make sure output paths are valid (no illegal characters)
+### SANITY CHECK #4 - make sure output paths are valid (no illegal characters)
 ###
 # make an output directory if it doesn't exist
 if (!dir.exists('output')) 
   dir.create('./output')
 
-# shapefile output names; NB: writeOGR uses 'output' as the data source name, so just the base file name
-# note: concatenation of mu.set could result in illegal (too long) file names ~ 130 characters on windows
-# https://github.com/ncss-tech/soilReports/issues/93
+# shapefile/CSV output names; 
+
+# NB: writeOGR uses 'output' as the data source name, so just the base file name
+#     whereas the CSV file names end in .csv
 if (!exists('shp.unsampled.fname')) 
   shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
 if (!exists('shp.stats.fname')) 
@@ -118,6 +136,38 @@ if (!exists('csv.qc.fname'))
   csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'),'.csv')
 
 outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
+
+# SANITY CHECK #5: let the user know that things might not quite look right with tons of mapunit symbols
+if(length(mu.set) > 8) {
+  warning(sprintf("This report was designed to work with 1 to 8 map units. Found %s in `mu.set`. The report tabular and spatial output is stable for larger numbers of map units, but graphics and colors in the report itself may become cluttered or impossible to interpret.", length(mu.set)), call. = FALSE)
+}
+
+# SANITY CHECK #6: default names do not exceed Windows path length limits
+if (any(nchar(outputfiles) > 260)) {
+  
+  # shapefile containing any unsampled polygons (usually too small or odd shape)
+  shp.unsampled.fname <- 'un-sampled-polygons'
+  
+  # shapefile containing median values / most likely classes by delineation
+  shp.stats.fname <- 'polygons-with-stats'
+  
+  # shapefile containing "proportion of samples outside 5-95% quantile range" by delineation
+  shp.qc.fname <- 'poly-qc'
+  
+  # comma-separated value file containing quantiles by mapunit column level
+  csv.mucol.stats.fname <- 'mucol-stats.csv'
+  
+  # comma-separated value file containing median values / most likely classes by delineation
+  csv.stats.fname <- 'poly-stats.csv'
+  
+  # comma-separated value file containing "proportion of samples outside 5-95% quantile range" by delineation
+  csv.qc.fname <- 'poly-qc.csv'
+  
+  outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
+  
+  warning(sprintf("One or more SHP or output file paths exceeds 260 character limit when including all `mu.col` symbols (n = %s) in the name. Reverting to shorter (non-specific) file names. See options in config.R to customize output file names.", length(mu.set)), call. = FALSE)
+}
+
 if (any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
   stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
 }
@@ -130,13 +180,17 @@ mu <- mu[, mu.col, drop=FALSE]
 mu$pID <- seq(from=1, to=length(mu))
 
 if(cache.samples & file.exists('cached-samples.Rda')) {
+  
   message('Using cached raster samples...')
   .sampling.time <- 'using cached samples'
   load('cached-samples.Rda')
+  
 } else {
+  
   # suppressing warnings: these have to do with conversion of CRS of points
   # iterate over map units and sample rasters
   # result is a list
+  # 
   .timer.start <- Sys.time()
   sampling.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list,
                                                          pts.per.acre, progress = FALSE, 
@@ -170,12 +224,6 @@ if (nrow(d.circ) > 0) { ## TODO: could there ever be more than one type of circu
 d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
 d.cat$.id <- factor(d.cat$.id, levels = mu.set)
 d.cat.sub <- list()
-categorical.defs <- list()#this defines the aliases and label:value:color sets for displaying categorical variables
-
-# load the structures that define value:label:color for categorical plot. 
-source("categorical_definitions.R") 
-#  updates the "section_toggle" variable defined at top of report 
-#  which will knit the appropriate plots for the specified categoricals from config.R
 
 ### FORMATTING
 ## figure out reasonable figure heights for bwplots and density plots
