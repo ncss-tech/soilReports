@@ -30,14 +30,14 @@ findSafeVars <- function(x, id, tol=1e-5) {
     
     # treat 0 length as 0 variance
     if (length(low.sd) == 0)
-      return(NA)
+      return(names(i[, non.id.vars]))
     
     # get variable names associated with low SD
     bad.vars <- names(which(sapply(low.sd, isTRUE)))
   })
   
-  # reduce and get unique names; omit 0 length == NA
-  v <- unique(na.omit(unlist(v)))
+  # reduce and get unique names
+  v <- unique(unlist(v))
   
   if(length(v) > 0) {
     # remove from names
