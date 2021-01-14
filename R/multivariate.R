@@ -12,7 +12,7 @@ findSafeVars <- function(x, id, tol=1e-5) {
   n <- names(x)
   
   # find non-id vars
-  non.id.vars <- n[- match(id, n)]
+  non.id.vars <- n[-match(id, n)]
   
   # test must be applied over IDs
   # the group ID must be the first ID in `id`
@@ -23,11 +23,14 @@ findSafeVars <- function(x, id, tol=1e-5) {
   v <- lapply(xl, function(i) {
     
     # compute SD by variable, after removing ID columns
-    low.sd <- lapply(i[, non.id.vars], function(j) {
-      i.sd <- sd(j, na.rm=TRUE)
+    low.sd <- lapply(i[, non.id.vars, drop = FALSE], function(j) {
+      i.sd <- sd(j, na.rm = TRUE)
       return(i.sd < tol)
     } )
     
+    # treat 0 length as 0 variance
+    if (length(low.sd) == 0)
+      return(names(i[, non.id.vars]))
     
     # get variable names associated with low SD
     bad.vars <- names(which(sapply(low.sd, isTRUE)))
@@ -39,7 +42,7 @@ findSafeVars <- function(x, id, tol=1e-5) {
   if(length(v) > 0) {
     # remove from names
     idx <- match(v, non.id.vars)
-    non.id.vars <- non.id.vars[- idx]
+    non.id.vars <- non.id.vars[-idx]
   }
   
   return(non.id.vars)

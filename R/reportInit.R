@@ -148,7 +148,7 @@ reportUpdate <- function(reportName, outputDir=NULL) {
   if(dir.exists(outputDir))
     reportInit(reportName, outputDir, overwrite = TRUE, updateReport = TRUE)
   else {
-    message(sprintf("%s does not exist -- creating new report instance"))
+    message(sprintf("%s does not exist -- creating new report instance", reportName))
     reportInit(reportName, outputDir, overwrite = TRUE, updateReport = FALSE)
   }
     
