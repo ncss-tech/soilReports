@@ -57,8 +57,8 @@ nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE
 ## look for NA in mu.set
 
 # MU affected
-# must supply a FY, default to current year (?)
-mu.set <- get_projectmapunit2_from_NASISWebReport(mlrassoarea = '%', fiscalyear = format(Sys.Date(), "%Y"), projectname = project.metadata$projectname)
+# 2021-01-20: use this function now
+mu.set <- get_projectmapunit_from_NASISWebReport(projectname = project.metadata$projectname)
 
 # flag records that should be removed:
 mu.set$drop <- FALSE
