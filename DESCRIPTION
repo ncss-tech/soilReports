@@ -5,7 +5,7 @@ Description: R package container and convenience functions for soil data summary
 Version: 0.7
 Date: 2021-01-22
 Author: USDA-NRCS Soil Survey Staff
-Maintainer: Dylan Beaudette <dylan.beaudette@ca.usda.gov>
+Maintainer: Dylan Beaudette <dylan.beaudette@usda.gov>
 License: GPL (>= 3)
 URL: https://github.com/ncss-tech/soilReports
 BugReports: https://github.com/ncss-tech/soilReports/issues
