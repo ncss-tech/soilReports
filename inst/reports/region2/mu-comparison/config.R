@@ -1,6 +1,6 @@
 ### MU GIS Summary Report
-### 2018-05-29
-### D.E. Beaudette and J. Wood
+### 2021-01-22
+### D.E. Beaudette, A.G. Brown, and J. Wood
 ###
 ### configuration file, edit as needed
 ###

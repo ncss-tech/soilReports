@@ -1,3 +1,4 @@
+2021-01-22 (3.4.0): updated packages to reflect changes in aqp
 2019-08-30 (3.3.8): adding draft categorical definitions for Newhall SMR
 2019-05-15 (3.3.7): fix related to https://github.com/ncss-tech/soilReports/issues/87
 2018-05-29 (3.3.6): density curves are now truncated at min/max values, NASS CDL now included in the default config, adding TODO items for multivariate summary / low-variance warnings

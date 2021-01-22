@@ -24,9 +24,9 @@ options(width = 100, stringsAsFactors = FALSE)
 ### SANITY CHECK #1 - make sure user has run reportSetup recently
 
 ### check if needed CRAN packages are installed
-packz <- c("MASS","rgdal","rgeos","raster","plyr",
-           "latticeExtra","cluster","clhs","randomForest",
-           "spdep","reshape2","aqp","sharpshootR","RColorBrewer")
+packz <- c("MASS", "rgdal", "rgeos", "raster", "plyr",
+           "latticeExtra", "cluster", "clhs", "randomForest",
+           "spdep", "reshape2", "aqp", "sharpshootR", "RColorBrewer")
 newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
 
 loaded <- lapply(packz, FUN = require, character.only = TRUE, quietly = TRUE)
