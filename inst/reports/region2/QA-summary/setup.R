@@ -10,16 +10,16 @@
 ## version number
 
 .report.name <- 'QA-summary'
-.report.version <- '0.5'
+.report.version <- '0.6'
 .report.description <- 'QA Summary Report'
 
 .paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
 .update.paths.to.copy <- c('report.Rmd', 'custom.R', 'README.md', 'changes.txt', 'style.css')
 
-.packages.to.get <- c('knitr', 'rmarkdown', 'soilDB', 'aqp', 'latticeExtra', 'sharpshootR', 'ggplot2', 'kableExtra')
+.packages.to.get <- c('knitr', 'rmarkdown', 'soilDB', 'aqp', 'latticeExtra', 'sharpshootR', 'ggplot2', 'kableExtra', 'mapview')
 
 ## packages from GH, no deps
-.gh.packages.to.get <- c('soilDB', 'aqp', 'sharpshootR')
+.gh.packages.to.get <- c('soilDB', 'aqp', 'sharpshootR', 'mapview')
 
 # flag to indicate that shiny.Rmd and not report.Rmd is the primary markdown file; convention should probably be that shiny.Rmd has option to generate a static report.Rmd-type output. 
 # currently the pedon summary demo using Shiny supports this option and uses a file called report.Rmd as the template for the static output

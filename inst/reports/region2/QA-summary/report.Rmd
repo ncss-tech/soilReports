@@ -3,11 +3,41 @@ title: null
 output:
   html_vignette:
     mathjax: null
-    jquery: null
     smart: no
     keep_md: no
     css: style.css
 ---
+
+
+<!-- can we override CSS here ?-->
+<!-- <style> -->
+<!-- body { -->
+<!--     font: normal 12px Verdana, Arial, sans-serif; -->
+<!-- } -->
+
+
+<!-- #mu_textnote { -->
+<!--   background-color: #ddd; -->
+<!--   padding: 5px 25px 5px; -->
+<!--   width: 80%; -->
+<!--   font: normal 12px Monospace; -->
+<!-- } -->
+
+
+<!-- .table { -->
+<!--     width: 100%; -->
+<!--     max-width: 100%; -->
+<!--     margin-bottom: 20px; -->
+<!-- } -->
+<!-- table { -->
+<!--     background-color: transparent; -->
+<!-- } -->
+<!-- table { -->
+<!--     border-spacing: 0; -->
+<!--     border-collapse: collapse; -->
+<!-- } -->
+<!-- </style> -->
+
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 library(knitr, quietly=TRUE)
@@ -27,6 +57,7 @@ library(RColorBrewer, quietly=TRUE)
 library(plyr, quietly=TRUE)
 library(ggplot2, quietly=TRUE)
 library(kableExtra, quietly = TRUE)
+library(mapview, quietly = TRUE)
 
 ## load report-specific functions
 source('custom.R') 
@@ -112,6 +143,9 @@ x$groupname <- factor(sprintf("%s\n%s", x$nationalmusym, ifelse(is.na(x$localpha
 ## estimate base saturation at pH 7
 x$base.sat <- pmin(100, (x$sumbases_r / x$cec7_r) * 100)
 
+
+## MU BBOX from SDA
+bb <- fetchSDA_spatial(mu.set$nationalmusym, by.col = 'nmusym', method = 'bbox', verbose = FALSE)
 
 
 ## TODO: this may include some false positives for dropping: DMU linked to multiple MU
@@ -253,6 +287,12 @@ l_ply(mutext.list, function(text.notes) {
 })
 
 ```
+
+## Overview Map
+```{r echo = FALSE, out.width = "800", out.height="700"}
+mapview(bb, legend = FALSE, layer.name = as.character(bb$nationalmusym[1]))
+```
+
 
 ## Affected Map Units
 NASIS WWW Report
@@ -432,4 +472,5 @@ update(p, xlab='', ylab='')
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")` and `aqp` version `r utils::packageDescription("aqp", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
 
