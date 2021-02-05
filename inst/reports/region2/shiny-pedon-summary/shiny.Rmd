@@ -522,6 +522,43 @@ if(loaded)
   })
 ```
 
+#### Geomorphic position - Flats (3D)
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
+if(loaded)
+  renderTable( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    if(length(peds) & any(!is.na(peds$geomposflats))) {
+      categorical.prop.table(peds$geomposflats) 
+    } else {
+      print("No Flats 3D Geomorph")
+    }
+  }, striped=T)
+
+if(loaded)  
+  renderUI( {
+    peds <- getPedonsByPattern(input, pedons, 
+                               input$s.mu,
+                               input$pedon_pattern, 
+                               input$upid_pattern,
+                               input$pedon_list,
+                               input$taxon_kind,
+                               input$phase_pattern)
+    
+    if(length(peds) & !is.na(input$modal_pedon)) {
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                     site(peds)$pedon_id,
+                                                     sep=":")),] 
+      print(paste0("Modal pedon value: ",modal$geomposmntn))
+    }
+  })
+```
+
 #### Geomorphons
 ```{r, warning=FALSE, echo=FALSE, error=FALSE}
 if(loaded)

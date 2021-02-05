@@ -141,6 +141,17 @@ if(!is.na(input$modal_pedon)) {
 }
 ```
 
+#### Geomorphic position - Flats (3D)
+```{r}
+df <- categorical.prop.table(peds$geomposflats)
+kable(df)
+
+if(!is.na(input$modal_pedon)) {
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  print(paste0("Modal pedon value: ",modal$geomposflats))
+}
+```
+
 #### Geomorphons
 ```{r}
 df <- categorical.prop.table(peds$gis_geomorphons)
