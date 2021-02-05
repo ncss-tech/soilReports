@@ -126,13 +126,14 @@ pedons_spdf <<- res$pedons_spdf
     
     my.env$input <- isolate(input)
     my.env$inputreportname <- input$reportname
-    my.env$peds <- getPedonsByPattern(input, res$pedons,
-                                   input$s.mu,
-                                   input$pedon_pattern,
-                                   input$upid_pattern,
-                                   input$pedon_list,
-                                   input$taxon_kind,
-                                   input$phase_pattern)
+    my.env$peds <- getPedonsByPattern(input = input, 
+                                      s.pedons = res$pedons,
+                                      musym = input$s.mu,
+                                      compname = input$pedon_pattern,
+                                      upid = input$upid_pattern,
+                                      pedon_list = input$pedon_list,
+                                      taxon_kind = input$taxon_kind,
+                                      phasename = input$phase_pattern)
     my.env$s <- summarize.component(my.env$peds)
     
     my.env$peds$genhz <- factor(my.env$peds$genhz, 
@@ -850,7 +851,12 @@ if(loaded)
                                input$taxon_kind,
                                input$phase_pattern)
     if(length(peds)) {
-      x <- na.omit(data.frame(genhz=peds$genhz, sand=peds$sand, silt=peds$silt, clay=peds$clay))
+      x <- na.omit(data.frame(
+          genhz = peds$genhz,
+          SAND = peds$sand,
+          SILT = peds$silt,
+          CLAY = peds$clay
+        ))
       
       if(nrow(x)) {
         x <- x[rowSums(x[,2:4]) == 100,]

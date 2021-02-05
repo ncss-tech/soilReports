@@ -6,12 +6,11 @@ loadReportData <- function() {
       
       if(!inherits(pedons_raw, 'try-error')) {
         
-        if(!inherits(rasters, 'try-error')) {
+        if(!inherits(rasters, 'try-error') && length(rasters) > 0) {
           
           # transform to raster coordinate reference 
           #  system (assumes common between all rasters)
-          pedons_spdf <- spTransform(pedons_spdf,
-                                     proj4string(rasters[[1]]))
+          pedons_spdf <- spTransform(pedons_spdf, proj4string(rasters[[1]]))
           
           # extract from raster stack at points
           l.res <- lapply(rasters, extract, pedons_spdf)
@@ -50,8 +49,8 @@ loadReportData <- function() {
       } else { 
         
         # and caching is OFF, make it a backup 
-        file.rename(from="pedon_cache.Rda",
-                    to="pedon_cache.Rda.bak")
+        file.rename(from = "pedon_cache.Rda",
+                    to = "pedon_cache.Rda.bak")
       }
     }
     loaded <<- TRUE
@@ -62,7 +61,8 @@ loadReportData <- function() {
 
 getPedonsByPattern <- function(input, s.pedons, musym, 
                                compname, upid,
-                               pedon_list, taxon_kind,                                   phasename) {
+                               pedon_list, taxon_kind,
+                               phasename) {
   
   if(!is.null(isolate(input))) {
     #print(isolate(input))
@@ -83,7 +83,7 @@ getPedonsByPattern <- function(input, s.pedons, musym,
       compname <- ".*"
     compmatch <- grepl(pattern=compname, taxname)
     
-    localphase <- as.character(s.pedons$phasename)
+    localphase <- as.character(s.pedons$localphase)
     localphase[is.na(s.pedons$localphase)]  <- ""
     
     if(is.null(phasename))
