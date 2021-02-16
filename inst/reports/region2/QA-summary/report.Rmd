@@ -79,6 +79,8 @@ mutext$textentry <- gsub(pattern = '\n', replacement = '<br>', x = mutext$texten
 # DMU / components as SPC
 x <- fetchNASIS(from = 'components')
 
+## TODO: encode soil texture class as an ordered factor via SoilTextureLevels()
+
 # MU / correlation
 nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE)
 
@@ -323,7 +325,7 @@ kable_styling(
 </div>
 
 ```{r echo=FALSE, results='hide', fig.width=osd.fig.width, fig.height=6.5, eval=do.osd.dend}
-SoilTaxonomyDendrogram(spc, cex.taxon.labels=0.8, width=0.25)
+SoilTaxonomyDendrogram(spc, cex.taxon.labels = 0.8, width = 0.25, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE)
 ```
 
 
@@ -343,45 +345,43 @@ if(n.groups > 1) {
   gno <- -13
 }
 
-par(mar=c(0.25, 0.5, 4, 1))
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='claytotal_r', col.label='Clay Content (%)', col.legend.cex=0.85)
+par(mar=c(0.25, 0.5, 4, 0))
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='claytotal_r', col.label='Clay Content (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sandtotal_r', col.label='Sand Content (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sandtotal_r', col.label='Sand Content (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='fragvoltot_r', col.label='Total Fragment Volumne (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='fragvoltot_r', col.label='Total Fragment Volumne (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='texture', col.label='Texture', col.legend.cex=0.75)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='texture', col.label='Texture', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='lep_r', col.label='LEP', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='lep_r', col.label='LEP', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ecec_r', col.label='ECEC (cmol[+] / kg)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ecec_r', col.label='ECEC (cmol[+] / kg)', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.85)
-
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='base.sat', col.label='Base Saturation @ pH 7 (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='base.sat', col.label='Base Saturation @ pH 7 (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
 
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ph1to1h2o_r', col.label='pH 1:1 H2O', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ph1to1h2o_r', col.label='pH 1:1 H2O', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sar_r', col.label='SAR', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sar_r', col.label='SAR', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='caco3_r', col.label='CaCO3 (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='caco3_r', col.label='CaCO3 (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ksat_r', col.label='Ksat (um/s)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ksat_r', col.label='Ksat (um/s)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='om_r', col.label='Organic Matter (%)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='om_r', col.label='Organic Matter (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
-groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='dbthirdbar_r', col.label='Db 1/3 Bar (g / cc)', col.legend.cex=0.85)
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='dbthirdbar_r', col.label='Db 1/3 Bar (g / cc)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
 
 
 ```
@@ -472,5 +472,4 @@ update(p, xlab='', ylab='')
 This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")` and `aqp` version `r utils::packageDescription("aqp", field="Version")`.
 <br>
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
-
 
