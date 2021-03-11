@@ -1,0 +1,310 @@
+---
+title: 
+output:
+  html_document:
+    mathjax: null
+    smart: no
+    keep_md: no
+params:
+  musym: ''
+---
+
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'DMU-summary'
+	.report.version <- '0.1'
+	.report.description <- 'DMU Summary Report'
+```
+
+```{r echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(knitr, quietly=TRUE)
+
+# chunk options
+opts_chunk$set(message=FALSE, warning=FALSE, background='#F7F7F7', fig.align='center', fig.retina=2, dev='png', tidy=FALSE, verbose=FALSE, progress=FALSE, echo = FALSE)
+
+
+library(aqp, quietly=TRUE)
+library(soilDB, quietly=TRUE)
+library(sharpshootR, quietly=TRUE)
+library(latticeExtra, quietly=TRUE)
+library(reshape2, quietly=TRUE)
+library(tactile, quietly=TRUE)
+
+source('custom.R')
+
+
+## re-make cached data
+# source('cache-data.R')
+
+
+# load cached data
+load('data.rda')
+
+
+## subset pieces
+
+# component + mu records (SPC)
+co <- subset(co, musym == params$musym)
+
+# component pedon linkage (DF)
+cp <- subset(cp, subset = coiid %in% profile_id(co))
+
+# pedons (SPC)
+p <- subset(p, profile_id(p) %in% cp$peiid)
+
+# subset extended OSD data here
+osds.ac <- subset(osds$climate.annual, subset = series %in% toupper(unique(co$compname)))
+
+# just the SPC
+osds <- subset(osds$SPC, profile_id(osds$SPC) %in% toupper(unique(co$compname)))
+
+cotx <- subset(cotx, subset = coiid %in% profile_id(co))
+
+geom <- subset(geom, subset = coiid %in% profile_id(co))
+
+pm <- subset(pm, subset = coiid %in% profile_id(co))
+
+## add component pedon / component data to pedons
+
+## TODO: check to make sure that there is only a single case of each pedon
+any(table(cp$peiid) > 1)
+
+
+# merge subset component pedons into SPC
+site(p) <- cp[, c('peiid', 'coiid', 'representative')]
+
+
+# look-up associated component label
+site(p)$.comp_label <- co$.label[match(p$coiid, site(co)$coiid)]
+
+## TODO: sort component names / labels by decreasing component percent
+
+# pedon convenience label
+site(p)$.pedon_label <- sprintf("%s (%s)", p$taxonname, ifelse(p$representative == 1, 'X', ''))
+
+
+## establish some reasonable figure widths in inches
+
+# copedon figure
+copedon.profile.fig.width <- 2 + (length(p) * 1)
+
+# component RV thematic sketches
+comp.profile.fig.width <- 2 + (length(co) * 1)
+
+# OSD dendrogram for all components that are named series
+# this figure is only possible if there are more than 1 series
+do.osd.dend <- TRUE
+osd.fig.width <- 5 + ((length(co) + length(osds)) * 0.7)
+
+# slab figures
+# TODO: base this on user-supplied properties
+# slab.fig.width <- 12
+
+## establish some reasonable figure heights
+# mu.prop.panels.height <- 1 + (length(unique(x$nationalmusym)) * 2.5)
+
+```
+
+
+
+
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;">
+<span style="font-size: 150%; font-weight: bold;">
+`r sprintf("%s: %s", co$musym[1], co$muname[1])`
+</span>
+<br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d %H:%M")`</div>
+<hr>
+
+
+## Components
+```{r echo = FALSE}
+co.summary <- site(co)[order(co$comppct_r, decreasing = TRUE), c('musym', '.label', 'compkind', 'taxclname', 'hydgrp', 'ecosite_name')]
+
+kableExtra::kable_styling(
+  knitr::kable(co.summary, row.names = FALSE),
+   full_width = TRUE, font_size = 11
+)
+```
+
+
+<!-- add pm / geomorph cross tabulation via pedon and OSD data -->
+
+```{r echo = FALSE}
+pm.summary <- site(co)[, c('.label', 'landform_string', 'pmkind', 'pmorigin')]
+
+kableExtra::kable_styling(
+  knitr::kable(pm.summary, row.names = FALSE),
+   full_width = FALSE
+)
+```
+
+
+<!-- climate comparison / summary between OSDs (if present and component) -->
+```{r echo=FALSE, results='hide', fig.width=12, fig.height=6.5, eval=do.osd.dend}
+ac <- try(vizAnnualClimate(osds.ac))
+if(class(ac) != 'try-error') {
+  print(ac$fig)
+}
+```
+
+```{r echo = FALSE, fig.width=12, fig.height=4}
+# comp climate data
+nm <- siteNames(co)[grep('^ffd|^maat|^map|^slope|^elev', siteNames(co))]
+co.climate <- site(co)[, c('.label', nm)]
+
+# melt
+co.climate.long_r <- melt(co.climate, id.vars = '.label', measure.vars = nm[grep('_r', nm)])
+co.climate.long_l <- melt(co.climate, id.vars = '.label', measure.vars = nm[grep('_l', nm)])
+co.climate.long_h <- melt(co.climate, id.vars = '.label', measure.vars = nm[grep('_h', nm)])
+
+# fix names
+names(co.climate.long_r)[3] <- 'rv'
+
+# remove _r
+co.climate.long_r$variable <- gsub(pattern = '_r', replacement = '', x = co.climate.long_r$variable, fixed = TRUE)
+
+# row-order is preserved, copy over low / high
+co.climate.long_r$low <- co.climate.long_l$value
+co.climate.long_r$high <- co.climate.long_h$value
+
+# factor levels / units
+co.climate.long_r$variable <- factor(co.climate.long_r$variable, labels = c('Elevation (m)', 'Frost-Free Days', 'MAAT (deg C)', 'MAP (mm)', 'Slope (%)'))
+
+segplot(
+  factor(.label) ~ low + high | variable, 
+  data = co.climate.long_r, 
+  centers = rv, 
+  draw.bands = FALSE, 
+  scales = list(x = list(relation = 'free', rot = 45)),
+  strip = strip.custom(bg = grey(0.85)),
+  lwd = 2, pch = 15, cex = 1.25,
+  par.settings = tactile.theme(),
+  panel = function(...) {
+    panel.grid(h = -1, v = -1)
+    panel.segplot(...)
+  }
+  )
+```
+
+
+
+
+```{r echo=FALSE, results='hide', fig.width=osd.fig.width, fig.height=6, eval=do.osd.dend}
+# combine OSDs + comp
+
+co.tmp <- co
+site(co.tmp)$soilorder <- co.tmp$taxorder
+site(co.tmp)$suborder <- co.tmp$taxsuborder
+site(co.tmp)$greatgroup <- co.tmp$taxgrtgroup
+site(co.tmp)$subgroup <- co.tmp$taxsubgrp
+
+profile_id(co.tmp) <- co.tmp$.label
+co.tmp <- combine(co.tmp, osds)
+
+SoilTaxonomyDendrogram(co.tmp, cex.taxon.labels = 0.8, width = 0.25, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE)
+
+# SoilTaxonomyDendrogram(osds, cex.taxon.labels = 0.8, width = 0.25, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE)
+```
+
+
+<!-- ## Diagnostic Features -->
+```{r echo = FALSE, fig.width=8, fig.height=6}
+d.wide <- soilDB:::.diagHzLongtoWide(diagnostic_hz(co), feature = 'featkind', id = 'coiid')
+co.tmp <- co
+site(co.tmp) <- d.wide
+
+try(
+  diagnosticPropertyPlot2(co.tmp, v = names(d.wide)[-1], k = 3, grid.label = '.label')
+)
+```
+
+
+
+
+
+```{r echo = FALSE, fig.width = copedon.profile.fig.width, fig.height = 6.5}
+par(mar = c(0, 0, 1, 0))
+# component convenience labels
+groupedProfilePlot(p, groups = '.comp_label', label = 'taxonname', group.name.offset = c(-15, -5), id.style = 'side', group.name.cex = 0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+```
+
+
+
+<!-- component RV thematic sketches -->
+```{r echo = FALSE, fig.width=comp.profile.fig.width, fig.height=6.5}
+par(mar=c(0.25, 0.5, 4, 0))
+
+plotSPC(co, label='.label', group.name.cex = 0.75, color='texture', col.label='Texture', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66, width = 0.25)
+
+plotSPC(co, label='.label', group.name.cex = 0.75, color='lep_r', col.label='LEP', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66, width = 0.25)
+
+plotSPC(co, label='.label', group.name.cex = 0.75, color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66, width = 0.25)
+
+plotSPC(co, label='.label', group.name.cex = 0.75, color='ecec_r', col.label='ECEC (cmol[+] / kg)', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66, width = 0.25)
+
+plotSPC(co, label='.label', group.name.cex = 0.75, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66, width = 0.25)
+
+
+```
+
+
+```{r echo = FALSE, fig.width = 10, fig.height = 6.5}
+# iterate over component IDs
+# decreasing component percentage order
+co.ids <- site(co)$coiid[order(co$comppct_r, decreasing = TRUE)]
+for(comp in co.ids){
+  
+  # must be subset by component name
+  co.name <- co$compname[match(comp, site(co)$coiid)]
+  # there may not be an OSD yet
+  osds.sub <- subset(osds, id == toupper(co.name))
+  if(length(osds.sub) == 0) {
+    # use filler if missing
+    osds.sub <- osd.filler
+  }
+  
+  # these are subset by component record ID
+  co.sub <- subset(co, site(co)$coiid == comp)
+  p.sub <- subset(p, coiid == comp)
+  
+  # there may be no component pedons
+  if(length(p.sub) == 0) {
+    p.sub <- osd.filler
+  }
+
+
+## overview sketches
+OverviewSketches(osds.sub, co.sub, p.sub)
+
+## thematic sketches
+
+# v.co = component basename
+# v.p = pedon name
+
+thematicSketches(v.co = 'claytotal', v.p = 'clay', 'Clay Content (%)', osds.sub, co.sub, p.sub)
+
+thematicSketches(v.co = 'sandtotal', v.p = 'sand', 'Sand Content (%)', osds.sub, co.sub, p.sub)
+
+thematicSketches(v.co = 'fragvoltot', v.p = 'total_frags_pct', 'Total Fragments (%)', osds.sub, co.sub, p.sub)
+
+thematicSketches(v.co = 'ph1to1h2o', v.p = 'phfield', 'pH', osds.sub, co.sub, p.sub)
+
+
+} # end iterating over components
+
+```
+
+
+
+
+
+
+<!-- comonth summaries -->
+
+
+
+
