@@ -19,7 +19,7 @@
 .report.description <- 'A minimal soilReports template'
 
 # these are the files to copy on initial installation with copyReport/reportInit
-.paths.to.copy <- c('report.Rmd','config.R','changes.md')
+.paths.to.copy <- c('report.Rmd','config.R','NEWS.md')
 
 # these are the files to copy on reportUpdate
 .update.paths.to.copy <- c('report.Rmd')
