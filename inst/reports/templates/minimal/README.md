@@ -12,7 +12,7 @@ To use the report:
 
 3. Run `soilReports::reportInit("templates/minimal", outputDir = "minimal-test")` to install a report instance in `outputDir`. Specify `overwrite` argument as needed. Use `reportUpdate` if an existing older report instance is being updated and you want to preserve _config.R_ contents.
 
-4. Navigate to `"minimal-test"` directory and inspect report contents. Open _report.Rmd_ in RStudio and click "Knit" button, or `render()` with {Rmarkdown} manually.
+4. Navigate to `"minimal-test"` directory and inspect report contents. Open _report.Rmd_ in RStudio and click "Knit" button, or `render()` with {rmarkdown} manually.
 
 ## Core Report Components
 

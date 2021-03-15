@@ -22,7 +22,7 @@
 .paths.to.copy <- c('report.Rmd','config.R','NEWS.md')
 
 # these are the files to copy on reportUpdate
-.update.paths.to.copy <- c('report.Rmd')
+.update.paths.to.copy <- c('report.Rmd','NEWS.md')
 
 # this is a flag to denote whether `shiny.Rmd` is main entrypoint to report
 .has.shiny.interface <- FALSE
