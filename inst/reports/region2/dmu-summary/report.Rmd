@@ -9,10 +9,10 @@ params:
   musym: '3110'
 ---
 
-
+<!-- TODO: remove this in favor of copyReport() auto-generated chunk -->
 ```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 	.report.name <- 'DMU-summary'
-	.report.version <- '0.2'
+	.report.version <- '0.3'
 	.report.description <- 'DMU Summary Report'
 ```
 
@@ -32,7 +32,11 @@ library(tactile, quietly=TRUE)
 library(ggplot2, quietly=TRUE)
 library(cluster, quietly=TRUE)
 
+# local functions
 source('custom.R')
+
+# local configuration
+source('config.R')
 
 
 ## re-make cached data
@@ -261,24 +265,15 @@ co.climate.long_r$variable <- factor(
   levels = c('elev', 'ffd', 'maat', 'map', 'slope'),
   labels = c('Elevation (m)', 'Frost-Free Days', 'MAAT (deg C)', 'MAP (mm)', 'Slope (%)'))
 
-
-## TODO: generalize this
-# add area-wide range
-.local_range <- data.frame(
-  .label = 'CA792',
-  variable = factor(
-    c('elev', 'ffd', 'maat', 'map', 'slope'),
-    labels = c('Elevation (m)', 'Frost-Free Days', 'MAAT (deg C)', 'MAP (mm)', 'Slope (%)')
-    ),
-  rv = c(3005, 83, 3.28, 984, 43),
-  low = c(1469, 40, -1.02, 583, 8),
-  high = c(3728, 193, 12.01, 1381, 99)
-  
-)
-
 # combine components with area-wide ranges
-.combined <- rbind(co.climate.long_r, .local_range)
-.combined$.label <- factor(.combined$.label, levels = c(levels(co.climate.long_l$.label), unique(.local_range$.label)))
+if(.include.local.ranges) {
+  .combined <- rbind(co.climate.long_r, .local_range)
+  .combined$.label <- factor(
+    .combined$.label, 
+    levels = c(levels(co.climate.long_l$.label), unique(.local_range$.label))
+  )
+}
+
 
 segplot(
   factor(.label) ~ low + high | variable, 

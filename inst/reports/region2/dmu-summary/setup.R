@@ -19,7 +19,7 @@
 .report.description <- 'DMU Summary Report'
 
 # these are the files to copy on initial installation with copyReport/reportInit
-.paths.to.copy <- c('report.Rmd', 'custom.R', 'cache-data.R')
+.paths.to.copy <- c('report.Rmd', 'custom.R', 'cache-data.R', 'config.R')
 
 # these are the files to copy on reportUpdate
 .update.paths.to.copy <- c('report.Rmd', 'custom.R', 'cache-data.R')
