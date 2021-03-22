@@ -1,0 +1,195 @@
+---
+title: "A Minimal `soilReports` Example"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(elevatr)
+library(soilDB)
+
+##  Spatial
+library(sf)
+library(raster)
+
+##  Graphics
+library(png)
+library(rayshader)
+
+# library(rasterVis)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+# rgl package (Adler and Murdoch 2020) can be used to generate interactive 3D plots.
+# These plots can still be interactive if they are saved to the WebGL format, which can be done through a hook function rgl::hook_webgl()
+# https://bookdown.org/yihui/rmarkdown-cookbook/rgl-3d.html
+knitr::knit_hooks$set(webgl = rgl::hook_webgl)
+
+# report.Rmd should source user-defined configuration from config.R
+source("config.R")
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+````
+```{r, eval=TRUE}`r ''`
+print("Hello world!")
+```
+````
+
+Which will look like this in your document.
+
+```{r, echo = TRUE, eval=TRUE}
+print("Hello world!")
+```
+
+```{r}
+# get the data
+dem_orig <- elevatr::get_elev_raster(a_point, z = elevatr_zoom)
+dem <- projectRaster(dem_orig, 
+                     res = c(target_resolution, target_resolution),
+                     crs = CRS(target_crs))
+ssurgo_mukey <- soilDB::mukey.wcs(st_bbox(extent(dem), crs = st_crs(dem)))
+
+# reproject theme raster to match dem raster
+theme <- suppressWarnings(projectRaster(ssurgo_mukey, dem, method = "ngb"))
+
+# ratify theme raster
+theme <- raster::ratify(theme)
+rat <- levels(theme)[[1]]
+
+if (use_ssurgo) {
+  ukeys <- unique(values(ssurgo_mukey))
+  label_table <- data.frame(ID = ukeys, 
+                            Label = as.character(1:length(ukeys)), 
+                            Color = viridis::viridis(length(ukeys)))
+} 
+idname <- "ID"
+
+# LEFT JOIN on ID
+if (exists("label_table") && !is.na(label_table)) {
+  
+  if (!all(c("ID","Label","Color") %in% colnames(label_table)))
+    stop("Raster thematic attribute `label_table` should contain `ID`, `Label` and `Color`", call. = FALSE)
+  
+  rat <- merge(rat, 
+               label_table, 
+               by.x = idname, 
+               by.y = "ID", 
+               all.x = TRUE, 
+               sort = FALSE,
+               incomparables = NA)
+  
+  levels(theme) <- rat
+}
+
+# CHECK: Plot rasterized soil layer and extent
+# rasterVis::levelplot(theme, att="ID")
+
+# function to create a thematic PNG to create a rayshader-friendly color array
+make_conformal_theme <- function(elmat, theme) {
+  tf <- tempfile()
+  .fliplr <- function(x) { x[,ncol(x):1] }
+  png(tf, width = nrow(elmat), height = ncol(elmat))
+    par(mar = c(0,0,0,0))
+    raster::image(.fliplr(rayshader::raster_to_matrix(theme)), 
+                  axes = FALSE, 
+                  col = viridis::viridis(length(unique(values(theme)))))
+  dev.off()
+  png::readPNG(tf)
+}
+
+custom_rgb_theme <- function(theme, label_table) {
+  
+  # PROCESSING: create RGB array from rasterized theme
+  lut <- data.frame(.idx = 1:nrow(label_table), 
+                    Color = label_table$Color, 
+                    t(col2rgb(label_table$Color, alpha = TRUE) / 255))
+  
+  idlut <- lut$.idx
+  names(idlut) <- label_table$ID
+  
+  intid <- as.numeric(idlut[as.character(values(theme))])
+  
+  lutc <- lut[intid,]
+  
+  theme$r <- lutc$red
+  theme$b <- lutc$blue
+  theme$g <- lutc$green
+  theme$a <- lutc$alpha
+  
+  redmat <- rayshader::raster_to_matrix(theme$r)
+  grnmat <- rayshader::raster_to_matrix(theme$g)
+  blumat <- rayshader::raster_to_matrix(theme$b)
+  alpmat <- rayshader::raster_to_matrix(theme$a)
+  
+  my.array <- array(1, c(nrow(redmat), ncol(redmat), 4))
+  my.array[,,1] <- redmat
+  my.array[,,2] <- grnmat
+  my.array[,,3] <- blumat
+  
+  # NOTE: alpha layer dropped
+  
+  # PROCESSING: Re-arrange array for rayshader
+  aperm(my.array, c(2,1,3))
+}
+
+theme_array <- custom_rgb_theme(theme, label_table)
+
+# make the theme raster align with dem array
+# theme_array <- make_conformal_theme(elmat = rayshader::raster_to_matrix(dem),
+#                                     theme = theme)
+
+elmat <- rayshader::raster_to_matrix(dem)
+
+# calculate an appropriate plot_3d zscale value
+estimate_zscale <- function(elmat, dem, zfactor = pi) {
+  x <- as.numeric(st_bbox(dem))
+  (data.frame(
+    dx = x[3] - x[1],
+    dy = x[4] - x[2],
+    dz = max(values(dem), na.rm=T) - min(values(dem), na.rm=T),
+    sx = ncol(elmat),
+    sy = nrow(elmat)
+  ) %>%
+    transform(xratio = dx / sx, 
+              yratio = dy / sy) %>%
+    transform(zratio = mean(c(xratio, yratio)) / zfactor))
+}
+```
+
+## Interactive 3D graphics in R Markdown with {rayshader} and {rgl}
+
+The {rgl} package (Adler and Murdoch 2020) can be used to generate interactive 3D plots.
+
+These plots can still be interactive if they are saved to the WebGL format, which can be done through a hook function `rgl::hook_webgl()`.
+
+{rayshader} allows for the creation of 3D hillshade scenes suitable for plotting with {rgl}.
+
+We can use {soilDB} and {elevatr} to get soil survey mapunit information, and local digital elevation models, to dynamically create maps anywhere we have data!
+
+```{r foo, fig.width=8, fig.height=8, webgl=TRUE}
+options(rgl.useNULL = TRUE) # needed for interactive 3D rglwidget
+library(knitr)
+library(rgl)
+# rayshader::plot_map(a_scene)
+# calculate a rayshader "scene"
+elmat %>%
+  sphere_shade(texture = "desert") %>%
+  # add_overlay(height_shade(elmat)) %>%
+  add_overlay(theme_array) %>% 
+  plot_3d(elmat)
+          # fov = 0,
+          # theta = 30,
+          # water = 0,
+          # zscale = estimate_zscale(elmat, dem)$zratio,
+          # zoom = 0.75,
+          # phi = 45,
+          # windowsize = c(100, 100))
+
+rgl::rglwidget()
+rgl::rgl.close()
+```
