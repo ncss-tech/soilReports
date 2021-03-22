@@ -1,3 +1,6 @@
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/ncss-tech/soilReports/workflows/R-CMD-check/badge.svg)](https://github.com/ncss-tech/soilReports/actions)
+<!-- badges: end -->
 
 # soilReports
 Reports are a handy way to summarize large volumes of data, particularly with figures and tables. `soilReports` is an R package "container" designed to accommodate the maintenance, documentation, and distribution of [R-based reporting tools](http://rmarkdown.rstudio.com/). Inside the package are report templates, setup files, documentation, and example configuration files. 
