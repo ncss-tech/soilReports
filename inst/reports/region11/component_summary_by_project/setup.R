@@ -21,5 +21,5 @@
 ## packages + deps installed from CRAN
 .packages.to.get <- c('knitr', 'ggplot2', 'soilDB')
 
-#github packages to get (via devtools::install_github)
+#github packages to get (via remotes::install_github)
 #.gh.packages.to.get <- c('')

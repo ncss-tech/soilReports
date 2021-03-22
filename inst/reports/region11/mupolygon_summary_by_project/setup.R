@@ -21,5 +21,5 @@
 ## packages + deps installed from CRAN
 .packages.to.get <- c("aqp", "soilDB", "knitr", "plyr", "reshape2", "circular", "lattice", "latticeExtra", "RColorBrewer", "maps", "maptools", "mapview", "soilReports", "rgdal", "sp", "sf", "raster") 
 
-#github packages to get (via devtools::install_github)
+#github packages to get (via remotes::install_github)
 #.gh.packages.to.get <- c('')

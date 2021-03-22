@@ -4,5 +4,7 @@ exportPattern("^[^\\.]")
 
 importFrom("utils", "install.packages", "installed.packages")
 
-importFrom("devtools", "install_github")
+importFrom("remotes", "install_github")
 
+importFrom("graphics", "contour")
+importFrom("stats", "approx", "na.omit", "quantile", "sd")
