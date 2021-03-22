@@ -183,17 +183,29 @@ thematicSketches <- function(v.co, v.p, fig.title, osds.sub, co.sub, p.sub) {
   ## harmonize by variable
   z <- harmonizeVar(co.sub, varName = v.co, shortName = v.p)
   
+  # new label + hzname + variable
+  horizons(z)$.hzlabel <- sprintf("%s: %s", z[[hzdesgnname(co.sub)]], signif(z[[v.p]], 2))
+  horizons(p.sub)$.hzlabel <- sprintf("%s: %s", p.sub[[hzdesgnname(p.sub)]], signif(p.sub[[v.p]], 2))
+  
+  
   spcs <- list(
     osds.sub,
     z, 
     p.sub
   )
   
+  # crappy toggle between top / side
+  p.id.style <- ifelse(length(p.sub) > 5, 'side', 'top')
+  
+  # override for very long .pedon_labels
+  if(any(nchar(p.sub$.pedon_label) > 15) & length(p.sub) > 2) {
+    p.id.style <- 'side'
+  }
   
   arg.list <- list(
-    list(width = 0.25, name.style = 'center-center', hz.depths = TRUE, cex.names = 0.66),
-    list(width = 0.25, label = 'hgroup', name.style = 'center-center', hz.depths = TRUE, cex.names = 0.66, plot.order = c(2,3,1)),
-    list(width = 0.25, label = '.pedon_label', name.style = 'center-center', hz.depths = TRUE, cex.names = 0.66)
+    list(width = 0.25, name.style = 'center-center', hz.depths = TRUE, cex.names = 0.66, cex.id = 0.66),
+    list(width = 0.25, name = '.hzlabel', label = 'hgroup', name.style = 'center-center', hz.depths = TRUE, cex.names = 0.66, cex.id = 0.66, plot.order = c(2,3,1)),
+    list(width = 0.25, name = '.hzlabel', label = '.pedon_label', name.style = 'center-center', hz.depths = TRUE, cex.names = 0.66, cex.id = 0.66, id.style = p.id.style)
   )
   
   n.p <- length(osds.sub) + length(z) + length(p.sub)
@@ -208,11 +220,14 @@ thematicSketches <- function(v.co, v.p, fig.title, osds.sub, co.sub, p.sub) {
     y = c(5, 10, 25, 50, 75, 100, 150)
   )
   
+  
+  
   par(mar = c(0, 1, 3, 0))
   
   plotMultipleSPC(
-    spcs, label.offset = 7,
-    group.labels = c('OSD', co.sub$.label, 'Component Pedons'), 
+    spc.list = spcs, 
+    label.offset = 7,
+    group.labels = c('OSD', as.character(co.sub$.label), 'Component Pedons'), 
     bracket.base.depth = md,
     max.depth = md + 5, 
     plot.depth.axis = FALSE,

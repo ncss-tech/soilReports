@@ -2,8 +2,11 @@ library(aqp)
 library(soilDB)
 
 ## setup:
-# load CA792 legend into SS
-# load all child tables: MU -> DMU -> component pedon -> site obs / site
+# * load legend by area symbol
+# * load related MU (approved / provisional only)
+# * load related DMU (rep DMU only)
+# * load related component pedons
+# * load related site observation
 
 source('custom.R')
 
@@ -44,10 +47,6 @@ cp <- get_copedon_from_NASIS_db()
 ## get OSDs, if available
 osds <- fetchOSD(unique(co$compname), extended = TRUE)
 
-# make an empty OSD placeholder
-osd.filler <- emtpySPC(osds$SPC[1, ], top = 0, bottom = max(co))
-
-
 ## get component text notes
 cotx <- get_cotext_from_NASIS_db(fixLineEndings = TRUE) 
 
@@ -55,8 +54,6 @@ cotx <- get_cotext_from_NASIS_db(fixLineEndings = TRUE)
 idx <- cotx$coiid %in% site(co)$coiid
 cotx <- cotx[idx, ]
 
-# split out relevant pieces
-rep.pedon.txt <- cotx[cotx$textcat == 'rep pedon', ]$textentry
 
 
 ## TODO: see Andrew Conlin's latest QA stuff
@@ -68,7 +65,21 @@ geom <- get_component_cogeomorph_data_from_NASIS_db()
 pm <- get_component_copm_data_from_NASIS_db()
 
 
+## comonth
+
+# load comonth
+cm <- get_comonth_from_NASIS_db(fill = TRUE)
+cm.names <- names(cm)
+
+# combine DMU/component names
+cm <- merge(site(co), cm, by='coiid', all.x = TRUE, sort = FALSE)
+
+# subset to required columns
+cm <- cm[, c('.label', 'comppct_r', cm.names)]
+
+# TODO: re-level component names based on mean comppct
+
 ## save
-save(co, p, cp, osds, osd.filler, cotx, geom, pm, file = 'data.rda')
+save(co, cm, p, cp, osds, cotx, geom, pm, file = 'data.rda')
 
 
