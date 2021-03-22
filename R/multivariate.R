@@ -2,11 +2,19 @@
 ## functions related to cLHS sub-sampling and multivariate analysis
 ##
 
-# return variables safe for cLHs
+
 # required to resolve https://github.com/ncss-tech/soilReports/issues/87
-# x: data.frame in wide format
-# id: vector of IDs variables to exclude from SD test, first element is the group ID
-# tol: tolerance for near-0 SD test
+#' Return variables with sufficient variation for cLHS
+#' 
+#' Datasets that are nearly or completely invariant can pose issues for the cLHS algorithm. This function identifies vairables that have standard deviation smaller than a specified tolerance. Default: `1e-5`
+#'
+#' @param x data.frame in wide format
+#' @param id vector of IDs variables to exclude from SD test, first element is the group ID
+#' @param tol tolerance for near-0 SD test; Default: `1e-5`
+#'
+#' @return A character vector of "safe" column names
+#' @export
+#'
 findSafeVars <- function(x, id, tol=1e-5) {
   
   n <- names(x)
@@ -51,11 +59,28 @@ findSafeVars <- function(x, id, tol=1e-5) {
 ## note: this will fail when SD ~ 0
 # https://github.com/pierreroudier/clhs/issues/2
 # cut down to reasonable size: using cLHS
+#' Use cLHS to subset a data.frame using selected variables
+#'
+#' @param i a `data.frame`
+#' @param n number of cLHS samples (rows) to draw
+#' @param non.id.vars variables that are non-ID columns
+#'
+#' @return a subset `data.frame` corresponding to selected cLHS samples (rows)
+#' @export
+#'
 cLHS_subset <- function(i, n, non.id.vars) {
+  
+  if(!requireNamespace("clhs"))
+    stop("package `clhs` is required", call. = FALSE)
+  
   # if there are more than n records, then sub-sample
   if(nrow(i) > n) {
     # columns with IDs have been pre-filtered
-    idx <- clhs(i[, non.id.vars], size=n, progress=FALSE, simple=TRUE, iter=1000)
+    idx <- clhs::clhs(i[, non.id.vars],
+                      size = n,
+                      progress = FALSE,
+                      simple = TRUE,
+                      iter = 1000)
     i.sub <- i[idx, ]
   }
   #	otherwise use what we have

@@ -9,5 +9,7 @@ Maintainer: Dylan Beaudette <dylan.beaudette@usda.gov>
 License: GPL (>= 3)
 URL: https://github.com/ncss-tech/soilReports
 BugReports: https://github.com/ncss-tech/soilReports/issues
-Suggests: rmarkdown, knitr, testthat
+Suggests: rmarkdown, knitr, testthat, scales, clhs, MASS, sharpshootR
 Imports: remotes
+RoxygenNote: 7.1.1
+Roxygen: list(markdown = TRUE)
