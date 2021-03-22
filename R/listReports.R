@@ -28,8 +28,20 @@
   return(res)
 }
 
-# list available reports
-listReports <- function(showFullPaths=FALSE) {
+#' List names of available reports
+#'
+#' @param showFullPaths Show full paths to files? Default: `FALSE`
+#'
+#' @return a `data.frame` containing report names, versions and descriptions for reports available in the currently installed version of the soilReports package.
+#' @export
+#'
+#' @examples
+#' 
+#' listReports()
+#' 
+#' listReports(showFullPaths = TRUE)
+#' 
+listReports <- function(showFullPaths = FALSE) {
   
   # get base directory where reports are stored within package
   base.dir <- system.file('reports/', package='soilReports')

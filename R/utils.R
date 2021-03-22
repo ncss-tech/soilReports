@@ -1,7 +1,20 @@
+#' Indexing for Plotting and Printing
+#'
+#' This function creates an index to iterate over when plotting or printing large objects.
+#' 
+#' @param x a `data.frame`, `SoilProfileCollection` or `table`
+#' @param interval a value specifying the interval length desired; Default: `4`
+#'
+#' @return a numeric vector
+#' @export
+#' @examples 
+#' x <- as.data.frame(matrix(1:100, ncol = 10))
+#' pIndex(x, interval = 3)
+#' 
 pIndex <- function(x, interval = 4){
-  if (class(x)[1] == "data.frame") {x1 <- ncol(x); x2 <- 1}
-  if (class(x)[1] == "SoilProfileCollection") {x1 <- length(x); x2 <- 0}
-  if (class(x)[1] == "table") {x1 <- ncol(x); x2 <- 0}
+  if (inherits(x, "data.frame")) { x1 <- ncol(x); x2 <- 1 }
+  if (inherits(x, "SoilProfileCollection")) { x1 <- length(x); x2 <- 0 }
+  if (inherits(x, "table")) { x1 <- ncol(x); x2 <- 0 }
   n <- x1 - x2
   times <- ceiling(n / interval)
   x <- rep(1:(times + x2), each = interval, length.out = n)
@@ -21,6 +34,22 @@ pIndex <- function(x, interval = 4){
 }
 
 
+#' Pretty Quantile Printing
+#' 
+#' This function generates a pretty quantile summary for printing.
+#' 
+#' @param x a numeric vector
+#' @param p a numeric vector of percentiles
+#' @param n a logical value indicating whether the vector of percentiles should be appended with the number of observations
+#' @param signif a logical value indicating whether the percentiles should be rounded to the precision of the data
+#'
+#' @return a character value of quantiles and optionally the number of observations
+#' @author Stephen Roecker
+#' @export
+#' @examples 
+#' x <- 1.1:10.1
+#' prettySummary(x)
+#'
 prettySummary <- function(x, p = c(0, 0.25, 0.5, 0.75, 1), n = TRUE, signif = TRUE) {
   precision <- .precision(x)
   n_obs <- length(na.omit(x))
@@ -28,11 +57,13 @@ prettySummary <- function(x, p = c(0, 0.25, 0.5, 0.75, 1), n = TRUE, signif = TR
   range <- paste0("(",
                   # precision
                   if (signif == TRUE) {
-                    paste0(round(ci, precision), collapse=", ") 
-                  } else paste0(round(ci), collapse = ", ")
-                  , ")" ,  
+                    paste0(round(ci, precision), collapse = ", ")
+                  } else
+                    paste0(round(ci), collapse = ", ")
+                  , ")" ,
                   # add (n_obs) column for pretty-printing
-                  if (n == TRUE) {paste0("(", n_obs, ")")}
-                  )
+                  if (n == TRUE) {
+                    paste0("(", n_obs, ")")
+                  })
   return(range = range)
-  }
+}

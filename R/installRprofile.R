@@ -1,7 +1,12 @@
 ## TODO: figure out how to add to an existing .Rprofile
 ## ideas from here: https://cran.r-project.org/bin/windows/base/rw-FAQ.html#What-are-HOME-and-working-directories_003f
 
-installRprofile <- function(overwrite=FALSE) {
+#' Install USDA-NRCS SPSD CCE user .Rprofile 
+#'
+#' @param overwrite overwrite? Default `FALSE`
+#'
+#' @return `source()` a new .Rprofile set up to redirect R library paths
+installRprofile <- function(overwrite = FALSE) {
   
   # information
   message(paste('HOME directory:\n ', path.expand('~'), collapse = ''))

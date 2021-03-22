@@ -1,11 +1,6 @@
 \name{soilReports-package}
 \alias{soilReports-package}
 \alias{soilReports}
-\alias{installRprofile}
-\alias{listReports}
-\alias{reportInit}
-\alias{copyReport}
-\alias{reportSetup}
 \docType{package}
 \title{Soil Reports: R-Markdown reports and convenience functions for soil survey.}
 \description{R package container and convenience functions for soil data summary, comparison, and evaluation reports used mainly by USDA-NRCS staff.

@@ -24,7 +24,15 @@
   remotes::install_github(p, dependencies=FALSE, upgrade=FALSE, build=FALSE)
 }
 
-# install packages / work-arounds needed for a named report
+#' Install packages needed for a report
+#'
+#' @param reportName Name of report, as found in `listReports.` Format: `directory/reportName`.
+#' @param upgrade Upgrade CRAN packages? Default: \code{FALSE}
+#'
+#' @return Installed packages from CRAN and GitHub in user library, as specified in report-specific manifest.
+#' 
+#' @export
+#'
 reportSetup <- function(reportName, upgrade=FALSE) {
   
   # get base directory where reports are stored within package
