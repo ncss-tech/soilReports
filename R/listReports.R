@@ -2,10 +2,29 @@
 # extract the version number from a single report
 .getReportMetaData <- function(x) {
   env <- new.env()
-  sys.source(paste0(dirname(x),"/setup.R"), env)
+  setup_path <- paste0(dirname(x),"/setup.R")
+  
+  try(sys.source(setup_path, env), silent = TRUE)
+  
   # combine and return
-  if(exists('.report.name',env) & exists('.report.version',env) & exists('.report.description',env))
-    res <- data.frame(name=get('.report.name',env), version=get('.report.version',env), description=get('.report.description',env), stringsAsFactors = FALSE)
+  if (exists('.report.name', env) &
+      exists('.report.version', env) &
+      exists('.report.description', env)) {
+    res <- data.frame(
+      name = get('.report.name', env),
+      version = get('.report.version', env),
+      description = get('.report.description', env),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    res <- data.frame(
+      name = NA,
+      version = NA,
+      description = "[Report NOT ready to install]",
+      stringsAsFactors = FALSE
+      
+    )
+  }
   return(res)
 }
 
