@@ -19,14 +19,33 @@ library(rgl)
 ## DATA SOURCES
 
 # use soilDB::mukey.wcs for thematic raster (values: MUKEY integers)
-use_ssurgo <- TRUE
+use_ssurgo <- FALSE
 
 target_crs <- "EPSG:6350"
 target_resolution <- 5 # meters
 
+## POINT LOCATION (used with SSURGO)
+a_point <- st_as_sf(data.frame(y = 37.97892788288914, 
+                               x = -120.27964390945054),
+                    coords = c("x", "y"),
+                    crs = st_crs(4326))
+
 # if FALSE, specify custom name and path to thematic raster
-thematic_raster_path <- NA
-label_table <- NA
+thematic_raster_path <- raster("../InterpretationEngine/inst/extdata/Output/SVI/Dunn1/Dunn1_SVI.tif")
+# dput(levels(thematic_raster_path)[[1]])
+# 
+label_table <- structure(list(
+  ID = c(0, 1, 2, 3, 4),
+  Label = structure(
+    1:5,
+    .Label = c("",
+               "1 - Low", "2 - Moderate", "3 - Moderately High", "4 - High"),
+    class = "factor"
+  ),
+  Color = c(NA, rev(heat.colors(4)))
+),
+class = "data.frame",
+row.names = c(NA,-5L))
 
 # use elevatr to get DEM data
 use_elevatr <- TRUE
@@ -59,21 +78,28 @@ add_ray_shadows <- FALSE
 #                                   8	'Ridges'	'#730000'", header = TRUE)
 # ```
 
-## POINT LOCATION
-a_point <- st_as_sf(data.frame(y = 37.97892788288914, 
-                               x = -120.27964390945054),
-                    coords = c("x", "y"),
-                    crs = st_crs(4326))
-
 # get the data
-dem_orig <- elevatr::get_elev_raster(a_point, z = elevatr_zoom)
-dem <- projectRaster(dem_orig, 
-                     res = c(target_resolution, target_resolution),
-                     crs = CRS(target_crs))
-ssurgo_mukey <- soilDB::mukey.wcs(st_bbox(extent(dem), crs = st_crs(dem)))
-
-# reproject theme raster to match dem raster
-theme <- suppressWarnings(projectRaster(ssurgo_mukey, dem, method = "ngb"))
+if (inherits(thematic_raster_path,'raster')) {
+  
+  dem_orig <- elevatr::get_elev_raster(thematic_raster_path, z = elevatr_zoom)
+  dem <- projectRaster(dem_orig, res=10, crs = thematic_raster_path)
+  dem <- crop(dem, thematic_raster_path)
+  theme <- projectRaster(thematic_raster_path, dem, method="ngb")
+  theme <- crop(theme, dem)
+} else {
+  
+  dem_orig <- elevatr::get_elev_raster(a_point, z = elevatr_zoom)
+  
+  dem <- projectRaster(dem_orig, 
+                       res = c(target_resolution, target_resolution),
+                       crs = CRS(target_crs))
+  
+  ssurgo_mukey <- soilDB::mukey.wcs(st_bbox(extent(dem), crs = st_crs(dem)))
+  
+  # reproject theme raster to match dem raster
+  theme <- suppressWarnings(projectRaster(ssurgo_mukey, dem, method = "ngb"))
+  
+}
 
 # ratify theme raster
 theme <- raster::ratify(theme)
@@ -155,7 +181,7 @@ custom_rgb_theme <- function(theme, label_table) {
   aperm(my.array, c(2,1,3))
 }
 
-theme_array <- custom_rgb_theme(theme, label_table)
+theme_array <- custom_rgb_theme(ratify(theme), label_table)
 
 # make the theme raster align with dem array
 # theme_array <- make_conformal_theme(elmat = rayshader::raster_to_matrix(dem),
@@ -205,7 +231,7 @@ plot_3d(
   fov = 0,
   theta = 30,
   water = 0,
-  zscale = estz$zratio,
+  zscale = 2,
   zoom = 0.75,
   phi = 45,
   windowsize = c(1000, 800),
