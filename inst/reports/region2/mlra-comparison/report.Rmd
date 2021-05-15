@@ -1,5 +1,5 @@
 ---
-title: null
+pagetitle: 'MLRA Comparison'
 output:
   html_document:
     mathjax: null
@@ -7,6 +7,13 @@ output:
     smart: no
     keep_md: no
 ---
+
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+	.report.name <- 'mlra-comparison'
+	.report.version <- '1.1'
+	.report.description <- 'compare MLRA using pre-made, raster sample databases'
+```
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
 # setup
@@ -34,6 +41,7 @@ library(randomForest, quietly=TRUE)
 library(ggplot2, quietly = TRUE)
 library(kableExtra, quietly = TRUE)
 library(RColorBrewer, quietly = TRUE)
+
 
 ## load report-specific functions
 source('custom.R')
@@ -620,14 +628,13 @@ kable_styling(
 
 ### Multivariate Summary
 
-This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 75% (dotted line), 50% (dashed line), and 25% (solid line) of the points in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Data from map units with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
+The following "ordination" summarizes environmental variables by MLRA. The flattening of multivariate data (16 dimensions) onto an optimal 2D projection is performed using [principal coordinates](https://en.wikipedia.org/wiki/Multidimensional_scaling#Types). Ellipses represent 50% probability contours via *multivariate homogeneity of group dispersions*. MLRA delineations with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). MLRA with very low variation in environmental variables can result in tightly clustered points in the ordination. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/book2/numerical-tax.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
 
 **Suggested usage:**
 
- * The relative position of points and contours are meaningful; absolute position will vary each time the report is run.
  * Colors match those used in the density plots above. Be sure to cross-reference this figure with density plots.
+ * The relative position of points and ellipses are meaningful; absolute position will vary each time the figure is generated.
  * Look for "diffuse" vs. "concentrated" clusters: these suggest relatively broadly vs. narrowly defined map unit concepts.
- * Multiple, disconnected contours (per map unit) could indicate errors or small map unit separated by large distances. Check for multiple peaks in the associated density plots.
  * Nesting of clusters (e.g. smaller cluster contained by larger cluster) suggests superset/subset relationships.
  * Overlap is proportional to similarity.
 
@@ -647,7 +654,9 @@ mlra.data <- cbind(mlra.prism.data, mlra.soil.data[, -1], ppt.prism.data[, c(2, 
 # leave-out ID vars
 mlra.data.vars <- findSafeVars(mlra.data, id = 'mlra')
 
-## TODO: what is a reasonable sample size?
+
+## NOTE: this should be a lot faster with C++ clhs
+
 # only sub-sample if there are "a lot" of samples
 if(nrow(mlra.data) > 1000) {
   # sub-sample via LHS: this takes time
@@ -667,32 +676,25 @@ d.sub <- na.omit(d.sub)
 d.dist <- daisy(d.sub[, mlra.data.vars], stand=TRUE)
 
 ## map distance matrix to 2D space via principal coordinates
-d.betadisper <- vegan::betadisper(d.dist, group=d.sub$mlra, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
+d.betadisper <- vegan::betadisper(d.dist, group=d.sub$mlra, bias.adjust = TRUE, sqrt.dist = FALSE, type='median')
 d.scores <- vegan::scores(d.betadisper)
 
-## TODO: there might be a better way to do this, ask Jay
-# contour density estimates
-# add contours for fixed pct of data density using KDE
-# other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
-s <- data.frame(x=d.scores$sites[, 1], y=d.scores$sites[, 2], mlra=d.sub$mlra)
-s <- split(s, s$mlra)
+sub.text <- sprintf('MLRA %s', paste(mu.set, collapse = ', '))
 
 # plot
-par(mar=c(1,1,3,1))
-plot(d.scores$sites, type='n', axes=FALSE)
-abline(h=0, v=0, lty=2, col='grey')
+plot(
+  d.betadisper, hull=FALSE, ellipse=TRUE, conf=0.5,
+  col=cols, main='Ordination of Raster Samples\n50% Probability Ellipse', sub = sub.text,
+  las = 1, xlab = '', ylab= ''
+)
+```
 
-# NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
-# add contours of prob density
-res <- lapply(s, kdeContours, id='mlra', prob=c(0.75), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=3)
-res <- lapply(s, kdeContours, id='mlra', prob=c(0.5), cols=cols, m=levels(d.sub$mlra), lwd=1, lty=2)
-res <- lapply(s, kdeContours, id='mlra', prob=c(0.25), cols=cols, m=levels(d.sub$mlra), lwd=2, lty=1)
 
-points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$mlra)], pch=16)
-# note special indexing for cases when low-var MU have been removed
-vegan::ordilabel(d.betadisper, display='centroids', col=cols[match(mu.set, levels(d.sub$mlra))])
-title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
-box()
+Pair-wise comparisons at the 90% level of confidence.
+```{r, results='hide', echo=FALSE, fig.width=7, fig.height=7}
+## pair-wise comparisons of variance
+par(mar=c(4.5, 5.5, 4.5, 1))
+plot(TukeyHSD(d.betadisper, conf.level = 0.9), las=1)
 ```
 
 
@@ -750,4 +752,5 @@ if(length(levels(d.sub$mlra)) >= 2) {
 
 ----------------------------
 Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+
 
