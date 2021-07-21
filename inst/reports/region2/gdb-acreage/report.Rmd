@@ -1,0 +1,92 @@
+---
+title: "GDB Acreage Report"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(DT, quietly = TRUE)
+library(sf, quietly = TRUE)
+library(soilDB, quietly = TRUE)
+library(knitr, quietly = TRUE)
+
+knitr::opts_chunk$set(echo = FALSE)
+
+source("config.R")
+```
+
+```{r results='asis'}
+cat(paste0("## ", area.symbol))
+```
+
+```{r}
+get_NASIS_legendmu <- function() {
+  soilDB::dbQueryNASIS(soilDB::NASIS(), "SELECT * FROM lmapunit_View_1 lmv;")
+}
+
+get_NASIS_legend <- function() {
+  soilDB::dbQueryNASIS(soilDB::NASIS(), "SELECT * FROM legend_View_1 lv INNER JOIN area_View_1 ar ON lv.areaiidref = ar.areaiid;")
+}
+
+# Get map unit data
+mu <- sf::st_read(dsn = poly.dsn,
+                  layer = poly.layer,
+                  stringsAsFactors = FALSE)
+gdb_data <- as.data.frame(mu)
+
+# sq. meters to acres
+gdb_data$Acres_calc <- gdb_data$Shape_Area / 4046.86
+
+spatial_mu <- do.call('rbind', lapply(split(gdb_data, gdb_data$MUSYM, drop = TRUE), function(x) {
+  
+  data.frame(MUSYM = unique(x$MUSYM),
+             Spatial_Acres = sum(x$Acres_calc)) }))
+spatial_mu$Spatial_Acres <- round(spatial_mu$Spatial_Acres)
+
+legend_mu <- soilDB::uncode(get_NASIS_legendmu(), stringsAsFactors = FALSE)
+legend_mu1 <- merge(legend_mu, soilDB::uncode(get_NASIS_legend(),
+                                              stringsAsFactors = FALSE), 
+                   by.x = "liidref", by.y = "liid", 
+                   all.x = TRUE, sort = FALSE)
+legend_mu2 <- legend_mu1[,c("areasymbol", "muiidref", "musym",
+                            "mustatus", "muacres")]
+legend_mu3 <-  rbind(subset(legend_mu2, areasymbol == eval(area.symbol)))
+names(legend_mu3) <- c("Area", "MURecID", "MUSYM",
+                       "Status", "Legend_Acres")
+
+missing.musyms <- spatial_mu$MUSYM[!spatial_mu$MUSYM %in% legend_mu3$MUSYM]
+if (length(missing.musyms)) {
+  legend_missing <- legend_mu3[0,][1:length(missing.musyms),]
+  legend_missing$Area <- "missing"
+  legend_missing$MURecID <- "missing"
+  legend_missing$Status <- "missing"
+  legend_missing$MUSYM <- missing.musyms
+  legend_mu3 <- rbind(legend_mu3, legend_missing)
+}
+
+legend_mu4 <- merge(legend_mu3, spatial_mu, by = c("MUSYM"), all.x = TRUE, all.y = TRUE, sort = FALSE)
+
+legend_mu4$Legend_Acres[is.na(legend_mu4$Legend_Acres)] <- 0
+legend_mu4$Spatial_Acres[is.na(legend_mu4$Spatial_Acres)] <- 0
+legend_mu4$Change <- legend_mu4$Spatial_Acres - legend_mu4$Legend_Acres
+legend_mu4$Match = (legend_mu4$Legend_Acres == legend_mu4$Spatial_Acres)
+
+legend_mu5 <- legend_mu4[order(legend_mu4[[order.by.col]], decreasing = TRUE),]
+
+write.csv(legend_mu5, file = paste0("GDBAcreageReport_", poly.layer, "_", format(Sys.time(), '%Y%m%d'),".csv"))
+
+colnames(legend_mu5) <- gsub("_"," ",colnames(legend_mu5))
+
+DT::datatable(legend_mu5, rownames = FALSE, options = list(
+        columnDefs = list(list(className = 'dt-center', targets = 1:6)),
+        lengthMenu = list(c(10, 25, 50, -1), c('10', '25', '50', 'All')),
+        pageLength = 50,
+        initComplete = DT::JS(
+            "function(settings, json) {",
+            "$(this.api().table().header()).css( {",
+            " 'background-color': '#216734',", # javascript for DT style
+            " 'color': '#fff'",
+            "});",
+            "}"), searchHighlight = TRUE),
+    escape = 1, filter = "bottom")
+```
