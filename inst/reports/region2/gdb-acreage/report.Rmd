@@ -21,7 +21,12 @@ cat(paste0("## ", area.symbol))
 
 ```{r}
 get_NASIS_legendmu <- function() {
-  soilDB::dbQueryNASIS(soilDB::NASIS(), "SELECT * FROM lmapunit_View_1 lmv;")
+  soilDB::dbQueryNASIS(soilDB::NASIS(), "SELECT nationalmusym, lmapunitiid, musym, dmudesc,
+                                                mustatus, muacres, liidref FROM lmapunit
+                                         LEFT JOIN mapunit ON lmapunit.muiidref = mapunit.muiid
+                                         INNER JOIN correlation ON correlation.muiidref = mapunit.muiid
+                                         INNER JOIN datamapunit ON correlation.dmuiidref = datamapunit.dmuiid 
+                                         WHERE repdmu = 'true';")
 }
 
 get_NASIS_legend <- function() {
@@ -48,23 +53,25 @@ legend_mu1 <- merge(legend_mu, soilDB::uncode(get_NASIS_legend(),
                                               stringsAsFactors = FALSE), 
                    by.x = "liidref", by.y = "liid", 
                    all.x = TRUE, sort = FALSE)
-legend_mu2 <- legend_mu1[,c("areasymbol", "muiidref", "musym",
+legend_mu2 <- legend_mu1[,c("areasymbol", "nationalmusym",
+                            "lmapunitiid", "musym", "dmudesc",
                             "mustatus", "muacres")]
 legend_mu3 <-  rbind(subset(legend_mu2, areasymbol == eval(area.symbol)))
-names(legend_mu3) <- c("Area", "MURecID", "MUSYM",
-                       "Status", "Legend_Acres")
+names(legend_mu3) <- c("Area", "NMUSYM", "MUKEY", "MUSYM", "DMUDESC", "Status", "Legend_Acres")
 
 missing.musyms <- spatial_mu$MUSYM[!spatial_mu$MUSYM %in% legend_mu3$MUSYM]
 if (length(missing.musyms)) {
   legend_missing <- legend_mu3[0,][1:length(missing.musyms),]
   legend_missing$Area <- "missing"
-  legend_missing$MURecID <- "missing"
+  legend_missing$NMUSYM <- "missing"
+  legend_missing$MUKEY <- "missing"
   legend_missing$Status <- "missing"
   legend_missing$MUSYM <- missing.musyms
   legend_mu3 <- rbind(legend_mu3, legend_missing)
 }
 
-legend_mu4 <- merge(legend_mu3, spatial_mu, by = c("MUSYM"), all.x = TRUE, all.y = TRUE, sort = FALSE)
+legend_mu4 <- merge(legend_mu3, spatial_mu, by = c("MUSYM"),
+                    all.x = TRUE, all.y = TRUE, sort = FALSE)
 
 legend_mu4$Legend_Acres[is.na(legend_mu4$Legend_Acres)] <- 0
 legend_mu4$Spatial_Acres[is.na(legend_mu4$Spatial_Acres)] <- 0
@@ -73,9 +80,22 @@ legend_mu4$Match = (legend_mu4$Legend_Acres == legend_mu4$Spatial_Acres)
 
 legend_mu5 <- legend_mu4[order(legend_mu4[[order.by.col]], decreasing = TRUE),]
 
-write.csv(legend_mu5, file = paste0("GDBAcreageReport_", poly.layer, "_", format(Sys.time(), '%Y%m%d'),".csv"))
+write.csv(legend_mu5, file = paste0("GDBAcreageReport_", poly.layer,
+                                    "_", format(Sys.time(), '%Y%m%d'),".csv"))
 
-colnames(legend_mu5) <- gsub("_"," ",colnames(legend_mu5))
+# used as input for Legend Mapunit calculation "Assign Total muacres - MU Symbol"
+# move to c:\temp\musymacres.txt
+write.table(legend_mu5[, c(musymacres_field, 'Spatial_Acres')], 
+            file = paste0("musymacres_", poly.layer, "_",
+                          format(Sys.time(), '%Y%m%d'),".txt"), 
+            quote = FALSE, sep = "|", row.names = FALSE, col.names = FALSE)
+
+colnames(legend_mu5) <- gsub("_", " ", colnames(legend_mu5))
+
+# hide dmudesc (can be too long)
+if (!include_dmudesc) {
+  legend_mu5$DMUDESC <- NULL
+}
 
 DT::datatable(legend_mu5, rownames = FALSE, options = list(
         columnDefs = list(list(className = 'dt-center', targets = 1:6)),
