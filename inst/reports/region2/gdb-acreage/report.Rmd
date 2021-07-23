@@ -65,6 +65,7 @@ if (length(missing.musyms)) {
   legend_missing$Area <- "missing"
   legend_missing$NMUSYM <- "missing"
   legend_missing$MUKEY <- "missing"
+  legend_missing$DMUDESC <- "missing"
   legend_missing$Status <- "missing"
   legend_missing$MUSYM <- missing.musyms
   legend_mu3 <- rbind(legend_mu3, legend_missing)
