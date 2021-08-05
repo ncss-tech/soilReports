@@ -97,7 +97,7 @@ nh <- length(num_vars[num_vars %in% names(h)]) / 4 * 3
 # create a empty diagnostic table if data is NULL
 if (nrow(d) == 0) {
   d <- data.frame(peiid = s$peiid,
-                  diag_kind = as.character("missing"),
+                  featkind = as.character("missing"),
                   featdept = as.integer(NA), 
                   featdepb = as.integer(NA)
                   )
