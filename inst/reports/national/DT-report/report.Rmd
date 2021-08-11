@@ -3,12 +3,6 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-.report.name <- 'simple-DT-report'
-.report.version <- '1.0'
-.report.description <- 'Create DT datatables from CSV files'
-```
-
 ```{r setup, include=FALSE}
 library(DT, quietly = TRUE)
 library(knitr, quietly = TRUE)
