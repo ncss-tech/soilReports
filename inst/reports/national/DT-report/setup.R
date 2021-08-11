@@ -4,7 +4,7 @@
 ##
 
 ## packages from CRAN
-.packages.to.get <- c()
+.packages.to.get <- c("DT")
 
 ## packages from GitHub, installed with no dependencies
 .gh.packages.to.get <- c()
