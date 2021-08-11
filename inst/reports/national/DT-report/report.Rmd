@@ -1,0 +1,40 @@
+---
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+.report.name <- 'simple-DT-report'
+.report.version <- '1.0'
+.report.description <- 'Create DT datatables from CSV files'
+```
+
+```{r setup, include=FALSE}
+library(DT, quietly = TRUE)
+library(knitr, quietly = TRUE)
+
+knitr::opts_chunk$set(echo = FALSE)
+
+source("config.R")
+```
+
+```{r results='asis'}
+cat(paste0("# ", gsub("(.*)[\\.].*", "\\1", basename(paths[1]))))
+x <- read.csv(paths[1])
+colnames(x) <- gsub("\\."," ", colnames(x))
+```
+
+```{r}
+DT::datatable(x, rownames = FALSE, options = list(
+        columnDefs = list(list(className = 'dt-center', targets = 1:6)),
+        lengthMenu = list(c(10, 25, 50, -1), c('10', '25', '50', 'All')),
+        pageLength = -1,
+        initComplete = DT::JS(
+            "function(settings, json) {",
+            "$(this.api().table().header()).css( {",
+            " 'background-color': '#216734',", # javascript for DT style
+            " 'color': '#fff'",
+            "});",
+            "}"), searchHighlight = TRUE),
+    escape = 1, filter = "bottom")
+```
