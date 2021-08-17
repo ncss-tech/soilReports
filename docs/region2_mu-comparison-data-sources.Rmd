@@ -1,15 +1,13 @@
 ---
 title: MU Comparison Data Sources
-author: Dylan Beaudette, Jennifer Wood, Russ Almaraz
+author: Dylan Beaudette, Jennifer Wood, Russ Almaraz, Andrew Brown
 date: "`r Sys.Date()`"
 output: html_vignette
 ---
 
 # Overview
 
-Several of the Region 2 reports make use of a standardized set of raster data sources.
-
-
+Several of the Southwest Region (Region 2) reports make use of a standardized set of raster data sources.
 
 # Climate Data
 
@@ -175,8 +173,8 @@ Notes:
 
 Mean (Celsius) growing degree days, derived from the 800m PRISM daily minimum/maximum temperature data over the interval of 1981--2010.
 
-Calculation reference: http://agron-www.agron.iastate.edu/Courses/agron212/Calculations/GDD.htm
-   
+Calculation reference: http://agron-www.agron.iastate.edu/courses/Agron541/classes/541/lesson02b/2b.1.1.html
+
 $$GDD_i = [ min(T_{max}, upper_{threshold}) + max(Tmin, lower_{threshold}) / 2 ] - T_{base}$$
 
 $$GDD_i = max(GDD_i, 0)$$
