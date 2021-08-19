@@ -1,12 +1,12 @@
 ## config.R 
 
 ## base path to one or more geodatabases
-poly.path <- "E:/CA649/Geodata/GDB"
+poly.path <- "E:/CA649/QA/"
 
 ## geodatabase file name
 # gdb.name <- "FGDB_CA731_Join_Project_2021_0716.gdb"
 # gdb.name <- "FGCA649_Projects_2021_07_16.gdb"
-gdb.name <- "FGDB_CA750_Join_Project_2021_0716.gdb"
+gdb.name <- "FGDB_CA750_Join_Project_2021_0722_agb.gdb"
 
 # include DMU description in DT interactive table? (always in CSV output)
 include_dmudesc <- FALSE

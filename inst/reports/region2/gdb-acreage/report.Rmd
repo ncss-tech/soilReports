@@ -29,8 +29,11 @@ get_NASIS_legendmu <- function() {
                                          WHERE repdmu = 'true';")
 }
 
-get_NASIS_legend <- function() {
-  soilDB::dbQueryNASIS(soilDB::NASIS(), "SELECT * FROM legend_View_1 lv INNER JOIN area_View_1 ar ON lv.areaiidref = ar.areaiid;")
+get_NASIS_legend <- function(areasymbol) {
+  soilDB::dbQueryNASIS(soilDB::NASIS(), sprintf("SELECT * FROM legend_View_1 lv
+                       INNER JOIN area ar ON lv.areaiidref = ar.areaiid
+                       WHERE areasymbol IN %s",
+                       soilDB::format_SQL_in_statement(areasymbol)))
 }
 
 # Get map unit data
@@ -42,17 +45,30 @@ gdb_data <- as.data.frame(mu)
 # sq. meters to acres
 gdb_data$Acres_calc <- gdb_data$Shape_Area / 4046.86
 
+
 spatial_mu <- do.call('rbind', lapply(split(gdb_data, gdb_data$MUSYM, drop = TRUE), function(x) {
   
   data.frame(MUSYM = unique(x$MUSYM),
              Spatial_Acres = sum(x$Acres_calc)) }))
 spatial_mu$Spatial_Acres <- round(spatial_mu$Spatial_Acres)
 
+
 legend_mu <- soilDB::uncode(get_NASIS_legendmu(), stringsAsFactors = FALSE)
-legend_mu1 <- merge(legend_mu, soilDB::uncode(get_NASIS_legend(),
+leg <- get_NASIS_legend(area.symbol)
+legend_mu1 <- merge(legend_mu, soilDB::uncode(leg,
                                               stringsAsFactors = FALSE), 
                    by.x = "liidref", by.y = "liid", 
                    all.x = TRUE, sort = FALSE)
+```
+
+```{r results='asis'}
+cat("#### Nominal Area ", sum(leg$areaacres), "acres v.s.",
+    "Calculated Total Area ", sum(spatial_mu$Spatial_Acres), "acres --",
+    round(sum(spatial_mu$Spatial_Acres) / sum(leg$areaacres) * 100) - 100 ,
+    "% difference \n\n")
+```
+
+```{r}
 legend_mu2 <- legend_mu1[,c("areasymbol", "nationalmusym",
                             "lmapunitiid", "musym", "dmudesc",
                             "mustatus", "muacres")]
