@@ -4,9 +4,12 @@
 #' Install USDA-NRCS SPSD CCE user .Rprofile 
 #'
 #' @param overwrite overwrite? Default `FALSE`
-#'
+#' @param user_folder User folder name (default `NULL`; if not null used instead of `file.path('C:/Users', Sys.getenv('USERNAME'), 'Documents')`)
+#' @param home_drive Custom Home Drive (default `NULL`; if not null replaces `"C:"`)
 #' @return `source()` a new .Rprofile set up to redirect R library paths
-installRprofile <- function(overwrite = FALSE) {
+installRprofile <- function(overwrite = FALSE, 
+                            user_folder = NULL,
+                            home_drive = NULL) {
   
   # information
   message(paste('HOME directory:\n ', path.expand('~'), collapse = ''))
@@ -16,20 +19,35 @@ installRprofile <- function(overwrite = FALSE) {
   rp <- file.path(path.expand('~'), '.Rprofile')
   
   # check for existing
-  if(file.exists(rp) & ! overwrite)
+  if(file.exists(rp) & !overwrite)
     stop(paste0('set `overwrite=TRUE` argument to replace existing .Rprofile file:\n  ', rp), call. = FALSE)
   
+  if (is.null(user_folder)) {
+    user_folder <- "file.path('C:/Users', Sys.getenv('USERNAME'), 'Documents')"
+    if (!is.null(home_drive)) {
+      user_folder <- gsub("C:", home_drive, user_folder, fixed = TRUE)
+    }
+  } else user_folder <- shQuote(user_folder)
+
+  sysvars <- "Sys.setenv(HOME=c.my.documents, HOMEDRIVE='C:', HOMESHARE=c.my.documents, R_USER=c.my.documents, TEMP='C:/Temp/', TMP='C:/Temp/')"
+  
+  if (!is.null(home_drive)) {
+    sysvars <- gsub("C:", home_drive, sysvars, fixed = TRUE)
+    
+    if (!dir.exists(file.path(home_drive, "Temp/")))
+      dir.create(file.path(home_drive, "Temp/"))
+  }
+  
   # new /HOME/.Rprofile that should direct packages to C:/
-  # this should have NO indentiation !!!
+  # this should have NO indentation !!!
   # this should have no white-space on last line(s)
-  Rprofile.contents <- "
+  Rprofile.contents <- paste0("
 # 2018-10-15
 # Customize R environment for use within USDA-NRCS network.
-#
-
+#  - AGB updated 2022-01-11 to support custom user folder
 
 # establish path to where we would like R packages to be stored
-c.my.documents <- file.path('C:/Users', Sys.getenv('USERNAME'), 'Documents')
+c.my.documents <- ", user_folder, "
 
 # determine the sub-dir for current version of R
 R.ver <- paste(R.version$major, sub('\\\\..*$', '', R.version$minor), sep='.')
@@ -47,7 +65,7 @@ if(!dir.exists(R.path.personal.lib)) {
 Sys.setenv(R_LIBS_USER=R.path.personal.lib)
 
 # change any references to network shares in env variables
-Sys.setenv(HOME=c.my.documents, HOMEDRIVE='C:', HOMESHARE=c.my.documents, R_USER=c.my.documents, TEMP='C:/Temp/', TMP='C:/Temp/')
+", sysvars, "
 
 # update other evn. variables
 invisible(.libPaths(c(unlist(strsplit(Sys.getenv('R_LIBS'), ';')), unlist(strsplit(Sys.getenv('R_LIBS_USER'), ';')))))
@@ -56,7 +74,7 @@ rm(c.my.documents, R.ver, R.path.personal.lib)
 
 # debugging
 message(paste('R library paths:', paste('\n', .libPaths(), collapse='')))
-"
+")
 
   # overwrite existing .Rprofile in user's HOME directory
   cat(Rprofile.contents, file = rp)

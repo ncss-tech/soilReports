@@ -4,10 +4,14 @@
 \alias{installRprofile}
 \title{Install USDA-NRCS SPSD CCE user .Rprofile}
 \usage{
-installRprofile(overwrite = FALSE)
+installRprofile(overwrite = FALSE, user_folder = NULL, home_drive = NULL)
 }
 \arguments{
 \item{overwrite}{overwrite? Default \code{FALSE}}
+
+\item{user_folder}{User folder name (default \code{NULL}; if not null used instead of \code{file.path('C:/Users', Sys.getenv('USERNAME'), 'Documents')})}
+
+\item{home_drive}{Custom Home Drive (default \code{NULL}; if not null replaces \code{"C:"})}
 }
 \value{
 \code{source()} a new .Rprofile set up to redirect R library paths
