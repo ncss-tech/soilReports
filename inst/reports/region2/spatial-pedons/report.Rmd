@@ -1,0 +1,122 @@
+---
+title: "NASIS Pedon Spatial Overlay Report"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+# report.Rmd should source user-defined configuration from config.R
+source("config.R")
+```
+
+```{r}
+library(sf)
+library(mapview)
+library(aqp)
+library(soilDB)
+
+if (!is.null(PEDON_CACHE) && file.exists(PEDON_CACHE)) {
+  load(PEDON_CACHE)
+} else { 
+  p <- soilDB::fetchNASIS(SS = SELECTED_SET)
+  p <- subset(p, !is.na(p$x_std))
+  coordinates(p) <- ~ x_std + y_std
+  if (!is.null(PEDON_CACHE)) {
+    save(p, file = PEDON_CACHE)
+  }
+}
+
+s <- sf::st_as_sf(as(p, 'SpatialPointsDataFrame'))
+sf::st_crs(s) <- sf::st_crs("EPSG:4326")
+
+if (!is.null(SPATIAL_DSN) && 
+    !is.null(SPATIAL_LAYER) && 
+    !SPATIAL_DSN %in% c('SSURGO','STATSGO')) {
+  l <- sf::st_read(SPATIAL_DSN, SPATIAL_LAYER)
+} else {
+  if (is.null(SPATIAL_DSN))
+    SPATIAL_DSN <- "SSURGO"
+  mukey <- soilDB::SDA_spatialQuery(s, what = "mukey", db = SPATIAL_DSN)
+  nmusym <- soilDB::SDA_query(paste0("SELECT DISTINCT nationalmusym FROM mapunit WHERE mukey IN ",
+                              soilDB::format_SQL_in_statement(mukey$mukey)))
+  
+  l <- sf::st_as_sf(soilDB::fetchSDA_spatial(nmusym$nationalmusym, 
+                                             by.col = "nationalmusym", 
+                                             verbose = FALSE,
+                                             db = SPATIAL_DSN,
+                                             add.fields = c("legend.areasymbol",
+                                                            "mapunit.musym")))
+  l$MUSYM <- l$musym
+  l$AREASYMBOL <- l$areasymbol 
+  SPATIAL_LAYER <- SPATIAL_DSN 
+}
+
+s <- sf::st_transform(s, sf::st_crs(l))
+s2 <- sf::st_intersection(l, s)
+```
+
+```{r, fig.width=8, fig.align='center'}
+mapview::mapview(list(POLYGONS = l, POINTS = s2))
+
+if(!dir.exists("output"))
+  dir.create("output")
+
+sf::st_write(s2, 
+             dsn = paste0("output/pedons_", SPATIAL_LAYER, ".shp"), 
+             quiet = TRUE, 
+             append = FALSE)
+```
+
+```{r, results='asis'}
+s3 <- s2 #sf::st_transform(s2, "EPSG:5070")
+x <- lapply(split(s3, s3$MUSYM), function(x) {
+    cat(paste0("### ", unique(x$MUSYM), "\n"))
+    print(knitr::kable(
+      x[, c(
+        "AREASYMBOL",
+        "MUSYM",
+        "pedon_id",
+        "describer",
+        # "pedontype",
+        "taxonkind",
+        "taxonname",
+        "taxsubgrp",
+        "taxtempregime"
+      )],
+      row.names = FALSE, 
+      caption = cat(unique(x$MUSYM), "--",
+                    NASIStools:::musym_to_nmusym(unique(x$MUSYM)), "--",
+                    NASIStools:::musym_to_muname(unique(x$MUSYM)), "--",
+                    sf::st_crs(s3)[[1]]) 
+      
+    ), "\n\n\n")
+   psub <- p[which(p$pedon_id %in% x$pedon_id),]
+   if (length(psub) == 1) { 
+     aqp::groupedProfilePlot(
+       psub,
+       groups = "taxonname",
+       group.name.offset = -17.5,
+       label = "pedon_id",
+       id.style = "side", 
+       color = HORIZON_THEME,
+       width = 0.1,
+       axis.line.offset = -5
+     )
+   } else {
+     aqp::groupedProfilePlot(
+       psub,
+       groups = "taxonname",
+       group.name.offset = -17.5,
+       label = "pedon_id",
+       id.style = "side",
+       color = HORIZON_THEME
+     )
+   }
+   cat("\n\n")
+  })
+```
+
+
+
