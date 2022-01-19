@@ -4,8 +4,6 @@ Visualize NASIS pedons in interactive HTML report with overlays of SSURGO, STATS
 
 This report has {aqp}, {sf}, {mapview}, {knitr}, {soilDB} off CRAN and {NASIStools} off GitHub as dependencies.
 
-The input vectors of soil names for fetching OSDs etc. are customizable in _config.R_. 
-
 To use the report:
 
 1. Navigate to your desired parent working directory.
