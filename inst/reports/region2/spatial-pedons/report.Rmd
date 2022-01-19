@@ -13,6 +13,7 @@ source("config.R")
 
 ```{r}
 library(sf)
+sf::sf_use_s2(FALSE)
 library(mapview)
 library(aqp)
 library(soilDB)
@@ -69,9 +70,8 @@ sf::st_write(s2,
              append = FALSE)
 ```
 
-```{r, results='asis'}
-s3 <- s2 #sf::st_transform(s2, "EPSG:5070")
-x <- lapply(split(s3, s3$MUSYM), function(x) {
+```{r, results='asis', fig.width=8, fig.align='center', fig.retina=3}
+x <- lapply(split(s2, s2$MUSYM), function(x) {
     cat(paste0("### ", unique(x$MUSYM), "\n"))
     print(knitr::kable(
       x[, c(
@@ -89,7 +89,7 @@ x <- lapply(split(s3, s3$MUSYM), function(x) {
       caption = cat(unique(x$MUSYM), "--",
                     NASIStools:::musym_to_nmusym(unique(x$MUSYM)), "--",
                     NASIStools:::musym_to_muname(unique(x$MUSYM)), "--",
-                    sf::st_crs(s3)[[1]]) 
+                    sf::st_crs(s2)[[1]]) 
       
     ), "\n\n\n")
    psub <- p[which(p$pedon_id %in% x$pedon_id),]
