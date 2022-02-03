@@ -19,7 +19,11 @@ library(DT)
 library(plyr)
 library(reshape2)
 
+
+### 
 ### set options
+### 
+
   # in demo mode, loafercreek and gopheridge datasets are used from soilDB
   demo_mode <- FALSE
   
@@ -91,6 +95,11 @@ musym.col <- "ntnlmsy"
 
 # bounding polygon layer (currently not used)
 poly.bounds <- "ca630_b"
+
+###
+### end of setup
+###
+
 
 if(!cache_data) {
   if(demo_mode) {

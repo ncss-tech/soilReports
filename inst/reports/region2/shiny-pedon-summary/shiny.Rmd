@@ -856,10 +856,10 @@ if(loaded)
       )
     }
   })
-  ```
+```
   
-  ### Texture
-  ```{r, warning=FALSE, echo=FALSE, error=FALSE}
+### Texture
+```{r, warning=FALSE, echo=FALSE, error=FALSE}
   renderTable({ 
     peds <- getPedonsByPattern(input, pedons, 
                                input$s.mu,
