@@ -70,6 +70,7 @@ remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dep
   * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
   * [DMU differences](http://ncss-tech.github.io/example-reports/dmu-diff-example.html)
   * [QA Summary](http://ncss-tech.github.io/example-reports/QA-summary-example.html)
+  * [DMU Summary](http://ncss-tech.github.io/example-reports/DMU-summary-example.html)
   * [NEW: Shiny Pedon Summary - interactive plots and tables for pedon data](https://ncss-tech.github.io/soilReports/docs/shiny-pedon-summary/shiny-pedon_loafercreek-taxadjuncts.PNG)
 
 
