@@ -61,18 +61,30 @@ remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dep
 
 
 ## Example Output
+
+### Reports for Raster Summary by MU or MLRA
   
   * [summary of select CA630 map units](http://ncss-tech.github.io/example-reports/mu-comparison/CA630-mu-comparison.html)
   * [summary of select MLRA](http://ncss-tech.github.io/example-reports/MLRA-comparison.html)
   * [summary of mupolygon layer](http://ncss-tech.github.io/example-reports/mupolygon_report.html)
-  * [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
-  * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
-  * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
+
+### Reports for DMU QC/QA
+
   * [DMU differences](http://ncss-tech.github.io/example-reports/dmu-diff-example.html)
   * [QA Summary](http://ncss-tech.github.io/example-reports/QA-summary-example.html)
   * [DMU Summary](http://ncss-tech.github.io/example-reports/DMU-summary-example.html)
-  * [NEW: Shiny Pedon Summary - interactive plots and tables for pedon data](https://ncss-tech.github.io/soilReports/docs/shiny-pedon-summary/shiny-pedon_loafercreek-taxadjuncts.PNG)
+  * [summary of soil components](http://ncss-tech.github.io/example-reports/component_report.html)
+  
 
+### Reports for Pedon Data
+
+  * [CA792: mendel](http://ncss-tech.github.io/example-reports/CA792-pedon/mendel.html)
+  * [CA792: canisrocks](http://ncss-tech.github.io/example-reports/CA792-pedon/canisrocks.html)
+  * [CA792: siberian](http://ncss-tech.github.io/example-reports/CA792-pedon/siberian.html)
+  * [CA792: isosceles](http://ncss-tech.github.io/example-reports/CA792-pedon/isosceles.html)
+  * [summary of pedon data](http://ncss-tech.github.io/example-reports/pedon_report.html)
+  * [summary of lab data](http://ncss-tech.github.io/example-reports/lab_report.html)
+  * [NEW: Shiny Pedon Summary - interactive plots and tables for pedon data](https://ncss-tech.github.io/soilReports/docs/shiny-pedon-summary/shiny-pedon_loafercreek-taxadjuncts.PNG)
 
 
 ## Run a Report - Example: Map Unit Comparison report
