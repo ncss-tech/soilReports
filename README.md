@@ -40,7 +40,7 @@ Run this code if you don't yet have the `soilReports` package or after a new ver
 
 ```r
 # need devtools to install packages from GitHub
-install.packages('devtools', dep=TRUE)
+install.packages('remotes', dep=TRUE)
 
 # get the latest version of the 'soilReports' package
 remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE) 
