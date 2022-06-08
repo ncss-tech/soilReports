@@ -1,6 +1,6 @@
 # EDIT Soil Features Report
 
-This report consists of _two_ Rmarkdown files. _report.Rmd_ is the main workhorse. It can be run for individual ecological sites by updating the default values in the YAML header `params` section. _batch.Rmd_ is used to run multiple instances of _report.Rmd_ on sets of ecological sites that have data in your local NASIS database; it programattically updates the Rmarkdown parameters for each run, and stores some of the data from your local database in memory between runs to save time.
+This report consists of _two_ Rmarkdown files. _report.Rmd_ is the main workhorse. It can be run for individual ecological sites by updating the default values in the YAML header `params` section. _batch.Rmd_ is used to run multiple instances of _report.Rmd_ on sets of ecological sites that have data in your local NASIS database; it programatically updates the Rmarkdown parameters for each run, and stores some of the data from your local database in memory between runs to save time.
 
 1. Navigate to your desired parent working directory in R. 
 
