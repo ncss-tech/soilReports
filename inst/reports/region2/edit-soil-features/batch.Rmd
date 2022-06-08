@@ -1,0 +1,61 @@
+---
+title: "EDIT Soil Features Batch Report"
+output: html_document
+---
+
+```{r setup-batch}
+# custom regex pattern for matching site IDs in local NASIS database
+PATTERN <- "[RF]018XI[12].*"
+
+# USE SELECTED SET? (default `FALSE` searches entire local database)
+SELECTED_SET <- FALSE
+
+# Vector of component names to exclude (optional; default `""` for no exclusion)
+EXCLUDE_COMPNAME <- ""
+
+# NASIS DSN (default `NULL` for connection to local NASIS SQL Express database)
+DSN <- NULL
+
+# INCLUDE ADDITIONAL MAPUNITS? (default `FALSE`)
+INCLUDE_ADDITIONAL <- FALSE
+
+# CACHE NASIS AND SPATIAL DATA (default `FALSE`)
+#  (primarily for debugging/testing reports)
+USE_CACHE <- FALSE
+```
+
+```{r, batch0, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(rmarkdown)
+library(aqp)
+library(soilDB)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.retina = 3)
+```
+
+```{r batch1, cache=FALSE}
+source("utils.R")
+q <- "SELECT DISTINCT ecositeid FROM coecosite_View_1 INNER JOIN ecologicalsite ON ecologicalsite.ecositeiid = coecosite.ecositeiidref"
+if (!SELECTED_SET) {
+  q <- gsub("_View_1", "", q)
+}
+eid <- dbQueryNASIS(NASIS(), q)$ecositeid
+eidsub <- eid[grep(PATTERN, eid)]
+f <- fetchNASIS("components", fill = TRUE, SS = SELECTED_SET, dsn = DSN)
+le <- list2env(list(f = .add_extended_data(f)))
+```
+
+```{r batchLoop}
+for (e in eidsub) {
+  try(rmarkdown::render(
+    "report.Rmd",
+    output_file = paste0(e, ".html"),
+    params = list(
+      TARGET_ECOSITE_ID = e,
+      EXCLUDE_COMPNAME = EXCLUDE_COMPNAME,
+      INCLUDE_ADDITIONAL = INCLUDE_ADDITIONAL,
+      USE_CACHE = USE_CACHE
+    ), 
+    envir = new.env(parent = le)
+  ))
+  cat(paste0(e, ".html"), sep = "\n")
+}
+```
