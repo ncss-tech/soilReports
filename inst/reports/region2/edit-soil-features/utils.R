@@ -1,3 +1,15 @@
+.fix_dupe_hz <- function(p, 
+                         method = "first", 
+                         idvars = c(idname(p), horizonDepths(p))) {
+  .I <- NULL
+  h <- data.table::data.table(p@horizons)  
+  idx <- switch(match.arg(tolower(method), choices = "first"),
+               "first" = h[, .I[1], by = c(idvars)]$V1
+               # ...
+  )
+  replaceHorizons(p) <- h[idx,]
+  p
+}
 
 .add_extended_data <- function(f) {
   # surface fragments
@@ -13,37 +25,66 @@
   csfrags_summary$coiid <- csfrags_summary$coiidref
   site(f) <- csfrags_summary
   
-  # subsurface fragments
-  chfrags <- dbQueryNASIS(NASIS(), "SELECT * FROM chfrags") |> uncode()
-  chfrags_l <- simplifyFragmentData(chfrags, "chiidref", "fragvol_l")
-  chfrags_r <- simplifyFragmentData(chfrags, "chiidref", "fragvol_r")
-  chfrags_h <- suppressWarnings(simplifyFragmentData(chfrags, "chiidref", "fragvol_h")) # expected to be >100%
-  colnames(chfrags_l)[2:ncol(chfrags_l)] <- paste0(colnames(chfrags_l)[2:ncol(chfrags_l)], "_l")
-  colnames(chfrags_r)[2:ncol(chfrags_r)] <- paste0(colnames(chfrags_r)[2:ncol(chfrags_r)], "_r")
-  colnames(chfrags_h)[2:ncol(chfrags_h)] <- paste0(colnames(chfrags_h)[2:ncol(chfrags_h)], "_h")
-  chfrags_summary <- merge(chfrags_r, chfrags_l, by = "chiidref", sort = FALSE, all.x = TRUE) |> 
-    merge(chfrags_h, by = "chiidref", sort = FALSE, all.x = TRUE)
-  chfrags_summary$chiid <- chfrags_summary$chiidref
-  horizons(f) <- chfrags_summary
+  # # subsurface fragments
+  # chfrags <- dbQueryNASIS(NASIS(), "SELECT * FROM chfrags") |> uncode()
+  # chfrags_l <- simplifyFragmentData(chfrags, "chiidref", "fragvol_l")
+  # chfrags_r <- simplifyFragmentData(chfrags, "chiidref", "fragvol_r")
+  # chfrags_h <- suppressWarnings(simplifyFragmentData(chfrags, "chiidref", "fragvol_h")) # expected to be >100%
+  # colnames(chfrags_l)[2:ncol(chfrags_l)] <- paste0(colnames(chfrags_l)[2:ncol(chfrags_l)], "_l")
+  # colnames(chfrags_r)[2:ncol(chfrags_r)] <- paste0(colnames(chfrags_r)[2:ncol(chfrags_r)], "_r")
+  # colnames(chfrags_h)[2:ncol(chfrags_h)] <- paste0(colnames(chfrags_h)[2:ncol(chfrags_h)], "_h")
+  # chfrags_summary <- merge(chfrags_r, chfrags_l, by = "chiidref", sort = FALSE, all.x = TRUE) |> 
+  #   merge(chfrags_h, by = "chiidref", sort = FALSE, all.x = TRUE)
+  # chfrags_summary$chiid <- chfrags_summary$chiidref
+  # horizons(f) <- chfrags_summary
   
   # restrictions
-  corestr <- data.table::data.table(dbQueryNASIS(NASIS(), "SELECT * FROM corestrictions") |>
-                                      uncode())
-  corestr.first <- corestr[, .SD[which.min(resdept_r),], by = list(coiid=corestr$coiidref)]
+  corestr <- data.table::data.table(dbQueryNASIS(NASIS(), "SELECT * FROM corestrictions") |> uncode())
+  # omit some restriction kinds
+  corestr <- subset(corestr, !corestr$reskind %in% c("abrupt textural change", 
+                                                     "strongly contrasting textural stratification",
+                                                     "undefined"))
+  corestr.first <- corestr[, .SD[which.min(resdept_r),], by = list(coiid = corestr$coiidref)]
   site(f) <- corestr.first
   
   # flooding and ponding
   floodpond <- data.table::data.table(soilDB::get_comonth_from_NASIS_db(SS = FALSE))
-  site(f) <- subset(floodpond[, paste0(month, collapse = ","), 
-                               by = c("coiid", "flodfreqcl", "floddurcl")],
-                     !is.na(flodfreqcl) & !flodfreqcl == "none")[, list(floodclass=paste0(paste(flodfreqcl, ifelse(is.na(floddurcl), "", as.character(floddurcl)), V1), collapse=";")), by=c("coiid")]
-  site(f) <- subset(floodpond[, paste0(month, collapse = ","), 
-                               by = c("coiid", "pondfreqcl", "ponddurcl")],
-                     !is.na(pondfreqcl) & !pondfreqcl == "none")[, list(pondclass=paste0(paste(pondfreqcl, ifelse(is.na(ponddurcl), "", as.character(ponddurcl)), V1), collapse=";")), by=c("coiid")]
+  site(f) <- subset(floodpond[, paste0(month, collapse = ","), by = c("coiid", "flodfreqcl", "floddurcl")],
+                     !is.na(flodfreqcl) & !flodfreqcl == "none")[, list(floodclass = paste0(paste(
+                       tools::toTitleCase(as.character(flodfreqcl)), 
+                       ifelse(is.na(floddurcl), "", as.character(floddurcl)), V1), collapse="; ")), by=c("coiid")]
+  site(f) <- subset(floodpond[, paste0(month, collapse = ","),  by = c("coiid", "pondfreqcl", "ponddurcl")],
+                     !is.na(pondfreqcl) & !pondfreqcl == "none")[, list(pondclass = paste0(paste(
+                       tools::toTitleCase(as.character(pondfreqcl)), 
+                       ifelse(is.na(ponddurcl), "", as.character(ponddurcl)), V1), collapse="; ")), by=c("coiid")]
   f$floodclass[is.na(f$floodclass)] <- "none"
   f$pondclass[is.na(f$pondclass)] <- "none"
   
-  f
+  # calculated fragments >10, 3 to 10, 
+  q <- "SELECT coiidref AS coiid, chiid, fraggt10_l, fraggt10_r, fraggt10_h, 
+                                frag3to10_l, frag3to10_r, frag3to10_h,
+                                sieveno10_l, sieveno10_r, sieveno10_h FROM chorizon"
+  horizons(f) <- dbQueryNASIS(NASIS(), q)
+  
+  for (suffix in c("_l", "_r", "_h")) {
+    # TODO: check this logic
+    gt3wtpct <- pmin(100, f[[paste0("fraggt10", suffix)]] + f[[paste0("frag3to10", suffix)]])
+    lt2mmpct <- f[[paste0("sieveno10", suffix)]]
+    lt3gt2mmwtpct <- (100 - lt2mmpct)
+    gt3vol <- gt3wtpct / 2.65 # cm3 of rock / 100g soil
+    lt2mmvol <- lt2mmpct * ((100 - gt3wtpct) / 100) / f[[paste0("dbthirdbar", suffix)]] # cm3 of soil / in <3" fraction of 100g soil 
+    lt3gt2mmvol <- lt3gt2mmwtpct * ((100 - gt3wtpct) / 100) / 2.65 # cm3 of rock / in <3" fraction of 100g soil 
+    d <- data.frame(gt3vol, lt3gt2mmvol, lt2mmvol)
+    # invert L and H for lt3gt2mmwtpct result
+    swapsuffix <- ifelse(suffix == "_l", "_h", ifelse(suffix == "_h", "_l", "_r"))
+    colnames(d) <- paste0(colnames(d), c(suffix, swapsuffix, suffix))
+    d <- (d / rowSums(d)) * 100
+    d$coiid <- f$coiid
+    d$chiid <- f$chiid
+    horizons(f) <- unique(d)
+  }
+    
+  .fix_dupe_hz(f)
 }
 
 .phclasses <- function(halfclass = FALSE) {

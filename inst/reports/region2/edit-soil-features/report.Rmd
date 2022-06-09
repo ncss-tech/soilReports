@@ -5,9 +5,11 @@ output:
     toc: true
     toc_float: true
 params:
-  TARGET_ECOSITE_ID: "R018XE104CA"
+  TARGET_ECOSITE_ID: "R018XE101CA"
   EXCLUDE_COMPNAME: ""
+  SPATIAL_DSN: null
   INCLUDE_ADDITIONAL: false
+  INCLUDE_NONREP: false
   USE_CACHE: false
 ---
 
@@ -29,7 +31,7 @@ library(soilDB)
 library(sf)
 library(mapview)
 library(data.table)
-.SD <- NULL; .N <- NULL; .I <- NULL
+.SD <- NULL; .N <- NULL; .I <- NULL; .LAST <- NULL
 ```
 
 ```{r nasisSummary, cache=params$USE_CACHE}
@@ -44,9 +46,13 @@ if (inherits(try(get("f"), silent = TRUE), 'try-error')) {
 f2 <- subset(f, ecosite_id %in% params$TARGET_ECOSITE_ID)
 
 # remove additional mapunits
-if (!is.null(params$INCLUDE_ADDITIONAL)) {
-  if (!params$INCLUDE_ADDITIONAL)
+if (is.null(params$INCLUDE_ADDITIONAL) || !params$INCLUDE_ADDITIONAL) {
     f2 <- subset(f2, mustatus != "additional")
+}
+
+# remove non-representative datamapunits
+if (!is.null(params$INCLUDE_NONREP) || !params$INCLUDE_NONREP) {
+    f2 <- subset(f2, repdmu)
 }
 
 # exclude components by name
@@ -56,7 +62,9 @@ if (!is.null(params$EXCLUDE_COMPNAME)) {
 ```
 
 ```{r cacheSpatial, cache=params$USE_CACHE}
-s2 <- fetchSDA_spatial(f2$lmapunitiid, add.fields = c("mapunit.musym", "mapunit.muname"))
+if (is.null(SPATIAL_DSN) || !file.exists(SPATIAL_DSN)) {
+  s2 <- fetchSDA_spatial(unique(f2$lmapunitiid), add.fields = c("mapunit.musym", "mapunit.muname"), chunk.size = 5)
+} 
 ```
 
 ```{r mapSpatial, fig.width=8, fig.align='center'}
@@ -67,6 +75,9 @@ mapview::mapview(SSURGO)
 ## Site Extent
 
 ```{r spatialSummary}
+if (is.null(s2)) {
+  stop("No spatial data found for: ", params$TARGET_ECOSITE_ID, call. = FALSE)
+}
 poly.area <- sf::st_area(s2)
 s3 <- aggregate(poly.area, by = list(lmapunitiid = s2$mukey), function(x) {
   y <- sum(x, na.rm = TRUE)
@@ -78,7 +89,7 @@ site(f2) <- s3
 f2$compacres <- (f2$comppct_r / 100) * f2$muacres
 ```
 
-Total Acres: `r round(sum(f2$compacres, na.rm = TRUE))`
+Total Acres: `r as.character(round(sum(f2$compacres, na.rm = TRUE)))`
 
 ```{r}
 common_components <- aggregate(f2$compacres, by = list(compname = f2$compname), function(x) round(sum(x, na.rm = TRUE)))
@@ -221,7 +232,7 @@ knitr::kable(f2.pscs.acres[order(f2.pscs.acres$x, decreasing = TRUE),],
 
 ## Surface Modifier + Texture Class
 ```{r}
-f2$mss <- getMineralSoilSurfaceDepth(f2)$hzdepb_r
+f2$mss <- getMineralSoilSurfaceDepth(f2, simplify = FALSE)$hzdepb_r
 f2.first <- glom(f2, f2$mss, f2$mss + 1)[, 1]
 f2.texture <- table(f2.first$texture)
 f2.texture.acres <- aggregate(f2.first$compacres, by = list(texture = f2.first$texture), function(x) round(sum(x, na.rm = TRUE)))
@@ -255,14 +266,23 @@ knitr::kable(f2.texmod.acres[order(f2.texmod.acres$x, decreasing = TRUE),],
 ```
 
 ```{r truncateSPC}
-f0040 <- trunc(f2, 0, round(40 * 2.54))
-f1040 <- trunc(f2, round(10 * 2.54), round(40 * 2.54))
-f0010 <- trunc(f2, 0, round(10 * 2.54))
-f0060 <- trunc(f2, 0, round(60 * 2.54))
+f2$mss <- pmax(getMineralSoilSurfaceDepth(f2, simplify = FALSE)$hzdepb_r, 0, na.rm = TRUE)
+f2$bdep <- pmin(f2$resdept_r, f2[, , .LAST]$hzdepb_r, na.rm = TRUE)
+f2$missingDepth <- checkHzDepthLogic(f2, byhz = TRUE)$missingDepth
+fsolum <- trunc(f2, f2$mss, f2$bdep)
+# for truncated SPC depth subsets remove missing depths
+f2v <- subsetHz(f2, !missingDepth)
+f0040 <- trunc(f2v, 0, round(40 * 2.54))
+f1040 <- trunc(f2v, round(10 * 2.54), round(40 * 2.54))
+f0010 <- trunc(f2v, 0, round(10 * 2.54))
+f0060 <- trunc(f2v, 0, round(60 * 2.54))
 ```
 
-# PERMEABILITY [0 to 10 inches]
-```{r permeability_0to10, warning=FALSE}
+# PERMEABILITY
+
+Most limiting, whole profile, restrictions excluded
+
+```{r permeability, warning=FALSE}
 permclasses <- c(
   Impermeable = 0,
   `Very Slow` = 0.0015,
@@ -273,28 +293,18 @@ permclasses <- c(
   Rapid = 6.0,
   `Very Rapid` = 1000
 )
-f0010$permeability <- findInterval(f0010$ksat_l, permclasses)
-f0010 <- mutate_profile(f0010, min_permeability = as.integer(min(permeability, na.rm = TRUE)))
-f0010$min_permeability <- names(permclasses)[f0010$min_permeability]
-f0010.permeability <- table(f0010$min_permeability, useNA = "ifany")
-f0010.permeability.acres <- aggregate(f0010$compacres, by = list(min_permeability = f0010$min_permeability), function(x) round(sum(x, na.rm = TRUE)))
-f0010.permeability.acres$n <- f0010.permeability[f0010.permeability.acres$min_permeability]
-knitr::kable(f0010.permeability.acres[order(f0010.permeability.acres$x, decreasing = TRUE),],
-             col.names = c("Min. Permeability [0 to 10 inches]", "Component Acres", "# Components"),
-             row.names = FALSE)
-```
-
-# PERMEABILITY [10 to 40 inches]
-```{r permeability_10to40, warning=FALSE}
-f1040$permeability <- findInterval(f1040$ksat_l, permclasses)
-f1040 <- mutate_profile(f1040, min_permeability = as.integer(min(permeability, na.rm = TRUE)))
-f1040$min_permeability <- names(permclasses)[f1040$min_permeability]
-f1040.permeability <- table(f1040$min_permeability, useNA = "ifany")
-f1040.permeability.acres <- aggregate(f1040$compacres, by = list(min_permeability = f1040$min_permeability), function(x) round(sum(x, na.rm = TRUE)))
-f1040.permeability.acres$n <- f1040.permeability[f1040.permeability.acres$min_permeability]
-knitr::kable(f1040.permeability.acres[order(f1040.permeability.acres$x, decreasing = TRUE),],
-             col.names = c("Min. Permeability [10 to 40 inches]", "Component Acres", "# Components"),
-             row.names = FALSE)
+fsolum$permeability <- findInterval(fsolum$ksat_l, permclasses)
+if (length(fsolum) > 0) {
+  fsolum <- mutate_profile(fsolum, min_permeability = as.integer(min(permeability, na.rm = TRUE)))
+  # fsolum$min_permeability <- data.table::data.table(horizons(fsolum)[, c("coiid","permeability")])[, as.integer(min(as.numeric(permeability), na.rm = TRUE)), by = c("coiid")]$V1
+  fsolum$min_permeability <- names(permclasses)[fsolum$min_permeability]
+  fsolum.permeability <- table(fsolum$min_permeability, useNA = "ifany")
+  fsolum.permeability.acres <- aggregate(fsolum$compacres, by = list(min_permeability = fsolum$min_permeability), function(x) round(sum(x, na.rm = TRUE)))
+  fsolum.permeability.acres$n <- fsolum.permeability[fsolum.permeability.acres$min_permeability]
+  knitr::kable(fsolum.permeability.acres[order(fsolum.permeability.acres$x, decreasing = TRUE),],
+               col.names = c("Min. Permeability", "Component Acres", "# Components"),
+               row.names = FALSE)
+}
 ```
 
 # WATER STORAGE [0 to 40 inches]
@@ -304,13 +314,15 @@ f0040 <- mutate_profile(f0040,
                         aws_l_0to40 = sum(awc_l * (hzdepb_r - hzdept_r), na.rm = TRUE) / 2.54,
                         aws_r_0to40 = sum(awc_r * (hzdepb_r - hzdept_r), na.rm = TRUE) / 2.54,
                         aws_h_0to40 = sum(awc_h * (hzdepb_r - hzdept_r), na.rm = TRUE) / 2.54)
-plot(density(f0040$aws_r_0to40, na.rm = TRUE, from = 0,  kernel = "rectangular"), ylim = c(0, 0.4), main = "AWS [0 to 40 in]", xlim = c(0,10))
-lines(density(f0040$aws_l_0to40, na.rm = TRUE, from = 0,  kernel = "rectangular"), lty = 2, col = "red")
-lines(density(f0040$aws_h_0to40, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
-abline(v = median(f0040$aws_r_0to40, na.rm = TRUE))
-abline(v = median(f0040$aws_l_0to40, na.rm = TRUE), lty = 2, col = "red")
-abline(v = median(f0040$aws_h_0to40, na.rm = TRUE), lty = 3, col = "blue")
-legend("topright", legend = c("Low", "RV", "High"), lty = c(2,1,3), col=c("RED","BLACK","BLUE"))
+if (length(f0040) > 2) {
+  plot(density(f0040$aws_r_0to40, na.rm = TRUE, from = 0,  kernel = "rectangular"), ylim = c(0, 0.4), main = "AWS [0 to 40 in]", xlim = c(0,10))
+  lines(density(f0040$aws_l_0to40, na.rm = TRUE, from = 0,  kernel = "rectangular"), lty = 2, col = "red")
+  lines(density(f0040$aws_h_0to40, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
+  abline(v = median(f0040$aws_r_0to40, na.rm = TRUE))
+  abline(v = median(f0040$aws_l_0to40, na.rm = TRUE), lty = 2, col = "red")
+  abline(v = median(f0040$aws_h_0to40, na.rm = TRUE), lty = 3, col = "blue")
+  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED","BLACK","BLUE"))
+}
 ll <- list(aws_l_0to40 = f0040$aws_l_0to40, 
            aws_r_0to40 = f0040$aws_r_0to40, 
            aws_h_0to40 = f0040$aws_h_0to40,
@@ -319,7 +331,7 @@ knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))
 ```
 
 # REACTION 1:1 [0 to 10 inches]
-pH is log-normally distributed .:. use the geometric depth weighted mean to get a value for each component
+<!-- pH is log-normally distributed .:. use the geometric depth weighted mean to get a value for each component -->
 
 ```{r}
 f0010 <- mutate_profile(f0010, 
@@ -332,7 +344,7 @@ lines(density(f0010$ph1to1h2o_h_0to10, na.rm = TRUE, from = 3, to = 10, kernel =
 abline(v = exp(median(log(f0010$ph1to1h2o_r_0to10), na.rm = TRUE)))
 abline(v = exp(median(log(f0010$ph1to1h2o_l_0to10), na.rm = TRUE)), lty = 2, col = "red")
 abline(v = exp(median(log(f0010$ph1to1h2o_h_0to10), na.rm = TRUE)), lty = 3, col = "blue")
-legend("topright", legend = c("Low", "RV", "High"), lty = c(2,1,3), col=c("RED","BLACK","BLUE"))
+legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
 ll <- list(ph1to1h2o_l_0to10 = log(f0010$ph1to1h2o_l_0to10), 
            ph1to1h2o_r_0to10 = log(f0010$ph1to1h2o_r_0to10), 
            ph1to1h2o_h_0to10 = log(f0010$ph1to1h2o_h_0to10),
@@ -354,7 +366,7 @@ if (length(idx) == 0) idx <- 1
 idx <- c(idx, max(idx) + 1)
 rxn <- names(prop2[idx])
 cat("   ")
-cat(paste0("_", rxn, "_"), sep = ", ")
+cat(paste0("_", na.omit(rxn), "_"), sep = ", ")
 cat("\n")
 knitr::kable(rxnclass_to_ph(rxn), row.names = FALSE)
 ```
@@ -369,7 +381,7 @@ if (length(idx) == 0) idx <- 1
 idx <- c(idx, max(idx) + 1)
 rxn <- names(prop2[idx])
 cat("   ")
-cat(paste0("_", rxn, "_"), sep = ", ")
+cat(paste0("_", na.omit(rxn), "_"), sep = ", ")
 cat("\n")
 knitr::kable(rxnclass_to_ph(rxn), row.names = FALSE)
 ```
@@ -390,7 +402,7 @@ knitr::kable(d, row.names = FALSE)
 
 # REACTION 1:1 [10 to 40 inches]
 
-pH is log-normally distributed .:. use the geometric depth weighted mean to get a value for each component
+<!-- pH is log-normally distributed .:. use the geometric depth weighted mean to get a value for each component -->
 
 ```{r}
 f1040 <- mutate_profile(f1040, 
@@ -406,7 +418,7 @@ if (sum(!is.na(f1040$ph1to1h2o_r_10to40)) > 1 &
   abline(v = exp(median(log(f1040$ph1to1h2o_r_10to40), na.rm = TRUE)))
   abline(v = exp(median(log(f1040$ph1to1h2o_l_10to40), na.rm = TRUE)), lty = 2, col = "red")
   abline(v = exp(median(log(f1040$ph1to1h2o_h_10to40), na.rm = TRUE)), lty = 3, col = "blue")
-  legend("topright", legend = c("Low", "RV", "High"), lty = c(2,1,3), col=c("RED","BLACK","BLUE"))
+  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
 }
 ll <- list(ph1to1h2o_l_10to40 = log(f1040$ph1to1h2o_l_10to40), 
            ph1to1h2o_r_10to40 = log(f1040$ph1to1h2o_r_10to40), 
@@ -429,7 +441,7 @@ if (length(idx) == 0) idx <- 1
 idx <- c(idx, max(idx) + 1)
 rxn <- names(prop2[idx])
 cat("   ")
-cat(paste0("_", rxn, "_"), sep = ", ")
+cat(paste0("_", na.omit(rxn), "_"), sep = ", ")
 cat("\n")
 knitr::kable(rxnclass_to_ph(rxn), row.names = FALSE)
 ```
@@ -444,7 +456,7 @@ if (length(idx) == 0) idx <- 1
 idx <- c(idx, max(idx) + 1)
 rxn <- names(prop2[idx])
 cat("   ")
-cat(paste0("_", rxn, "_"), sep = ", ")
+cat(paste0("_", na.omit(rxn), "_"), sep = ", ")
 cat("\n")
 knitr::kable(rxnclass_to_ph(rxn), row.names = FALSE)
 ```
@@ -465,16 +477,16 @@ knitr::kable(d, row.names = FALSE)
 # SUBSURFACE FRAGS <3"
 ```{r, results='asis'}
 f0060 <- mutate_profile(f0060, 
-                        subsurface_frags_lt3_l = weighted.mean(gravel_l, hzdepb_r - hzdept_r, na.rm = TRUE),
-                        subsurface_frags_lt3_r = weighted.mean(gravel_r, hzdepb_r - hzdept_r, na.rm = TRUE),
-                        subsurface_frags_lt3_h = weighted.mean(gravel_h, hzdepb_r - hzdept_r, na.rm = TRUE))
+                        subsurface_frags_lt3_l = weighted.mean(lt3gt2mmvol_l, hzdepb_r - hzdept_r, na.rm = TRUE),
+                        subsurface_frags_lt3_r = weighted.mean(lt3gt2mmvol_r, hzdepb_r - hzdept_r, na.rm = TRUE),
+                        subsurface_frags_lt3_h = weighted.mean(lt3gt2mmvol_h, hzdepb_r - hzdept_r, na.rm = TRUE))
 plot(density(f0060$subsurface_frags_lt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Subsurface Frags <3\" [0 to 60 in], Volume %")
 lines(density(f0060$subsurface_frags_lt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
 lines(density(f0060$subsurface_frags_lt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
 abline(v = median(f0060$subsurface_frags_lt3_r, na.rm = TRUE))
 abline(v = median(f0060$subsurface_frags_lt3_l, na.rm = TRUE), lty = 2, col = "red")
 abline(v = median(f0060$subsurface_frags_lt3_h, na.rm = TRUE), lty = 3, col = "blue")
-legend("topright", legend = c("Low", "RV", "High"), lty = c(2,1,3), col=c("RED","BLACK","BLUE"))
+legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
 ll <- list(subsurface_frags_lt3_l = f0060$subsurface_frags_lt3_l, 
            subsurface_frags_lt3_r = f0060$subsurface_frags_lt3_r, 
            subsurface_frags_lt3_h = f0060$subsurface_frags_lt3_h,
@@ -489,16 +501,16 @@ knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))
 # SUBSURFACE FRAGS >=3"
 ```{r, results='asis'}
 f0060 <- mutate_profile(f0060, 
-                        subsurface_frags_gt3_l = weighted.mean(total_frags_pct_l - gravel_l, hzdepb_r - hzdept_r, na.rm = TRUE),
-                        subsurface_frags_gt3_r = weighted.mean(total_frags_pct_r - gravel_r, hzdepb_r - hzdept_r, na.rm = TRUE),
-                        subsurface_frags_gt3_h = weighted.mean(total_frags_pct_h - gravel_h, hzdepb_r - hzdept_r, na.rm = TRUE))
+                        subsurface_frags_gt3_l = weighted.mean(gt3vol_l, hzdepb_r - hzdept_r, na.rm = TRUE),
+                        subsurface_frags_gt3_r = weighted.mean(gt3vol_r, hzdepb_r - hzdept_r, na.rm = TRUE),
+                        subsurface_frags_gt3_h = weighted.mean(gt3vol_h, hzdepb_r - hzdept_r, na.rm = TRUE))
 plot(density(f0060$subsurface_frags_gt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Subsurface Frags >3\" [0 to 60 in], Volume %")
 lines(density(f0060$subsurface_frags_gt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
 lines(density(f0060$subsurface_frags_gt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
 abline(v = median(f0060$subsurface_frags_gt3_r, na.rm = TRUE))
 abline(v = median(f0060$subsurface_frags_gt3_l, na.rm = TRUE), lty = 2, col = "red")
 abline(v = median(f0060$subsurface_frags_gt3_h, na.rm = TRUE), lty = 3, col = "blue")
-legend("topright", legend = c("Low", "RV", "High"), lty = c(2,1,3), col=c("RED","BLACK","BLUE"))
+legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
 ll <- list(subsurface_frags_gt3_l = f0060$subsurface_frags_gt3_l, 
            subsurface_frags_gt3_r = f0060$subsurface_frags_gt3_r, 
            subsurface_frags_gt3_h = f0060$subsurface_frags_gt3_h,
@@ -516,13 +528,17 @@ f0060 <- mutate_profile(f0060,
                         surface_frags_lt3_l = surfacegravel_l,
                         surface_frags_lt3_r = surfacegravel_r,
                         surface_frags_lt3_h = surfacegravel_h)
-plot(density(f0060$surface_frags_lt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags <3\", Cover %")
-lines(density(f0060$surface_frags_lt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
-lines(density(f0060$surface_frags_lt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
-abline(v = median(f0060$surface_frags_lt3_r, na.rm = TRUE))
-abline(v = median(f0060$surface_frags_lt3_l, na.rm = TRUE), lty = 2, col = "red")
-abline(v = median(f0060$surface_frags_lt3_h, na.rm = TRUE), lty = 3, col = "blue")
-legend("topright", legend = c("Low", "RV", "High"), lty = c(2,1,3), col=c("RED","BLACK","BLUE"))
+if (sum(!is.na(f0060$surface_frags_lt3_l)) > 1 &
+    sum(!is.na(f0060$surface_frags_lt3_r)) > 1 &
+    sum(!is.na(f0060$surface_frags_lt3_h)) > 1) {
+  plot(density(f0060$surface_frags_lt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags <3\", Cover %")
+  lines(density(f0060$surface_frags_lt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
+  lines(density(f0060$surface_frags_lt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
+  abline(v = median(f0060$surface_frags_lt3_r, na.rm = TRUE))
+  abline(v = median(f0060$surface_frags_lt3_l, na.rm = TRUE), lty = 2, col = "red")
+  abline(v = median(f0060$surface_frags_lt3_h, na.rm = TRUE), lty = 3, col = "blue")
+  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
+}
 ll <- list(surface_frags_lt3_l = f0060$surface_frags_lt3_l, 
            surface_frags_lt3_r = f0060$surface_frags_lt3_r, 
            surface_frags_lt3_h = f0060$surface_frags_lt3_h,
@@ -540,13 +556,17 @@ f0060 <- mutate_profile(f0060,
                         surface_frags_gt3_l = surfacetotal_frags_pct_l - surfacegravel_l,
                         surface_frags_gt3_r = surfacetotal_frags_pct_r - surfacegravel_r,
                         surface_frags_gt3_h = surfacetotal_frags_pct_h - surfacegravel_h)
-plot(density(f0060$surface_frags_gt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags >3\", Cover %")
-lines(density(f0060$surface_frags_gt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
-lines(density(f0060$surface_frags_gt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
-abline(v = median(f0060$surface_frags_gt3_r, na.rm = TRUE))
-abline(v = median(f0060$surface_frags_gt3_l, na.rm = TRUE), lty = 2, col = "red")
-abline(v = median(f0060$surface_frags_gt3_h, na.rm = TRUE), lty = 3, col = "blue")
-legend("topright", legend = c("Low", "RV", "High"), lty = c(2,1,3), col=c("RED","BLACK","BLUE"))
+if (sum(!is.na(f0060$surface_frags_gt3_l)) > 1 &
+    sum(!is.na(f0060$surface_frags_gt3_r)) > 1 &
+    sum(!is.na(f0060$surface_frags_gt3_h)) > 1) {
+  plot(density(f0060$surface_frags_gt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags >3\", Cover %")
+  lines(density(f0060$surface_frags_gt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
+  lines(density(f0060$surface_frags_gt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
+  abline(v = median(f0060$surface_frags_gt3_r, na.rm = TRUE))
+  abline(v = median(f0060$surface_frags_gt3_l, na.rm = TRUE), lty = 2, col = "red")
+  abline(v = median(f0060$surface_frags_gt3_h, na.rm = TRUE), lty = 3, col = "blue")
+  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
+}
 ll <- list(surface_frags_gt3_l = f0060$surface_frags_gt3_l, 
            surface_frags_gt3_r = f0060$surface_frags_gt3_r, 
            surface_frags_gt3_h = f0060$surface_frags_gt3_h,

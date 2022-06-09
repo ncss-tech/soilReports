@@ -5,19 +5,25 @@ output: html_document
 
 ```{r setup-batch}
 # custom regex pattern for matching site IDs in local NASIS database
-PATTERN <- "[RF]018XI[12].*"
+PATTERN <- "[RF]018X[ACEI][12].*"
 
 # USE SELECTED SET? (default `FALSE` searches entire local database)
 SELECTED_SET <- FALSE
 
 # Vector of component names to exclude (optional; default `""` for no exclusion)
-EXCLUDE_COMPNAME <- ""
+EXCLUDE_COMPNAME <- c("Pollasky", "Tips", "Xerolls", "Alamo", "Porterville", "Chino variant")
 
-# NASIS DSN (default `NULL` for connection to local NASIS SQL Express database)
-DSN <- NULL
+# NASIS DATA SOURCE NAME (default `NULL` for connection to local NASIS SQL Express database)
+NASIS_DSN <- NULL
+
+# SPATIAL DATA SOURCE NAME (default `NULL` to use Soil Data Access / live SSURGO)
+SPATIAL_DSN <- NULL 
 
 # INCLUDE ADDITIONAL MAPUNITS? (default `FALSE`)
 INCLUDE_ADDITIONAL <- FALSE
+
+# INCLUDE NON-REPRESENTATIVE DATA MAPUNITS? (default `FALSE`)
+INCLUDE_NONREP <- FALSE
 
 # CACHE NASIS AND SPATIAL DATA (default `FALSE`)
 #  (primarily for debugging/testing reports)
@@ -39,23 +45,29 @@ if (!SELECTED_SET) {
 }
 eid <- dbQueryNASIS(NASIS(), q)$ecositeid
 eidsub <- eid[grep(PATTERN, eid)]
-f <- fetchNASIS("components", fill = TRUE, SS = SELECTED_SET, dsn = DSN)
-le <- list2env(list(f = .add_extended_data(f)))
+f <- .add_extended_data(fetchNASIS("components", fill = TRUE, SS = SELECTED_SET, dsn = NASIS_DSN))
+le <- list2env(list(f = f), parent = new.env())
 ```
 
 ```{r batchLoop}
-for (e in eidsub) {
-  try(rmarkdown::render(
+for (e in seq_along(eidsub)) {
+  res <- try(rmarkdown::render(
     "report.Rmd",
-    output_file = paste0(e, ".html"),
+    output_file = paste0(eidsub[e], ".html"),
     params = list(
-      TARGET_ECOSITE_ID = e,
+      TARGET_ECOSITE_ID = eidsub[e],
       EXCLUDE_COMPNAME = EXCLUDE_COMPNAME,
+      SPATIAL_DSN = SPATIAL_DSN,
       INCLUDE_ADDITIONAL = INCLUDE_ADDITIONAL,
+      INCLUDE_NONREP = INCLUDE_NONREP,
       USE_CACHE = USE_CACHE
     ), 
-    envir = new.env(parent = le)
+    envir = le
   ))
-  cat(paste0(e, ".html"), sep = "\n")
+  if (inherits(res, 'try-error')) {
+    e <- e - 1
+    warning("---Error!---\n", res, call. = FALSE)
+  }
+  cat(paste0(eidsub[e], ".html"), sep = "\n")
 }
 ```
