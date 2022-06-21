@@ -45,7 +45,7 @@ if (!SELECTED_SET) {
 }
 eid <- dbQueryNASIS(NASIS(), q)$ecositeid
 eidsub <- eid[grep(PATTERN, eid)]
-f <- .add_extended_data(fetchNASIS("components", fill = TRUE, SS = SELECTED_SET, dsn = NASIS_DSN))
+f <- .add_extended_data(fetchNASIS("components", duplicates = TRUE, fill = TRUE, SS = SELECTED_SET, dsn = NASIS_DSN))
 le <- list2env(list(f = f), parent = new.env())
 ```
 

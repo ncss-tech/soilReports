@@ -61,7 +61,7 @@
   f$pondclass[is.na(f$pondclass)] <- "none"
   
   # calculated fragments >10, 3 to 10, 
-  q <- "SELECT coiidref AS coiid, chiid, fraggt10_l, fraggt10_r, fraggt10_h, 
+  q <- "SELECT chiid, fraggt10_l, fraggt10_r, fraggt10_h, 
                                 frag3to10_l, frag3to10_r, frag3to10_h,
                                 sieveno10_l, sieveno10_r, sieveno10_h FROM chorizon"
   horizons(f) <- dbQueryNASIS(NASIS(), q)
@@ -79,8 +79,7 @@
     swapsuffix <- ifelse(suffix == "_l", "_h", ifelse(suffix == "_h", "_l", "_r"))
     colnames(d) <- paste0(colnames(d), c(suffix, swapsuffix, suffix))
     d <- (d / rowSums(d)) * 100
-    d$coiid <- f$coiid
-    d$chiid <- f$chiid
+    d$chiid <- horizons(f)$chiid
     horizons(f) <- unique(d)
   }
     

@@ -6,7 +6,9 @@ output:
     toc_float: true
 params:
   TARGET_ECOSITE_ID: "R018XE101CA"
+  SELECTED_SET: false
   EXCLUDE_COMPNAME: ""
+  NASIS_DSN: null
   SPATIAL_DSN: null
   INCLUDE_ADDITIONAL: false
   INCLUDE_NONREP: false
@@ -36,7 +38,7 @@ library(data.table)
 
 ```{r nasisSummary, cache=params$USE_CACHE}
 if (inherits(try(get("f"), silent = TRUE), 'try-error')) {
-  f <- fetchNASIS("components", fill = TRUE, SS = FALSE)
+  f <- fetchNASIS("components",  duplicates = TRUE, fill = TRUE, SS = params$SELECTED_SET, dsn = params$NASIS_DSN)
   f <- .add_extended_data(f)
 }
 ```
@@ -62,9 +64,11 @@ if (!is.null(params$EXCLUDE_COMPNAME)) {
 ```
 
 ```{r cacheSpatial, cache=params$USE_CACHE}
-if (is.null(SPATIAL_DSN) || !file.exists(SPATIAL_DSN)) {
+if (is.null(params$SPATIAL_DSN) || !file.exists(params$SPATIAL_DSN)) {
   s2 <- fetchSDA_spatial(unique(f2$lmapunitiid), add.fields = c("mapunit.musym", "mapunit.muname"), chunk.size = 5)
-} 
+} else {
+  # TODO: local spatial data
+}
 ```
 
 ```{r mapSpatial, fig.width=8, fig.align='center'}
