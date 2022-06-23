@@ -12,6 +12,10 @@
 }
 
 .add_extended_data <- function(f) {
+  # runoff class
+  corucl <- dbQueryNASIS(NASIS(), "SELECT coiid, runoff FROM component") |> uncode()
+  site(f) <- corucl
+  
   # surface fragments
   csfrags <- dbQueryNASIS(NASIS(), "SELECT * FROM cosurffrags") |> uncode()
   csfrags_l <- simplifyFragmentData(csfrags, "coiidref", "sfragcov_l", prefix = "sfrag", msg = "surface fragment cover")
@@ -53,10 +57,12 @@
                      !is.na(flodfreqcl) & !flodfreqcl == "none")[, list(floodclass = paste0(paste(
                        tools::toTitleCase(as.character(flodfreqcl)), 
                        ifelse(is.na(floddurcl), "", as.character(floddurcl)), V1), collapse="; ")), by=c("coiid")]
-  site(f) <- subset(floodpond[, paste0(month, collapse = ","),  by = c("coiid", "pondfreqcl", "ponddurcl")],
+  site(f) <- subset(floodpond[, paste0(month, collapse = ","),  by = c("coiid", "pondfreqcl", "ponddurcl", "ponddep_l", "ponddep_r", "ponddep_h")],
                      !is.na(pondfreqcl) & !pondfreqcl == "none")[, list(pondclass = paste0(paste(
                        tools::toTitleCase(as.character(pondfreqcl)), 
-                       ifelse(is.na(ponddurcl), "", as.character(ponddurcl)), V1), collapse="; ")), by=c("coiid")]
+                       ifelse(is.na(ponddurcl), "", paste0(as.character(ponddurcl), 
+                                                           " (", ponddep_l, "-", ponddep_r, "-",  ponddep_h, " cm depth)")),
+                       V1), collapse="; ")), by=c("coiid")]
   f$floodclass[is.na(f$floodclass)] <- "none"
   f$pondclass[is.na(f$pondclass)] <- "none"
   

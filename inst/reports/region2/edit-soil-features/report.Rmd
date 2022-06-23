@@ -5,7 +5,7 @@ output:
     toc: true
     toc_float: true
 params:
-  TARGET_ECOSITE_ID: "R018XE101CA"
+  TARGET_ECOSITE_ID: "R018XA101CA"
   SELECTED_SET: false
   EXCLUDE_COMPNAME: ""
   NASIS_DSN: null
@@ -49,12 +49,12 @@ f2 <- subset(f, ecosite_id %in% params$TARGET_ECOSITE_ID)
 
 # remove additional mapunits
 if (is.null(params$INCLUDE_ADDITIONAL) || !params$INCLUDE_ADDITIONAL) {
-    f2 <- subset(f2, mustatus != "additional")
+  f2 <- subset(f2, mustatus != "additional")
 }
 
 # remove non-representative datamapunits
 if (!is.null(params$INCLUDE_NONREP) || !params$INCLUDE_NONREP) {
-    f2 <- subset(f2, repdmu)
+  f2 <- subset(f2, repdmu)
 }
 
 # exclude components by name
@@ -93,7 +93,25 @@ site(f2) <- s3
 f2$compacres <- (f2$comppct_r / 100) * f2$muacres
 ```
 
-Total Acres: `r as.character(round(sum(f2$compacres, na.rm = TRUE)))`
+## Mapunits
+
+```{r mapunits}
+mu <- unique(site(f2)[,c("mukey","musym","nationalmusym","muname","muacres")])
+```
+
+Total Mapunit Acres: `r as.character(round(sum(mu$muacres, na.rm = TRUE)))`
+
+```{r mapunitTable}
+mu$muacres <- round(mu$muacres)
+mu <- mu[complete.cases(mu),]
+knitr::kable(mu[order(mu$muacres, decreasing = TRUE), ],
+             caption = "Mapunit List", row.names = FALSE,
+             col.names = c("MUKEY", "MUSYM", "NMUSYM", "Mapunit Name", "Mapunit Acres"))
+```
+
+## Component Acres
+
+Total Component Acres: `r as.character(round(sum(f2$compacres, na.rm = TRUE)))`
 
 ```{r}
 common_components <- aggregate(f2$compacres, by = list(compname = f2$compname), function(x) round(sum(x, na.rm = TRUE)))
@@ -103,23 +121,101 @@ common_components$Spatial_Acres <- common_components$x
 common_components$x <- NULL
 knitr::kable(common_components[order(common_components$Spatial_Acres, decreasing = TRUE), ],
              caption = "Component Extent and Number of NASIS Components", row.names = FALSE,
-             col.names = c("Component Name", "# Components", "Spatial Acres"))
+             col.names = c("Component Name", "# Components", "Component Acres"))
 ```
 
-## Mapunits
+## Component Profile Plot
 
-```{r mapunitTable}
-mu <- unique(site(f2)[,c("mukey","musym","nationalmusym","muname","muacres")])
-mu$muacres <- round(mu$muacres)
-mu <- mu[complete.cases(mu),]
-knitr::kable(mu[order(mu$muacres, decreasing = TRUE), ],
-             caption = "Mapunit List", row.names = FALSE,
-             col.names = c("MUKEY", "MUSYM", "NMUSYM", "Mapunit Name", "Mapunit Acres"))
+```{r}
+par(mar = c(0,0,0,0))
+  
+# simplify component names for grouping and horizon designations for thematic variable
+f2$compname2 <- gsub(" taxadjunct| variant| family", "", f2$compname)
+f2$genhz <- generalize.hz(f2$hzname, 
+                          new = c("O", "A", "B", "C", "Cr or R"),
+                          pat = c("^O", "^A", "^B", "^C", "[Rr]"))
+groupedProfilePlot(f2,
+                   groups = 'compname2',
+                   group.name.offset = c(-5, -10),
+                   print.id = FALSE,
+                   name = NULL,
+                   color = "genhz")
+foo <- get('last_spc_plot', aqp.env)
+legend(
+  'bottomleft',
+  legend = foo$legend.data$legend,
+  ncol = 4,
+  pch = 15,
+  col = foo$legend.data$col,
+  bty = "n"
+)
+foo <- dev.off()
+```
+
+# SLOPE
+
+```{r slopeTable}
+plot(density(f2$slope_r, na.rm = TRUE, from = 0, to = pmax(30, max(f2$slope_h) + 10), kernel = "rectangular"), main = "Slope Gradient (%)")
+lines(density(f2$slope_l, na.rm = TRUE, from = 0, to = pmax(30, max(f2$slope_h) + 10), kernel = "rectangular"), lty = 2, col = "red")
+lines(density(f2$slope_h, na.rm = TRUE, from = 0, to = pmax(30, max(f2$slope_h) + 10), kernel = "rectangular"), lty = 3, col = "blue")
+abline(v = median(f2$slope_r, na.rm = TRUE))
+abline(v = median(f2$slope_l, na.rm = TRUE), lty = 2, col = "red")
+abline(v = median(f2$slope_h, na.rm = TRUE), lty = 3, col = "blue")
+legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
+ll <- list(slope_l = f2$slope_l, 
+           slope_r = f2$slope_r, 
+           slope_h = f2$slope_h,
+           all = c(
+             f2$slope_l,
+             f2$slope_r,
+             f2$slope_h
+           ))
+knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))), row.names = FALSE)
+```
+
+# RUNOFF
+
+```{r runoffTable}
+f2.ro <- table(f2$runoff)
+f2.ro.acres <- aggregate(f2$compacres, by = list(runoff = f2$runoff), function(x) round(sum(x, na.rm = TRUE)))
+f2.ro.acres$n <- f2.ro[pmatch(f2.ro.acres$runoff, names(f2.ro))]
+knitr::kable(f2.ro.acres[order(f2.ro.acres$x, decreasing = TRUE),],
+             col.names = c("Local Runoff Class", "Component Acres", "# Components"), 
+             row.names = FALSE)
+```
+
+# ELEVATION
+
+```{r elevTable}
+plot(density(f2$elev_r, na.rm = TRUE, from = pmin(0, min(f2$elev_l)), to = pmax(100, max(f2$elev_h)+100), kernel = "rectangular"), main = "Elevation (m)")
+lines(density(f2$elev_l, na.rm = TRUE, from = pmin(0, min(f2$elev_l)), to = pmax(100, max(f2$elev_h)+100), kernel = "rectangular"), lty = 2, col = "red")
+lines(density(f2$elev_h, na.rm = TRUE, from = pmin(0, min(f2$elev_l)), to = pmax(100, max(f2$elev_h)+100), kernel = "rectangular"), lty = 3, col = "blue")
+abline(v = median(f2$elev_r, na.rm = TRUE))
+abline(v = median(f2$elev_l, na.rm = TRUE), lty = 2, col = "red")
+abline(v = median(f2$elev_h, na.rm = TRUE), lty = 3, col = "blue")
+legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
+ll <- list(elev_l = f2$elev_l, 
+           elev_r = f2$elev_r, 
+           elev_h = f2$elev_h,
+           all = c(
+             f2$elev_l,
+             f2$elev_r,
+             f2$elev_h
+           ))
+elevtab <- do.call('rbind', lapply(ll, .quantfun))
+knitr::kable(cbind(Variable = names(ll), round(elevtab)), row.names = FALSE)
+```
+
+## Elevation (feet)
+```{r elevImperialTable}
+elevtab2 <- elevtab
+elevtab2[,1:9] <- elevtab2[,1:9] / 0.3048
+knitr::kable( cbind(Variable = names(ll), round(elevtab2)), row.names = FALSE)
 ```
 
 # PARENT MATERIAL 
 
-## `pmkind`
+## Kind
 
 ```{r pmkindTable}
 f2.pm <- table(f2$pmkind)
@@ -130,7 +226,7 @@ knitr::kable(f2.pm.acres[order(f2.pm.acres$x, decreasing = TRUE),],
              row.names = FALSE)
 ```
 
-## `pmorigin`
+## Origin
 
 ```{r pmoriginTable}
 pmo <- gsub("NA & ", "", f2$pmorigin)
@@ -280,6 +376,62 @@ f0040 <- trunc(f2v, 0, round(40 * 2.54))
 f1040 <- trunc(f2v, round(10 * 2.54), round(40 * 2.54))
 f0010 <- trunc(f2v, 0, round(10 * 2.54))
 f0060 <- trunc(f2v, 0, round(60 * 2.54))
+```
+
+# SURFACE FRAGS <3"
+```{r, results='asis'}
+f0060 <- mutate_profile(f0060, 
+                        surface_frags_lt3_l = surfacegravel_l,
+                        surface_frags_lt3_r = surfacegravel_r,
+                        surface_frags_lt3_h = surfacegravel_h)
+if (sum(!is.na(f0060$surface_frags_lt3_l)) > 1 &
+    sum(!is.na(f0060$surface_frags_lt3_r)) > 1 &
+    sum(!is.na(f0060$surface_frags_lt3_h)) > 1) {
+  plot(density(f0060$surface_frags_lt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags <3\", Cover %")
+  lines(density(f0060$surface_frags_lt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
+  lines(density(f0060$surface_frags_lt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
+  abline(v = median(f0060$surface_frags_lt3_r, na.rm = TRUE))
+  abline(v = median(f0060$surface_frags_lt3_l, na.rm = TRUE), lty = 2, col = "red")
+  abline(v = median(f0060$surface_frags_lt3_h, na.rm = TRUE), lty = 3, col = "blue")
+  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
+}
+ll <- list(surface_frags_lt3_l = f0060$surface_frags_lt3_l, 
+           surface_frags_lt3_r = f0060$surface_frags_lt3_r, 
+           surface_frags_lt3_h = f0060$surface_frags_lt3_h,
+           all = c(
+             f0060$surface_frags_lt3_l,
+             f0060$surface_frags_lt3_r,
+             f0060$surface_frags_lt3_h
+           ))
+knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))), row.names = FALSE)
+```
+
+# SURFACE FRAGS >=3"
+```{r, results='asis'}
+f0060 <- mutate_profile(f0060, 
+                        surface_frags_gt3_l = surfacetotal_frags_pct_l - surfacegravel_l,
+                        surface_frags_gt3_r = surfacetotal_frags_pct_r - surfacegravel_r,
+                        surface_frags_gt3_h = surfacetotal_frags_pct_h - surfacegravel_h)
+if (sum(!is.na(f0060$surface_frags_gt3_l)) > 1 &
+    sum(!is.na(f0060$surface_frags_gt3_r)) > 1 &
+    sum(!is.na(f0060$surface_frags_gt3_h)) > 1) {
+  plot(density(f0060$surface_frags_gt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags >3\", Cover %")
+  lines(density(f0060$surface_frags_gt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
+  lines(density(f0060$surface_frags_gt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
+  abline(v = median(f0060$surface_frags_gt3_r, na.rm = TRUE))
+  abline(v = median(f0060$surface_frags_gt3_l, na.rm = TRUE), lty = 2, col = "red")
+  abline(v = median(f0060$surface_frags_gt3_h, na.rm = TRUE), lty = 3, col = "blue")
+  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
+}
+ll <- list(surface_frags_gt3_l = f0060$surface_frags_gt3_l, 
+           surface_frags_gt3_r = f0060$surface_frags_gt3_r, 
+           surface_frags_gt3_h = f0060$surface_frags_gt3_h,
+           all = c(
+             f0060$surface_frags_gt3_l,
+             f0060$surface_frags_gt3_r,
+             f0060$surface_frags_gt3_h
+           ))
+knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))), row.names = FALSE)
 ```
 
 # PERMEABILITY
@@ -526,58 +678,3 @@ ll <- list(subsurface_frags_gt3_l = f0060$subsurface_frags_gt3_l,
 knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))), row.names = FALSE)
 ```
 
-# SURFACE FRAGS <3"
-```{r, results='asis'}
-f0060 <- mutate_profile(f0060, 
-                        surface_frags_lt3_l = surfacegravel_l,
-                        surface_frags_lt3_r = surfacegravel_r,
-                        surface_frags_lt3_h = surfacegravel_h)
-if (sum(!is.na(f0060$surface_frags_lt3_l)) > 1 &
-    sum(!is.na(f0060$surface_frags_lt3_r)) > 1 &
-    sum(!is.na(f0060$surface_frags_lt3_h)) > 1) {
-  plot(density(f0060$surface_frags_lt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags <3\", Cover %")
-  lines(density(f0060$surface_frags_lt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
-  lines(density(f0060$surface_frags_lt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
-  abline(v = median(f0060$surface_frags_lt3_r, na.rm = TRUE))
-  abline(v = median(f0060$surface_frags_lt3_l, na.rm = TRUE), lty = 2, col = "red")
-  abline(v = median(f0060$surface_frags_lt3_h, na.rm = TRUE), lty = 3, col = "blue")
-  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
-}
-ll <- list(surface_frags_lt3_l = f0060$surface_frags_lt3_l, 
-           surface_frags_lt3_r = f0060$surface_frags_lt3_r, 
-           surface_frags_lt3_h = f0060$surface_frags_lt3_h,
-           all = c(
-             f0060$surface_frags_lt3_l,
-             f0060$surface_frags_lt3_r,
-             f0060$surface_frags_lt3_h
-           ))
-knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))), row.names = FALSE)
-```
-
-# SURFACE FRAGS >=3"
-```{r, results='asis'}
-f0060 <- mutate_profile(f0060, 
-                        surface_frags_gt3_l = surfacetotal_frags_pct_l - surfacegravel_l,
-                        surface_frags_gt3_r = surfacetotal_frags_pct_r - surfacegravel_r,
-                        surface_frags_gt3_h = surfacetotal_frags_pct_h - surfacegravel_h)
-if (sum(!is.na(f0060$surface_frags_gt3_l)) > 1 &
-    sum(!is.na(f0060$surface_frags_gt3_r)) > 1 &
-    sum(!is.na(f0060$surface_frags_gt3_h)) > 1) {
-  plot(density(f0060$surface_frags_gt3_r, na.rm = TRUE, from = 0, kernel = "rectangular"), main = "Surface Frags >3\", Cover %")
-  lines(density(f0060$surface_frags_gt3_l, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 2, col = "red")
-  lines(density(f0060$surface_frags_gt3_h, na.rm = TRUE, from = 0, kernel = "rectangular"), lty = 3, col = "blue")
-  abline(v = median(f0060$surface_frags_gt3_r, na.rm = TRUE))
-  abline(v = median(f0060$surface_frags_gt3_l, na.rm = TRUE), lty = 2, col = "red")
-  abline(v = median(f0060$surface_frags_gt3_h, na.rm = TRUE), lty = 3, col = "blue")
-  legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
-}
-ll <- list(surface_frags_gt3_l = f0060$surface_frags_gt3_l, 
-           surface_frags_gt3_r = f0060$surface_frags_gt3_r, 
-           surface_frags_gt3_h = f0060$surface_frags_gt3_h,
-           all = c(
-             f0060$surface_frags_gt3_l,
-             f0060$surface_frags_gt3_r,
-             f0060$surface_frags_gt3_h
-           ))
-knitr::kable(cbind(Variable = names(ll), do.call('rbind', lapply(ll, .quantfun))), row.names = FALSE)
-```
