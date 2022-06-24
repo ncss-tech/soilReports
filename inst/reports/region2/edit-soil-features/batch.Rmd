@@ -5,7 +5,7 @@ output: html_document
 
 ```{r setup-batch}
 # custom regex pattern for matching site IDs in local NASIS database
-PATTERN <- "[RF]018X[ACEI][12].*"
+PATTERN <- "R018XI105CA"#"[RF]018X[ACEI][12].*"
 
 # USE SELECTED SET? (default `FALSE` searches entire local database)
 SELECTED_SET <- FALSE

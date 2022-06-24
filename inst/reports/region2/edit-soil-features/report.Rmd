@@ -5,7 +5,7 @@ output:
     toc: true
     toc_float: true
 params:
-  TARGET_ECOSITE_ID: "R018XA101CA"
+  TARGET_ECOSITE_ID: "R018XI105CA"
   SELECTED_SET: false
   EXCLUDE_COMPNAME: ""
   NASIS_DSN: null
@@ -187,9 +187,9 @@ knitr::kable(f2.ro.acres[order(f2.ro.acres$x, decreasing = TRUE),],
 # ELEVATION
 
 ```{r elevTable}
-plot(density(f2$elev_r, na.rm = TRUE, from = pmin(0, min(f2$elev_l)), to = pmax(100, max(f2$elev_h)+100), kernel = "rectangular"), main = "Elevation (m)")
-lines(density(f2$elev_l, na.rm = TRUE, from = pmin(0, min(f2$elev_l)), to = pmax(100, max(f2$elev_h)+100), kernel = "rectangular"), lty = 2, col = "red")
-lines(density(f2$elev_h, na.rm = TRUE, from = pmin(0, min(f2$elev_l)), to = pmax(100, max(f2$elev_h)+100), kernel = "rectangular"), lty = 3, col = "blue")
+plot(density(f2$elev_r, na.rm = TRUE, from = pmin(0, min(f2$elev_l, na.rm=TRUE)), to = pmax(100, max(f2$elev_h, na.rm=TRUE)+100), kernel = "rectangular"), main = "Elevation (m)")
+lines(density(f2$elev_l, na.rm = TRUE, from = pmin(0, min(f2$elev_l, na.rm=TRUE)), to = pmax(100, max(f2$elev_h, na.rm=TRUE)+100), kernel = "rectangular"), lty = 2, col = "red")
+lines(density(f2$elev_h, na.rm = TRUE, from = pmin(0, min(f2$elev_l, na.rm=TRUE)), to = pmax(100, max(f2$elev_h, na.rm=TRUE)+100), kernel = "rectangular"), lty = 3, col = "blue")
 abline(v = median(f2$elev_r, na.rm = TRUE))
 abline(v = median(f2$elev_l, na.rm = TRUE), lty = 2, col = "red")
 abline(v = median(f2$elev_h, na.rm = TRUE), lty = 3, col = "blue")
@@ -211,6 +211,29 @@ knitr::kable(cbind(Variable = names(ll), round(elevtab)), row.names = FALSE)
 elevtab2 <- elevtab
 elevtab2[,1:9] <- elevtab2[,1:9] / 0.3048
 knitr::kable( cbind(Variable = names(ll), round(elevtab2)), row.names = FALSE)
+```
+
+# FROST-FREE DAYS
+
+```{r ffdTable}
+plot(density(f2$ffd_r, na.rm = TRUE, from = 0, to = 365, kernel = "rectangular"), main = "Elevation (m)")
+lines(density(f2$ffd_l, na.rm = TRUE, from = 0, to = 365, kernel = "rectangular"), lty = 2, col = "red")
+lines(density(f2$ffd_h, na.rm = TRUE, from = 0, to = 365, kernel = "rectangular"), lty = 3, col = "blue")
+abline(v = median(f2$ffd_r, na.rm = TRUE))
+abline(v = median(f2$ffd_l, na.rm = TRUE), lty = 2, col = "red")
+abline(v = median(f2$ffd_h, na.rm = TRUE), lty = 3, col = "blue")
+legend("topright", legend = c("Low", "RV", "High"), lty = c(2, 1, 3), col = c("RED", "BLACK", "BLUE"))
+ll <- list(ffd_l = f2$ffd_l, 
+           ffd_r = f2$ffd_r, 
+           ffd_h = f2$ffd_h,
+           all = c(
+             f2$ffd_l,
+             f2$ffd_r,
+             f2$ffd_h
+           ))
+ffdtab <- do.call('rbind', lapply(ll, .quantfun))
+knitr::kable(cbind(Variable = names(ll), round(ffdtab)), 
+             row.names = FALSE)
 ```
 
 # PARENT MATERIAL 

@@ -13,7 +13,7 @@
 .report.name <- 'EDITSoilFeatures'
 
 # version of report
-.report.version <- '0.2'
+.report.version <- '0.2.1'
 
 # brief description for `soilReports::listReports()`
 .report.description <- 'Generate summaries of NASIS components for EDIT Soil Features sections'
