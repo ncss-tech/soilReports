@@ -109,20 +109,16 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   
   ## most likely class
   most.likely.class.idx <- 1
-  
-  if(!is.null(ncol(spatial.summary[,-c(1,2)]))) # prevent problems when one class is observed in samples (MU has low variance w.r.t raster)
-    most.likely.class.idx <- apply(spatial.summary[, -c(1:2)], 1, which.max)
-  
-  spatial.summary[[paste0('ml_', variable.name)]] <- levels(dat$value)[most.likely.class.idx]
-  
   ## implemented via aqp::shannonEntropy()
   # shannon entropy, log base 2 (bits) by polygon
   # shannon entropy is zero when mapunit is "pure"
-  if(!is.null(ncol(spatial.summary[, -c(1,2,length(names(spatial.summary)))]))) #handle same problem as above;
+  if (!is.null(ncol(spatial.summary[, -c(1,2,length(names(spatial.summary)))]))) { # handle same problem as above;
     spatial.summary[[paste0('shannon_h_', variable.name)]] <- apply(spatial.summary[, -c(1,2,length(names(spatial.summary)))], 1, aqp::shannonEntropy, b=2)
-  else
-    spatial.summary[[paste0('shannon_h_', variable.name)]] <- rep(0, length(spatial.summary[, -c(1,2,length(names(spatial.summary)))])) 
+  } else spatial.summary[[paste0('shannon_h_', variable.name)]] <- rep(0, length(spatial.summary[, -c(1,2,length(names(spatial.summary)))])) 
   
+  if(!is.null(ncol(spatial.summary[,-c(1,2)]))) # prevent problems when one class is observed in samples (MU has low variance w.r.t raster)
+    most.likely.class.idx <- apply(spatial.summary[, -c(1:2)], 1, which.max)
+  spatial.summary[[paste0('ml_', variable.name)]] <- levels(dat$value)[most.likely.class.idx]
   
   # setup plot styling
   colors <-  metadat$colors[metadat$levels %in% lvls]

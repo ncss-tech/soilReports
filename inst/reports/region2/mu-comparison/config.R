@@ -1,6 +1,6 @@
 ### MU GIS Summary Report
-### 2021-01-22
-### D.E. Beaudette, A.G. Brown, and J. Wood
+### 2018-05-29
+### D.E. Beaudette and J. Wood
 ###
 ### configuration file, edit as needed
 ###
@@ -15,26 +15,26 @@
 
 raster.list <- list(
   continuous=list(
-    `Mean Annual Air Temperature (degrees C)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/final_MAAT_800m.tif',
-    `Mean Annual Precipitation (mm)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/final_MAP_mm_800m.tif',
-    `Effective Precipitation (mm)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/effective_precipitation_800m.tif',
-    `Frost-Free Days`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/ffd_50_pct_800m.tif',
-    `Growing Degree Days (degrees C)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_PRISM/gdd_mean_800m.tif',
-    `Elevation (m)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/DEM_30m_SSR2.tif',
-    `Slope Gradient (%)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/Slope_30m_SSR2.tif',
-    `Annual Beam Radiance (MJ/sq.m)`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_ann_beam_rad_int.tif',
-    `Compound Topographic Index`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_tci_int.tif',
-    `SAGA TWI`='L:/NRCS/MLRAShared/Geodata/project_data/ssro2_saga_twi_int.tif',
-    `NLCD Impervious Surface (%))`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_impervious_2011_cropped.tif'
+    `Mean Annual Air Temperature (degrees C)`='data/crop_final_MAAT_800m.tif',
+    `Mean Annual Precipitation (mm)`='data/crop_final_MAP_mm_800m.tif',
+    `Effective Precipitation (mm)`='data/crop_effective_precipitation_800m.tif',
+    `Frost-Free Days`='data/crop_ffd_50_pct_800m.tif',
+    `Growing Degree Days (degrees C)`='data/crop_gdd_mean_800m.tif',
+    `Elevation (m)`='data/crop_DEM_30m_SSR2.tif',
+    `Slope Gradient (%)`='data/crop_Slope_30m_SSR2.tif',
+    # `Annual Beam Radiance (MJ/sq.m)`='data/crop_ssro2_ann_beam_rad_int.tif',
+    # `Compound Topographic Index`='data/crop_ssro2_tci_int.tif',
+    # `SAGA TWI`='data/crop_ssro2_saga_twi_int.tif',
+    `NLCD Impervious Surface (%))`='data/crop_nlcd_impervious_2011_cropped.tif'
   ),
   categorical=list(
-    `Geomorphon Landforms`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif',
-    `Curvature Classes`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Curvature/curvature_classes_30_class_region2.tif',
-    `NLCD (2011)`='L:/NRCS/MLRAShared/Geodata/project_data/nlcd_2011_cropped.tif',
-    `NASS Cropland Data Layer (2017)`='L:/NRCS/MLRAShared/Geodata/project_data/NASS/Ver2017_30m_cdls_clip.img'
+    `Geomorphon Landforms`='data/crop_forms30_region2.tif',
+    `Curvature Classes`='data/crop_curvature_classes_30_class_region2.tif',
+    `NLCD (2011)`='data/crop_nlcd_2011_cropped.tif',
+    `NASS Cropland Data Layer (2017)`='data/crop_Ver2017_30m_cdls_clip.img'
   ),
   circular=list(
-    `Slope Aspect (degrees)`='L:/NRCS/MLRAShared/Geodata/project_data/MUSum_30m_SSR2/Aspect_30m_SSR2.tif'
+    `Slope Aspect (degrees)`='data/crop_Aspect_30m_SSR2.tif'
   )
 )
 
@@ -56,7 +56,7 @@ raster.list <- list(
 # name of featureclass
 # mu.layer <- 'ca630_a'
 # map unit symbols / keys to extract
-# mu.set <- c('5012','5013','7011')
+mu.set <- c('5012','3046','7083',"7085","7088")
 
 
 
@@ -65,10 +65,9 @@ raster.list <- list(
 ##
 
 # path to parent folder of SHP, no trailing forward slash (/)
-mu.dsn <- 'L:/NRCS/MLRAShared/Geodata/project_data'
+mu.dsn <- 'data'
 # SHP name, without file extension
-mu.layer <- 'ca630_a'
- 
+mu.layer <- 'ca630_clip'
 
 
 ############################################
@@ -87,7 +86,7 @@ mu.col <- 'MUSYM'
 # increase if there are un-sampled polygons
 # delineations smaller than 5 ac. may require up to 5 points / ac.
 # values > 6-7 points / ac. will only slow things down
-pts.per.acre <- 1
+pts.per.acre <- 3
 
 ###########################
 ### quantiles of interest #
@@ -113,23 +112,12 @@ scaleDensityCurves <- TRUE
 ### default will include a file-specific prefix and full list of MUSYMs summarized  #
 ### do not include .shp extension for shapefiles; automatically added by writeOGR() #
 #####################################################################################
-# shapefile containing any unsampled polygons (usually too small or odd shape)
-# shp.unsampled.fname <- 'un-sampled-polygons'
+# shp.unsampled.fname <- 'un-sampled-polygons'# shapefile containing any unsampled polygons (usually too small or odd shape)
+# shp.stats.fname <- 'polygons-with-stats' # shapefile containing median values / most likely classes by delineation
+# shp.qc.fname <- 'poly-qc' # shapefile containing "proportion of samples outside 5-95% quantile range" by delineation
 
-# shapefile containing median values / most likely classes by delineation
-# shp.stats.fname <- 'polygons-with-stats' 
-
-# shapefile containing "proportion of samples outside 5-95% quantile range" by delineation
-# shp.qc.fname <- 'poly-qc' 
-
-# comma-separated value file containing quantiles by mapunit column level
-# csv.mucol.stats.fname <- 'mucol-stats.csv' 
-
-# comma-separated value file containing median values / most likely classes by delineation
-# csv.stats.fname <- 'poly-stats.csv' 
-
-# comma-separated value file containing "proportion of samples outside 5-95% quantile range" by delineation
-# csv.qc.fname <- 'poly-qc.csv' 
+# csv.stats.fname <- 'poly-stats.csv' # comma-separated value file containing median values / most likely classes by delineation
+# csv.qc.fname <- 'poly-qc.csv' # comma-separated value file containing "proportion of samples outside 5-95% quantile range" by delineation
 
 ########################################################
 ### Add estimate of confidence to box and whisker plots ###

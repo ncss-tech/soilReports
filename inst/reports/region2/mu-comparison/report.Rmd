@@ -24,9 +24,7 @@ options(width = 100, stringsAsFactors = FALSE)
 ### SANITY CHECK #1 - make sure user has run reportSetup recently
 
 ### check if needed CRAN packages are installed
-packz <- c("MASS", "rgdal", "rgeos", "raster", "plyr",
-           "latticeExtra", "cluster", "clhs", "randomForest",
-           "spdep", "reshape2", "aqp", "sharpshootR", "RColorBrewer")
+packz <- c("MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer")
 newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
 
 loaded <- lapply(packz, FUN = require, character.only = TRUE, quietly = TRUE)
@@ -61,7 +59,7 @@ source("categorical_definitions.R")
 
 ### SANITY CHECK #3 - make sure the shapefile to be summarized exists and has the specified column
 ## load map unit polygons from OGR data source
-mu <- try(readOGR(dsn=mu.dsn, layer = mu.layer, stringsAsFactors = FALSE))
+mu <- try(terra::vect(mu.dsn, layer = mu.layer))
 
 if (class(mu) == 'try-error')
   stop(paste0('Cannot read map unit polygon/feature file: "', 
@@ -83,7 +81,7 @@ if (any(accessible.inputs == 0 )) {
 ### -----
 
 # just in case, coerce mu.col to character
-mu[[mu.col]] <- as.character(mu[[mu.col]])
+# mu[[mu.col]] <- as.character(mu[[mu.col]])
 
 # TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
 if (exists('mu.set')) { 
@@ -92,7 +90,7 @@ if (exists('mu.set')) {
 
   # check to see if the mu.set specifies musyms that are not in the spatial layer
   mu.set.bak <- mu.set
-  mu_nosp <- !(mu.set %in% mu[[mu.col]])
+  mu_nosp <- !(mu.set %in% mu[[mu.col]][[1]])
   
   # check if any of the predefined musyms are absent from the spatial
   if (any(mu_nosp))
@@ -103,10 +101,10 @@ if (exists('mu.set')) {
     stop(paste0("Cannot find map unit polygons with symbol: ",paste0(mu.set.bak,collapse=", ")))
   
   # if mu.set defined in config.R, only keep the features with musym matching set
-  mu <- mu[which(mu[[mu.col]] %in% mu.set), ] 
+  mu <- mu[which(mu[[mu.col]][[1]] %in% mu.set), ] 
 } else {
   # if mu.set is not predefined, ordering is determined by the order of musyms in the source file
-  mu.set <- sort(unique(mu[[mu.col]]))
+  mu.set <- sort(unique(mu[[mu.col]][[1]]))
 }
 
 
@@ -173,11 +171,7 @@ if (any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
 }
 ### -----
 
-# in order to avoid column name collisions due to DBF limitations, keep only the mu.col column
-mu <- mu[, mu.col, drop=FALSE]
-
-# add a unique polygon ID
-mu$pID <- seq(from=1, to=length(mu))
+mu$pID <- 1:nrow(mu)
 
 if(cache.samples & file.exists('cached-samples.Rda')) {
   
@@ -191,17 +185,30 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   # iterate over map units and sample rasters
   # result is a list
   # 
+  # .timer.start <- Sys.time()
+  # target.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list,
+  #                                                         pts.per.acre, progress = FALSE, 
+  #                                                         estimateEffectiveSampleSize = correct.sample.size))
+  # .timer.stop <- Sys.time()
+  # 
+  # .sampling.time <- format(difftime(.timer.stop, .timer.start, units = 'mins'), digits = 2)
+  # print(paste0("Completed sampling of raster stack for poly symbols (",
+  #              paste(mu.set, collapse = ","),") in ", .sampling.time, "."))
+  # 
   .timer.start <- Sys.time()
   sampling.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list,
-                                                         pts.per.acre, progress = FALSE, 
-                                                         estimateEffectiveSampleSize = correct.sample.size))
+                                                          pts.per.acre, progress = FALSE, 
+                                                          estimateEffectiveSampleSize = correct.sample.size))
   .timer.stop <- Sys.time()
   
-  .sampling.time <- format(difftime(.timer.stop, .timer.start, units='mins'), digits=2)
+  .sampling.time <- format(difftime(.timer.stop, .timer.start, units = 'mins'), digits = 2)
   print(paste0("Completed sampling of raster stack for poly symbols (",
-               paste(mu.set,collapse=","),") in ",.sampling.time,"."))
+               paste(mu.set, collapse = ","),") in ", .sampling.time, "."))
   
-  sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels=mu.set)
+  if (!".id" %in% colnames(sampling.res$raster.samples)) {
+    sampling.res$raster.samples$.id <- sampling.res$raster.samples[[mu.col]]
+  }
+  sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels = mu.set)
 
   print("DONE!")
   
@@ -319,7 +326,6 @@ bwplot(.id ~ value | variable, data = d.continuous,
                       notch = correct.sample.size, coef = this.Moran.I, ...)
 
        })
-
 ```
 
 
@@ -384,18 +390,25 @@ kable(mu.stats.wide, row.names = FALSE, caption = 'Median Values',
 ```
 
 ```{r, echo=FALSE, results='asis'}
-
-l_ply(split(mu.stats, mu.stats$variable), function(i) {
+muv <- split(mu.stats, mu.stats$variable)
+l <- lapply(seq_along(muv), function(i) {
   # remove variable column
-  var.name <- unique(i$variable)
-  i$variable <- NULL
+  var.name <- unique(muv[[i]]$variable)
+  if (length(var.name) == 0 || is.null(var.name) || is.na(var.name)) {
+    return(NULL)
+  }
+  muv[[i]]$variable <- NULL
   dg <- c(0, rep(2, times = length(p.quantiles)), 3)
-  
   # note: chunk option results='asis'
-  print(kable(i, caption = var.name, row.names = FALSE, 
-              align = 'r', digits = dg, col.names = c(mu.col, names(i)[-1])))
+  print(kable(
+    muv[[i]],
+    caption = var.name,
+    row.names = FALSE,
+    align = 'r',
+    digits = dg,
+    col.names = c(mu.col, names(muv[[i]])[-1])
+  ))
 })
-
 ```
 
 
@@ -428,12 +441,25 @@ dynamicPar(length(d.circ.list))
 
 res <- ldply(d.circ.list, function(i) {
   mu <- unique(i$.id)
-  circ.stats <- aspect.plot(i$value, q = c(0.1, 0.5, 0.9), 
-                            plot.title = mu, pch = NA, bg = 'RoyalBlue', 
-                            col = 'black', arrow.col = c('grey', 'red', 'grey'), 
-                            stack = FALSE, p.bw = 90)
-  
-  return(round(circ.stats))
+  circ.stats <- sharpshootR::aspect.plot(
+    i$value,
+    q = c(0.1, 0.5, 0.9),
+    plot.title = mu,
+    pch = NA,
+    bg = 'RoyalBlue',
+    col = 'black',
+    arrow.col = c('grey', 'red', 'grey'),
+    stack = FALSE,
+    p.bw = 90
+  )
+  qs <- as.numeric(circ.stats)
+  names(qs) <- c("Q10", "Q50", "Q90")
+  us <- attr(circ.stats, "uniformity")
+  us[1] <- signif(us[1], 3)
+  if (us[2] < 1e-8) {
+    us[2] <- "<1e-8"
+  }
+  return(c(round(qs), us))
 })
 
 # tabular summary
@@ -467,7 +493,8 @@ This plot displays the similarity of the map units across the set of environment
 # 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
 
 # cast to wide format
-d.mu.wide <- dcast(d.continuous, sid + pID + .id ~ variable, value.var = 'value')
+d.mu.wide <- as.data.frame(data.table::dcast(data.table::data.table(d.continuous),
+                               sid + pID + .id ~ variable, value.var = 'value'))
 
 # drop rows with NA
 d.mu.wide <- na.omit(d.mu.wide)
@@ -651,7 +678,8 @@ if (length(levels(d.sub$.id)) >= 2) {
 #calculates prop outside range for _all_ polys
 polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons) #, p.crit = 0)
 
-poly.check.wide <- dcast(polygons.to.check, pID ~ variable, value.var = 'prop.outside.range')
+poly.check.wide <- as.data.frame(data.table::dcast(data.table::data.table(polygons.to.check),
+                                     pID ~ variable, value.var = 'prop.outside.range'))
 
 #replace NAs with zero (no samples outside 5-95% percentile range)
 poly.check.wide[is.na(poly.check.wide)] = 0 
@@ -666,8 +694,7 @@ names(polygons.to.check)[1] <- mu.col
 ```{r, echo=FALSE}
 #save a SHP file with prop.outside.range for each polygon and raster data source combination
 if (nrow(polygons.to.check) > 0) {
-  try(writeOGR(mu.check, dsn = 'output', layer = shp.qc.fname, 
-               driver = 'ESRI Shapefile', overwrite_layer = TRUE))
+  try(writeVector(mu.check, paste0(file.path('output', shp.qc.fname), ".shp"), overwrite = TRUE))
   try(write.csv(mu.check, paste0('output/', csv.qc.fname)))
 }
 
@@ -678,16 +705,17 @@ if (nrow(polygons.to.check) > 0) {
 ```{r echo=FALSE}
 # save SHP with any un-sampled polygons
 if (length(sampling.res$unsampled.ids) > 0) {
-  try(writeOGR(mu[sampling.res$unsampled.ids, ], dsn = 'output', 
-               layer = shp.unsampled.fname, 
-               driver = 'ESRI Shapefile', overwrite_layer = TRUE))
+  try(terra::writeVector(mu[sampling.res$unsampled.ids, ], 
+                         paste0(file.path('output', shp.unsampled.fname), ".shp"), 
+                         overwrite = TRUE))
 }
 
 # compute summaries by polygon*variable
 poly.stats <- ddply(d.continuous, c('pID', 'variable'), f.summary, p = p.quantiles)
 
 # convert to wide format, keeping median value
-poly.stats.wide <- dcast(poly.stats, pID ~ variable, value.var = 'Q50')
+poly.stats.wide <- as.data.frame(data.table::dcast(data.table::data.table(poly.stats), 
+                                     pID ~ variable, value.var = 'Q50'))
 
 # compute summaries by variable
 mucol.stats <- ddply(d.continuous, c(".id",'variable'), f.summary, p = p.quantiles)
@@ -725,8 +753,7 @@ names(mu)[-1] <- abbreviateNames(mu)
 mu$.id <- NULL
 
 # save to file
-try(writeOGR(mu, dsn = 'output', layer = shp.stats.fname, 
-             driver = 'ESRI Shapefile', overwrite_layer = TRUE))
+try(terra::writeVector(mu, paste0(file.path('output', shp.stats.fname), ".shp"), overwrite = TRUE))
 
 ## TODO: how do you trap warnings within a .Rmd knitting session?
 # save warnings to log file
@@ -773,7 +800,7 @@ Delineations with more than 10 - 15% of samples outside the range for a data sou
 Here is a sample output table for a few polygons. Sorting these columns by magnitude in your GIS software offers a quick way to find potentially problematic areas.
 
 ```{r, echo=FALSE, results='asis'}
-kable(head(slot(mu.check[complete.cases(slot(mu.check, 'data')),], 'data')), row.names = FALSE)
+kable(head(mu.check[complete.cases(as.data.frame(mu.check)),], row.names = FALSE))
 ```
 
 ----------------------------

@@ -10,20 +10,20 @@
 ## version number
 
 .report.name <- 'mu-comparison'
-.report.version <- '3.4.0'
+.report.version <- '4.0.0'
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 
 .paths.to.copy <- c('report.Rmd','custom.R','config.R','categorical_definitions.R',
-                    'README.md','changes.txt','create-NASIS-import-files.R')
+                    'README.md','changes.txt','create-NASIS-import-files.R','clip-and-mask-rasters.R')
 
 .update.paths.to.copy <- c('report.Rmd','custom.R', 'categorical_definitions.R',
-                           'README.md','changes.txt','create-NASIS-import-files.R')
+                           'README.md','changes.txt','create-NASIS-import-files.R','clip-and-mask-rasters.R')
 
-.packages.to.get <- c('knitr', 'rmarkdown', 'rgdal', 'reshape2', 'raster', 'plyr', 'Hmisc', 'aqp', 'soilDB', 'sharpshootR', 'latticeExtra', 'clhs', 'devtools', 'rgeos', 'randomForest', 'vegan', 'spdep', 'scales', 'e1071', 'RColorBrewer')
+.packages.to.get <- c('knitr', 'rmarkdown', "MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer")
 
 ## packages from GH
 # dependencies should be satisfied by installing CRAN version first
-.gh.packages.to.get <- c('ncss-tech/sharpshootR', 'ncss-tech/aqp')
+.gh.packages.to.get <- c('ncss-tech/sharpshootR', 'ncss-tech/soilDB', 'ncss-tech/aqp')
 
 # flag to indicate that shiny.Rmd and not report.Rmd is the primary markdown file; convention should probably be that shiny.Rmd has option to generate a static report.Rmd-type output. 
 # currently the pedon summary demo using Shiny supports this option and uses a file called report.Rmd as the template for the static output
