@@ -19,7 +19,7 @@
 .update.paths.to.copy <- c('report.Rmd','custom.R', 'categorical_definitions.R',
                            'README.md','changes.txt','create-NASIS-import-files.R','clip-and-mask-rasters.R')
 
-.packages.to.get <- c('knitr', 'rmarkdown', "MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer")
+.packages.to.get <- c('knitr', 'rmarkdown', "MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer", "spdep")
 
 ## packages from GH
 # dependencies should be satisfied by installing CRAN version first
