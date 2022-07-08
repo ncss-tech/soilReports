@@ -24,7 +24,7 @@ options(width = 100, stringsAsFactors = FALSE)
 ### SANITY CHECK #1 - make sure user has run reportSetup recently
 
 ### check if needed CRAN packages are installed
-packz <- c("MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer")
+packz <- c("MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer", "spdep")
 newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
 
 loaded <- lapply(packz, FUN = require, character.only = TRUE, quietly = TRUE)
@@ -204,11 +204,8 @@ if(cache.samples & file.exists('cached-samples.Rda')) {
   .sampling.time <- format(difftime(.timer.stop, .timer.start, units = 'mins'), digits = 2)
   print(paste0("Completed sampling of raster stack for poly symbols (",
                paste(mu.set, collapse = ","),") in ", .sampling.time, "."))
-  
-  if (!".id" %in% colnames(sampling.res$raster.samples)) {
-    sampling.res$raster.samples$.id <- sampling.res$raster.samples[[mu.col]]
-  }
-  sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels = mu.set)
+
+  sampling.res$raster.samples[[mu.col]] <- factor(sampling.res$raster.samples[[mu.col]], levels = mu.set)
 
   print("DONE!")
   
@@ -229,7 +226,7 @@ if (nrow(d.circ) > 0) { ## TODO: could there ever be more than one type of circu
 ### SUBSET CATEGORICAL VARIABLEs
 #d.cat is derived from the sample object resulting from running cLHS_sample_by_polygon.R
 d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
-d.cat$.id <- factor(d.cat$.id, levels = mu.set)
+d.cat[[mu.col]] <- factor(d.cat[[mu.col]], levels = mu.set)
 d.cat.sub <- list()
 
 ### FORMATTING
@@ -239,7 +236,7 @@ min.height <- 2
 # height required for each panel
 panel.height <- 2 * length(levels(d.continuous$variable))
 # extra height for each ID
-id.height <- 0.25 * length(levels(d.continuous$.id))
+id.height <- 0.25 * length(levels(d.continuous[[mu.col]]))
 dynamic.fig.height <- min.height + panel.height + id.height
 
 # nice colors
@@ -302,7 +299,7 @@ tps <- list(box.rectangle = list(col = 'black'),
             plot.symbol = list(col = rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex = 0.25))
 
 # NOTE: notches rely on effective sampling size
-bwplot(.id ~ value | variable, data = d.continuous, 
+bwplot(as.formula(sprintf("%s ~ value | variable", mu.col)), data = d.continuous, 
        scales = list(y = list(alternating = 1), x = list(relation = 'free', tick.number = 10)), 
        as.table = TRUE, col = 'black', strip = strip.custom(bg = grey(0.85)), 
        xlab = '', par.settings = tps, subscripts = TRUE, 
@@ -318,7 +315,7 @@ bwplot(.id ~ value | variable, data = d.continuous,
          
          # make a grid
          panel.grid(h = 0, v = -1, col = 'grey', lty = 3)
-         panel.abline(h = 1:length(unique(d.continuous$.id)), col = 'grey', lty = 3)
+         panel.abline(h = 1:length(unique(d.continuous[[mu.col]])), col = 'grey', lty = 3)
          
          # boxplots with custom sampling size:
          # coef: Moran's I associated with this raster
@@ -355,12 +352,12 @@ if (!exists('scaleDensityCurves'))
   scaleDensityCurves <- TRUE
 
 # compute densities and optionally re-scale to {0,1}
-density.plot.data <- ddply(d.continuous, c('.id', 'variable'), 
+density.plot.data <- ddply(d.continuous, c(mu.col, 'variable'), 
                            scaled.density, 
                            constantScaling = scaleDensityCurves)
 
 xyplot(y ~ x | variable, 
-       groups = .id, data = density.plot.data, xlab = '', 
+       groups = mu.col, data = density.plot.data, xlab = '', 
        ylab = 'Relative Proportion', 
        scales = list(relation = 'free', 
                    x = list(tick.number = 10), 
@@ -380,11 +377,13 @@ Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by vari
 
 ```{r, echo=FALSE, results='asis'}
 # summarize raster data for tabular output
-mu.stats <- ddply(d.continuous, c('variable', '.id'), f.summary, p = p.quantiles)
+mu.stats <- ddply(d.continuous, c('variable', mu.col), f.summary, p = p.quantiles)
 
 # print medians
 dg <- c(0, rep(2, times = length(unique(mu.stats$variable))))
-mu.stats.wide <- dcast(mu.stats, .id ~ variable, value.var = 'Q50')
+mu.stats.wide <- data.table::dcast(data.table::data.table(mu.stats), 
+                                   as.formula(sprintf("%s ~ variable", mu.col)), 
+                                   value.var = 'Q50')
 kable(mu.stats.wide, row.names = FALSE, caption = 'Median Values', 
       align = 'r', digits = , col.names = c(mu.col, names(mu.stats.wide)[-1]))
 ```
@@ -424,7 +423,7 @@ A graphical summary of slope aspect values using density and percentile estimati
 
 ```{r, echo=FALSE, results='hide', eval=do.aspect}
 ## circular stats, by map unit
-d.circ.list <- split(d.circ, d.circ$.id)
+d.circ.list <- split(d.circ, d.circ[[mu.col]])
 
 # this has to be called 2x, as we are adjusting the device settings on the fly
 fig.geom <- dynamicPar(length(d.circ.list))
@@ -440,7 +439,7 @@ opts_chunk$set(fig.width = fig.geom[2] * 5) # cols
 dynamicPar(length(d.circ.list))
 
 res <- ldply(d.circ.list, function(i) {
-  mu <- unique(i$.id)
+  mu <- unique(i[[mu.col]])
   circ.stats <- sharpshootR::aspect.plot(
     i$value,
     q = c(0.1, 0.5, 0.9),
@@ -470,7 +469,7 @@ kable(res, align = 'r', col.names = c(mu.col, names(res)[-1]))
 # make categorical summaries for all categorical variables
 d.cat.list <- split(d.cat, f = d.cat$variable)
 
-l <- lapply(d.cat.list, FUN = makeCategoricalOutput)
+l <- lapply(d.cat.list, FUN = makeCategoricalOutput, mu.col = mu.col)
 ```
 
 ### Multivariate Summary
@@ -494,7 +493,8 @@ This plot displays the similarity of the map units across the set of environment
 
 # cast to wide format
 d.mu.wide <- as.data.frame(data.table::dcast(data.table::data.table(d.continuous),
-                               sid + pID + .id ~ variable, value.var = 'value'))
+                           as.formula(sprintf("sid + pID + %s ~ variable", mu.col)),
+                           value.var = 'value'))
 
 # drop rows with NA
 d.mu.wide <- na.omit(d.mu.wide)
@@ -502,7 +502,7 @@ d.mu.wide <- na.omit(d.mu.wide)
 # locate "non-id" vars that have non-zero SD
 # these are safe for cLHs and distance calc
 # solution for https://github.com/ncss-tech/soilReports/issues/87
-d.mu.wide.vars <- findSafeVars(d.mu.wide, id = c('.id', 'sid', 'pID'))
+d.mu.wide.vars <- findSafeVars(d.mu.wide, id = c(mu.col, 'sid', 'pID'))
 
 # must have > 1 variables to perform multivariate summary
 if (length(d.mu.wide.vars) < 2) {
@@ -515,7 +515,7 @@ if (length(d.mu.wide.vars) < 2) {
   # https://github.com/ncss-tech/soilReports/issues/87
   
   # # check SD of each column, by group
-  # sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, d.mu.wide.vars, drop=FALSE], sd, na.rm=TRUE)})
+  # sd.by.id <- ddply(d.mu.wide, mu.col, function(i) {sapply(i[, d.mu.wide.vars, drop=FALSE], sd, na.rm=TRUE)})
   # sd.by.id$res <- apply(sd.by.id[, -1], 1, function(i) any(i < 1e-5))
   # 
   # # if the SD is low in any column from all MU then stop  
@@ -529,8 +529,8 @@ if (length(d.mu.wide.vars) < 2) {
   #   ## https://github.com/ncss-tech/soilReports/issues/87
   #   # filter out low-variance MU
   #   if(any(sd.by.id$res)) {
-  #     ids.to.keep <- sd.by.id$.id[which(!sd.by.id$res)]
-  #     d.mu.wide <- d.mu.wide[which(d.mu.wide$.id %in% ids.to.keep), ]
+  #     ids.to.keep <- sd.by.id[[mu.col]][which(!sd.by.id$res)]
+  #     d.mu.wide <- d.mu.wide[which(d.mu.wide[[mu.col]] %in% ids.to.keep), ]
   #     
   #     # reset mu.set accordingly
   #     idx.to.keep <- which(! mu.set %in% setdiff(mu.set, ids.to.keep))
@@ -546,7 +546,7 @@ if (length(d.mu.wide.vars) < 2) {
       # first three columns are IDs
       # n: this is the number of sub-samples / map unit
       # non.id.vars: this is an index to non-ID columns
-      d.sub <- ddply(d.mu.wide, '.id', cLHS_subset, n = 50, non.id.vars=d.mu.wide.vars)
+      d.sub <- ddply(d.mu.wide, mu.col, cLHS_subset, n = 50, non.id.vars=d.mu.wide.vars)
     } else {
       d.sub <- d.mu.wide
     }
@@ -556,7 +556,7 @@ if (length(d.mu.wide.vars) < 2) {
     d.dist <- daisy(d.sub[, d.mu.wide.vars], stand = TRUE)
     
     ## map distance matrix to 2D space via principal coordinates
-    d.betadisper <- vegan::betadisper(d.dist, group = d.sub$.id, 
+    d.betadisper <- vegan::betadisper(d.dist, group = d.sub[[mu.col]], 
                                       bias.adjust = TRUE, 
                                       sqrt.dist = TRUE, type = 'median')
     d.scores <- vegan::scores(d.betadisper)
@@ -564,8 +564,10 @@ if (length(d.mu.wide.vars) < 2) {
     # contour density estimates
     # add contours for fixed pct of data density using KDE
     # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
-    s <- data.frame(x = d.scores$sites[, 1], y = d.scores$sites[, 2], .id = d.sub$.id)
-    s <- split(s, s$.id)
+    s <- data.frame(x = d.scores$sites[, 1], y = d.scores$sites[, 2],
+                    .id = d.sub[[mu.col]])
+    colnames(s)[3] <- mu.col
+    s <- split(s, s[[mu.col]])
     
     # plot
     par(mar = c(1,1,3,1))
@@ -574,17 +576,17 @@ if (length(d.mu.wide.vars) < 2) {
     
     # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
     # add contours of prob density
-    res <- lapply(s, kdeContours, id = '.id', prob = c(0.75), 
-                  cols = cols, m = levels(d.sub$.id), lwd = 1, lty = 3)
-    res <- lapply(s, kdeContours, id = '.id', prob = (0.5), 
-                  cols = cols, m = levels(d.sub$.id), lwd = 1, lty = 2)
-    res <- lapply(s, kdeContours, id = '.id', prob = c(0.25), 
-                  cols = cols, m = levels(d.sub$.id), lwd = 2, lty = 1)
+    res <- lapply(s, kdeContours, id = mu.col, prob = c(0.75), 
+                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 1, lty = 3)
+    res <- lapply(s, kdeContours, id = mu.col, prob = (0.5), 
+                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 1, lty = 2)
+    res <- lapply(s, kdeContours, id = mu.col, prob = c(0.25), 
+                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 2, lty = 1)
     
-    points(d.scores$sites, cex = 0.45, col = cols[as.numeric(d.sub$.id)], pch = 16)
+    points(d.scores$sites, cex = 0.45, col = cols[as.numeric(d.sub[[mu.col]])], pch = 16)
     
     # note special indexing for cases when low-var MU have been removed
-    vegan::ordilabel(d.betadisper, display = 'centroids', col = cols[match(mu.set, levels(d.sub$.id))])
+    vegan::ordilabel(d.betadisper, display = 'centroids', col = cols[match(mu.set, levels(d.sub[[mu.col]]))])
     title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
     box()
 }
@@ -628,13 +630,13 @@ The following figure ranks raster data sources in terms of how accurately each c
 # this will only work with >= 2 map units and >= 2 variables
 
 # reset factor levels so that empty classes are not passed on to randomForest() (will cause error if empty/low-variance MUs are present)
-d.sub$.id <- factor(d.sub$.id)
+d.sub[[mu.col]] <- factor(d.sub[[mu.col]])
 
-if (length(levels(d.sub$.id)) >= 2) {
+if (length(levels(d.sub[[mu.col]])) >= 2) {
  # use supervised classification to empirically determine the relative importance of each raster layer
   # TODO: include geomorphons and curvature classes
   # TODO: consider using party::cforest() for conditional variable importance-- varimp
-  m <- randomForest(x = d.sub[, d.mu.wide.vars], y = d.sub$.id, importance = TRUE)
+  m <- randomForest(x = d.sub[, d.mu.wide.vars], y = d.sub[[mu.col]], importance = TRUE)
   
   # variable importance
   # TODO: how to interpret raw output from importance:
@@ -676,7 +678,7 @@ if (length(levels(d.sub$.id)) >= 2) {
 # apply across raster values, to all polygons
 
 #calculates prop outside range for _all_ polys
-polygons.to.check <- ddply(d.continuous, c('.id', 'variable'), flagPolygons) #, p.crit = 0)
+polygons.to.check <- ddply(d.continuous, c(mu.col, 'variable'), flagPolygons) #, p.crit = 0)
 
 poly.check.wide <- as.data.frame(data.table::dcast(data.table::data.table(polygons.to.check),
                                      pID ~ variable, value.var = 'prop.outside.range'))
@@ -718,8 +720,8 @@ poly.stats.wide <- as.data.frame(data.table::dcast(data.table::data.table(poly.s
                                      pID ~ variable, value.var = 'Q50'))
 
 # compute summaries by variable
-mucol.stats <- ddply(d.continuous, c(".id",'variable'), f.summary, p = p.quantiles)
-mucol.stats.wide <- data.frame(.id = unique(d.continuous$.id))
+mucol.stats <- ddply(d.continuous, c(mu.col, 'variable'), f.summary, p = p.quantiles)
+mucol.stats.wide <- data.frame(.id = unique(d.continuous[[mu.col]]))
 names(mucol.stats.wide)[1] <- mu.col
 
 res <- lapply(split(mucol.stats, mucol.stats$variable), function(vardata) {

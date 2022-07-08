@@ -1,7 +1,7 @@
 ## Mapunit summary utility functions
 
 ## Note: warnings will corrupt md markup that is created by this function
-makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
+makeCategoricalOutput <- function(dat, mu.col, do.spatial.summary=TRUE) {
   
   # this just takes first name; fn intended to be called via lapply w/ list of dataframes 1 frame per var
   variable.name <- unique(dat$variable)[1]
@@ -71,7 +71,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   }
   
   # convert counts into proportions
-  x <- sweepProportions(dat)
+  x <- sweepProportions(dat, mu.col)
   
   # tidy legend by removing "near-zero" proportions
   idx <- which(apply(x, 2, function(i) any(i > 0.001)))
@@ -91,7 +91,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   x.long <-as.data.frame.table(x, stringsAsFactors = FALSE)
   
   # re-add factor levels for MUSYM and raster labels
-  x.long$.id <- factor(x.long$.id, levels = levels(dat$.id))
+  x.long[[mu.col]] <- factor(x.long[[mu.col]], levels = levels(dat[[mu.col]]))
   x.long$value <- factor(x.long$value, levels = lbls)
   
   # re-label long-format for plotting
@@ -105,7 +105,7 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   names(x.sig) <- 'mapunit composition "signature" (most frequent classes that sum to 75% or more)'
   
   # get a signature for each polygon
-  spatial.summary <- ddply(dat, c( '.id', 'pID'), .fun=sweepProportions, drop.unused.levels=FALSE, single.id=TRUE)
+  spatial.summary <- ddply(dat, c(mu.col, 'pID'), .fun=sweepProportions, mu.col=mu.col, drop.unused.levels=FALSE, single.id=TRUE)
   
   ## most likely class
   most.likely.class.idx <- 1
@@ -136,24 +136,24 @@ makeCategoricalOutput <- function(dat, do.spatial.summary=TRUE) {
   # compose legend
   sK <- simpleKey(space='top', columns=sK.columns, text=sK.levels, rectangles = TRUE, points=FALSE)
   
-  if(length(unique(x.long$.id)) > 1 & do.spatial.summary) {
+  if (length(unique(x.long[[mu.col]])) > 1 & do.spatial.summary) {
     # cluster proportions
     # note: daisy will issue warnings when there is only a single class with non-0 proportions
     #       warnings emitted at this point will corrupt MD markup
     x.d <- as.hclust(diana(suppressWarnings(daisy(x))))
     # re-order MU labels levels based on clustering
-    x.long$.id <- factor(x.long$.id, levels=unique(x.long$.id)[x.d$order])
+    x.long[[mu.col]] <- factor(x.long[[mu.col]], levels=unique(x.long[[mu.col]])[x.d$order])
     # musym are re-ordered according to clustering
     cat('  \n  \n')
-    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK, legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10)))))
+    print(barchart(as.formula(paste0(mu.col, "~ value")), groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK, legend=list(right=list(fun=dendrogramGrob, args=list(x = as.dendrogram(x.d), side="right", size=10)))))
     cat('  \n  \n')
   } else {
     # re-order MUSYM labels according to original ordering, specified in mu.set
-    x.long$.id <- factor(x.long$.id, levels=levels(dat$.id))
+    x.long[[mu.col]] <- factor(x.long[[mu.col]], levels=levels(dat[[mu.col]]))
     
     trellis.par.set(tps)
     cat('  \n  \n')
-    print(barchart(.id ~ value, groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK))
+    print(barchart(as.formula(paste0(mu.col, "~ value")), groups=x.long$label, data=x.long, horiz=TRUE, stack=TRUE, xlab='Proportion of Samples', scales=list(cex=1.5), key=sK))
     cat('  \n  \n')
   }  
   print(kable(x, digits = metadat$decimals))
@@ -337,13 +337,13 @@ subsetByPattern <- function(pattern) {
 # i: data.frame with '.id' and 'value' columns
 # drop.unused.levels: this affects all unused levels
 # single.id: FALSE when summarizing all MUSYM, TRUE when specific to single MUSYM
-sweepProportions <- function(i, drop.unused.levels=FALSE, single.id=FALSE) {
+sweepProportions <- function(i, mu.col, drop.unused.levels=FALSE, single.id=FALSE) {
   # must drop missing .id factor levels when used with a single .id e.g. for spatial summaries
   if(single.id)
-    i$.id <- factor(i$.id)
+    i[[mu.col]] <- factor(i[[mu.col]])
   
   # tabulate and convert to proportions, retain all levels of ID
-  foo <- xtabs(~ .id + value, data=i, drop.unused.levels=drop.unused.levels)
+  foo <- xtabs(as.formula(paste0("~ ", mu.col, " + value")), data=i, drop.unused.levels=drop.unused.levels)
   res <- sweep(foo, MARGIN = 1, STATS = rowSums(foo), FUN = '/')
   
   # 2017-12-11: 0-samples result in NA, convert those back to 0
