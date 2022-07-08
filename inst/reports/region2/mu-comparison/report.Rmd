@@ -97,8 +97,10 @@ if (exists('mu.set')) {
     mu.set <- mu.set[-which(mu_nosp)] #if so, remove them
   
   # if we removed everything (e.g. no musyms match due to wrong config file?), fail gracefully
-  if (length(mu.set) == 0) 
-    stop(paste0("Cannot find map unit polygons with symbol: ",paste0(mu.set.bak,collapse=", ")))
+  if (length(mu.set) == 0) {
+    stop(paste0("Cannot find map unit polygons with symbol: ",
+                paste0(mu.set.bak, collapse = ", ")))
+  }
   
   # if mu.set defined in config.R, only keep the features with musym matching set
   mu <- mu[which(mu[[mu.col]][[1]] %in% mu.set), ] 
@@ -120,23 +122,24 @@ if (!dir.exists('output'))
 # NB: writeOGR uses 'output' as the data source name, so just the base file name
 #     whereas the CSV file names end in .csv
 if (!exists('shp.unsampled.fname')) 
-  shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse='_'))
+  shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse = '_'))
 if (!exists('shp.stats.fname')) 
-  shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse='_'))
+  shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse = '_'))
 if (!exists('shp.qc.fname')) 
-  shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'))
+  shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse = '_'))
 
 if (!exists('csv.mucol.stats.fname')) 
-  csv.mucol.stats.fname <- paste0('mucol-stats-', paste(mu.set, collapse='_'),'.csv')
+  csv.mucol.stats.fname <- paste0('mucol-stats-', paste(mu.set, collapse = '_'), '.csv')
 if (!exists('csv.stats.fname')) 
-  csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse='_'), '.csv')
+  csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse = '_'),  '.csv')
 if (!exists('csv.qc.fname')) 
-  csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse='_'),'.csv')
+  csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse = '_'),'.csv')
 
-outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
+outputfiles <- c(paste0(c(shp.unsampled.fname, shp.stats.fname, shp.qc.fname), ".shp"), 
+                 csv.qc.fname, csv.stats.fname)
 
 # SANITY CHECK #5: let the user know that things might not quite look right with tons of mapunit symbols
-if(length(mu.set) > 8) {
+if (length(mu.set) > 8) {
   warning(sprintf("This report was designed to work with 1 to 8 map units. Found %s in `mu.set`. The report tabular and spatial output is stable for larger numbers of map units, but graphics and colors in the report itself may become cluttered or impossible to interpret.", length(mu.set)), call. = FALSE)
 }
 
@@ -166,14 +169,14 @@ if (any(nchar(outputfiles) > 260)) {
   warning(sprintf("One or more SHP or output file paths exceeds 260 character limit when including all `mu.col` symbols (n = %s) in the name. Reverting to shorter (non-specific) file names. See options in config.R to customize output file names.", length(mu.set)), call. = FALSE)
 }
 
-if (any(grepl(basename(outputfiles), pattern='([/\\|<>:\\*?\"])'))) {
+if (any(grepl(basename(outputfiles), pattern = '([/\\|<>:\\*?\"])'))) {
   stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
 }
 ### -----
 
 mu$pID <- 1:nrow(mu)
 
-if(cache.samples & file.exists('cached-samples.Rda')) {
+if (cache.samples & file.exists('cached-samples.Rda')) {
   
   message('Using cached raster samples...')
   .sampling.time <- 'using cached samples'
@@ -263,18 +266,24 @@ report version `r .report.version`
 <br>
 This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) are used as robust metrics of distribution central tendency and spread. Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
 
+
 ### Map Unit Polygon Data Source
+
 ```{r, echo=FALSE}
 fd <- data.frame(`MU Polygons` = mu.dsn, `File or Feature` = mu.layer)
 kable(fd, row.names = FALSE)
 ```
 
+
 ### Raster Data Sources
+
 ```{r, echo=FALSE}
 kable(sampling.res$raster.summary, row.names = FALSE, digits = 3)
 ```
 
+
 ### Area Summaries
+
 Target sampling density: <b>`r pts.per.acre` points/ac.</b> defined in `config.R`. Consider increasing if there are unsampled polygons or if the number of samples is less than *about 200*. Note that the mean sampling density (per polygon) will always be slightly lower than the target sampling density, depending on polygon shape.
 
 ```{r, echo=FALSE}
@@ -284,6 +293,7 @@ kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r
 
 
 ### Modified Box and Whisker Plots
+
 Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Box width is proportional to the number of samples per map unit (e.g. total map unit area). Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
 
 **Suggested usage:**
@@ -327,6 +337,7 @@ bwplot(as.formula(sprintf("%s ~ value | variable", mu.col)), data = d.continuous
 
 
 ### Density Plots
+
 These plots are a smooth alternative ([density estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
 
 **Suggested usage:**
@@ -373,6 +384,7 @@ rm(density.plot.data)
 ```
 
 ### Tabular Summaries
+
 Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable. In these tables, headings like "Q5" can be interpreted as the the "5th percentile"; 5% of the data are less than this value. The 50th percentile ("Q50") is the median.
 
 ```{r, echo=FALSE, results='asis'}
@@ -412,6 +424,7 @@ l <- lapply(seq_along(muv), function(i) {
 
 
 ### Slope Aspect
+
 A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality. Use the figures and table below to determine "clockwise" / "counter clockwise" values for NASIS component records.
 
 **Suggested usage:**
@@ -469,12 +482,19 @@ kable(res, align = 'r', col.names = c(mu.col, names(res)[-1]))
 # make categorical summaries for all categorical variables
 d.cat.list <- split(d.cat, f = d.cat$variable)
 
-l <- lapply(d.cat.list, FUN = makeCategoricalOutput, mu.col = mu.col)
+
+l <- lapply(
+    d.cat.list,
+    FUN = makeCategoricalOutput,
+    mu.col = mu.col,
+    categorical.defs = categorical.defs
+  )
 ```
+
 
 ### Multivariate Summary
 
-This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 75% (dotted line), 50% (dashed line), and 25% (solid line) of the points in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Data from map units with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
+This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 75% (dotted line), 50% (dashed line), and 25% (solid line) of the points in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Data from map units with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/book/sampling.html), from the *Statistics for Soil Survey* NEDS course, for an soils-specific introduction to these concepts.
 
 **Suggested usage:**
 
@@ -672,7 +692,9 @@ if (length(levels(d.sub[[mu.col]])) >= 2) {
 # kable(head(x[, c(1,2, 35)], 3), row.names = FALSE, digits = 2)
 ```
 
+
 ## Polygon Summaries
+
 
 ```{r, echo=FALSE}
 # apply across raster values, to all polygons
@@ -693,6 +715,7 @@ names(mu.check)[-1] <- abbreviateNames(mu.check)
 names(polygons.to.check)[1] <- mu.col
 ```
 
+
 ```{r, echo=FALSE}
 #save a SHP file with prop.outside.range for each polygon and raster data source combination
 if (nrow(polygons.to.check) > 0) {
@@ -703,6 +726,7 @@ if (nrow(polygons.to.check) > 0) {
 ## generates sample prop.outside.range table for documentation purposes
 #kable(head(mu.check[,c(1,2,14:20)],3), row.names = FALSE, digits = 2)
 ```
+
 
 ```{r echo=FALSE}
 # save SHP with any un-sampled polygons
@@ -790,6 +814,7 @@ There are several columns containing the proportions of each landform element (g
 -->
 
 In the case of un-sampled polygons (very small delineations or too low sampling density), an additional shapefile will be saved in the output folder with a prefix of "un-sampled-". This file contains those polygons that were not allocated any sampling points and thus not included in the report summaries.
+
 
 ### Polygon Quality Control
 
