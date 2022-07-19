@@ -366,9 +366,12 @@ if (!exists('scaleDensityCurves'))
 density.plot.data <- ddply(d.continuous, c(mu.col, 'variable'), 
                            scaled.density, 
                            constantScaling = scaleDensityCurves)
+density.plot.data$.id <- density.plot.data[[mu.col]]
 
 xyplot(y ~ x | variable, 
-       groups = mu.col, data = density.plot.data, xlab = '', 
+       groups = .id, 
+       data = density.plot.data, 
+       xlab = '', 
        ylab = 'Relative Proportion', 
        scales = list(relation = 'free', 
                    x = list(tick.number = 10), 
@@ -379,7 +382,6 @@ xyplot(y ~ x | variable,
        layout = c(1, length(levels(d.continuous$variable))), 
        auto.key = list(lines = TRUE, points = FALSE, columns = n.cols, cex = 0.8),
        par.settings = tps, type = c('l','g'))
-
 rm(density.plot.data)
 ```
 
@@ -481,7 +483,6 @@ kable(res, align = 'r', col.names = c(mu.col, names(res)[-1]))
 ```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis"}
 # make categorical summaries for all categorical variables
 d.cat.list <- split(d.cat, f = d.cat$variable)
-
 
 l <- lapply(
     d.cat.list,
