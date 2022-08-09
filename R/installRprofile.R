@@ -13,22 +13,22 @@ installRprofile <- function(overwrite = FALSE,
   
   # information
   message(paste('HOME directory:\n ', path.expand('~'), collapse = ''))
-  message(paste('Current R library paths:', paste('\n ', .libPaths(), collapse='')))
+  message(paste('Current R library paths:', paste('\n ', .libPaths(), collapse = '')))
   
   # location
   rp <- file.path(path.expand('~'), '.Rprofile')
   
   # check for existing
-  if(file.exists(rp) & !overwrite)
+  if (file.exists(rp) & !overwrite)
     stop(paste0('set `overwrite=TRUE` argument to replace existing .Rprofile file:\n  ', rp), call. = FALSE)
   
   if (is.null(user_folder)) {
-    user_folder <- "file.path('C:/Users', Sys.getenv('USERNAME'), 'Documents')"
+    user_folder <- "file.path('C:/Users', Sys.info()['user'], 'Documents')"
     if (!is.null(home_drive)) {
       user_folder <- gsub("C:", home_drive, user_folder, fixed = TRUE)
     }
   } else user_folder <- shQuote(user_folder)
-
+  
   sysvars <- "Sys.setenv(HOME=c.my.documents, HOMEDRIVE='C:', HOMESHARE=c.my.documents, R_USER=c.my.documents, TEMP='C:/Temp/', TMP='C:/Temp/')"
   
   if (!is.null(home_drive)) {
@@ -42,9 +42,9 @@ installRprofile <- function(overwrite = FALSE,
   # this should have NO indentation !!!
   # this should have no white-space on last line(s)
   Rprofile.contents <- paste0("
-# 2018-10-15
-# Customize R environment for use within USDA-NRCS network.
+# First version: 2018-10-15 Customize R environment for use within USDA-NRCS network.
 #  - AGB updated 2022-01-11 to support custom user folder
+#  - AGB updated 2022-08-09 to use Sys.info()['user'] rather than Sys.getenv('USERNAME')
 
 # establish path to where we would like R packages to be stored
 c.my.documents <- ", user_folder, "
@@ -75,12 +75,11 @@ rm(c.my.documents, R.ver, R.path.personal.lib)
 # debugging
 message(paste('R library paths:', paste('\n', .libPaths(), collapse='')))
 ")
-
+  
   # overwrite existing .Rprofile in user's HOME directory
   cat(Rprofile.contents, file = rp)
   
   # source the file, so that we can install immediately
   source(rp, echo = FALSE)
-
+  
 }
-
