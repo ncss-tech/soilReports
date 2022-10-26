@@ -56,8 +56,12 @@ source("categorical_definitions.R")
 #  updates the "section_toggle" variable defined at top of report 
 #  which will knit the appropriate plots for the specified categoricals from config.R
 
+### SANITY CHECK #3 - make sure all top-level elements of raster.list are "allowed"
+if (!all(names(raster.list) %in% c("continuous", "categorical", "circular"))) {
+  stop('Check formatting of config.R raster list.\nAllowed top-level elements in `raster.list` include: "continuous", "categorical", "circular".', call. = FALSE)
+}
 
-### SANITY CHECK #3 - make sure the shapefile to be summarized exists and has the specified column
+### SANITY CHECK #4 - make sure the shapefile to be summarized exists and has the specified column
 ## load map unit polygons from OGR data source
 mu <- try(terra::vect(mu.dsn, layer = mu.layer))
 
@@ -68,7 +72,7 @@ if (!(mu.col %in% names(mu)))
   stop(paste0('Cannot find map unit column (',mu.col,') in attribute table of: "', 
               mu.dsn, ' / ', mu.layer,'"'), call. = FALSE)
 
-### SANITY CHECK #3 - make sure all raster/input file paths exist and are readable
+### SANITY CHECK #5 - make sure all raster/input file paths exist and are readable
 ###                   NB: this might not give correct results for parallel computation
 accessible.inputs <- file.access(as.character(unlist(raster.list)), mode = 4) + 1 
 
@@ -111,7 +115,7 @@ if (exists('mu.set')) {
 
 
 ### -----
-### SANITY CHECK #4 - make sure output paths are valid (no illegal characters)
+### SANITY CHECK #6 - make sure output paths are valid (no illegal characters)
 ###
 # make an output directory if it doesn't exist
 if (!dir.exists('output')) 
@@ -138,7 +142,7 @@ if (!exists('csv.qc.fname'))
 outputfiles <- c(paste0(c(shp.unsampled.fname, shp.stats.fname, shp.qc.fname), ".shp"), 
                  csv.qc.fname, csv.stats.fname)
 
-# SANITY CHECK #5: let the user know that things might not quite look right with tons of mapunit symbols
+# SANITY CHECK #7: let the user know that things might not quite look right with tons of mapunit symbols
 if (length(mu.set) > 8) {
   warning(sprintf("This report was designed to work with 1 to 8 map units. Found %s in `mu.set`. The report tabular and spatial output is stable for larger numbers of map units, but graphics and colors in the report itself may become cluttered or impossible to interpret.", length(mu.set)), call. = FALSE)
 }
@@ -395,7 +399,7 @@ mu.stats <- ddply(d.continuous, c('variable', mu.col), f.summary, p = p.quantile
 
 # print medians
 dg <- c(0, rep(2, times = length(unique(mu.stats$variable))))
-mu.stats.wide <- data.table::dcast(data.table::data.table(mu.stats), 
+mu.stats.wide <- data.table::dcast(data.table::setDT(mu.stats), 
                                    as.formula(sprintf("%s ~ variable", mu.col)), 
                                    value.var = 'Q50')
 kable(mu.stats.wide, row.names = FALSE, caption = 'Median Values', 
@@ -513,7 +517,7 @@ This plot displays the similarity of the map units across the set of environment
 # 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
 
 # cast to wide format
-d.mu.wide <- as.data.frame(data.table::dcast(data.table::data.table(d.continuous),
+d.mu.wide <- as.data.frame(data.table::dcast(data.table::setDT(d.continuous),
                            as.formula(sprintf("sid + pID + %s ~ variable", mu.col)),
                            value.var = 'value'))
 
@@ -703,8 +707,8 @@ if (length(levels(d.sub[[mu.col]])) >= 2) {
 #calculates prop outside range for _all_ polys
 polygons.to.check <- ddply(d.continuous, c(mu.col, 'variable'), flagPolygons) #, p.crit = 0)
 
-poly.check.wide <- as.data.frame(data.table::dcast(data.table::data.table(polygons.to.check),
-                                     pID ~ variable, value.var = 'prop.outside.range'))
+poly.check.wide <- as.data.frame(data.table::dcast(data.table::setDT(polygons.to.check),
+                                 pID ~ variable, value.var = 'prop.outside.range'))
 
 #replace NAs with zero (no samples outside 5-95% percentile range)
 poly.check.wide[is.na(poly.check.wide)] = 0 
@@ -741,8 +745,8 @@ if (length(sampling.res$unsampled.ids) > 0) {
 poly.stats <- ddply(d.continuous, c('pID', 'variable'), f.summary, p = p.quantiles)
 
 # convert to wide format, keeping median value
-poly.stats.wide <- as.data.frame(data.table::dcast(data.table::data.table(poly.stats), 
-                                     pID ~ variable, value.var = 'Q50'))
+poly.stats.wide <- as.data.frame(data.table::dcast(data.table::setDT(poly.stats), 
+                                 pID ~ variable, value.var = 'Q50'))
 
 # compute summaries by variable
 mucol.stats <- ddply(d.continuous, c(mu.col, 'variable'), f.summary, p = p.quantiles)
