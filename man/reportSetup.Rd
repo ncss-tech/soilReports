@@ -4,12 +4,12 @@
 \alias{reportSetup}
 \title{Install packages needed for a report}
 \usage{
-reportSetup(reportName, upgrade = FALSE)
+reportSetup(reportName, upgrade = TRUE)
 }
 \arguments{
 \item{reportName}{Name of report, as found in \code{listReports.} Format: \code{directory/reportName}.}
 
-\item{upgrade}{Upgrade CRAN packages? Default: \code{FALSE}}
+\item{upgrade}{Upgrade CRAN packages? Default: \code{TRUE}}
 }
 \value{
 Installed packages from CRAN and GitHub in user library, as specified in report-specific manifest.
