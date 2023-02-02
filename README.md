@@ -23,6 +23,9 @@ Each report contains several files:
 
 
 ## R Profile Setup
+
+**NOTE: The following instructions are rarely, if ever, needed with R 4.2+**
+
 On many of our machines, the `$HOME` directory points to a network share. This can cause all kinds of problems when installing R packages, especially if you connect to the network by VPN. The following code is a one-time solution and will cause R packages to be installed on a local disk by adding an `.Rprofile` file to your `$HOME` directory. This file will instruct R to use `C:/Users/FirstName.LastName/Documents/R/` for installing R packages. Again, you only have to do this **once**.
 
 ```r
