@@ -38,7 +38,7 @@ required_src_files <- c("custom.R", "config.R", "categorical_definitions.R")
 required_src <- required_src_files %in% list.files()
 
 if (any(!required_src)) {
-  stop("Required report files (%s) are missing in current directory (%s). Re-install your report instance with `soilReports::reportInit()`", paste0(required_src_files[required_src], collapse=","), getwd(), call. = FALSE)
+  stop(sprintf("Required report files (%s) are missing in current directory (%s). Re-install your report instance with `soilReports::reportInit()`", paste0(required_src_files[!required_src], collapse = ","), getwd()), call. = FALSE)
 }
 
 ## load report-specific functions
@@ -65,12 +65,20 @@ if (!all(names(raster.list) %in% c("continuous", "categorical", "circular"))) {
 ## load map unit polygons from OGR data source
 mu <- try(terra::vect(mu.dsn, layer = mu.layer))
 
-if (class(mu) == 'try-error')
+if (inherits(mu, 'try-error'))
   stop(paste0('Cannot read map unit polygon/feature file: "', 
               mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
 if (!(mu.col %in% names(mu)))
   stop(paste0('Cannot find map unit column (',mu.col,') in attribute table of: "', 
               mu.dsn, ' / ', mu.layer,'"'), call. = FALSE)
+
+if (terra::crs(mu) == "") {
+  stop("CRS of input polygon file is undefined.", call. = FALSE)
+}
+
+if (terra::is.lonlat(mu)) {
+  stop("CRS of input polygon file must be projected (meters), not geographic (longitude/latitude) for constant density sampling.", call. = FALSE)
+}
 
 ### SANITY CHECK #5 - make sure all raster/input file paths exist and are readable
 ###                   NB: this might not give correct results for parallel computation
