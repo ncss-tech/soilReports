@@ -6,14 +6,16 @@
 ##
 
 #basic report metadata
-.report.name <- 'lab_summary_by_taxonname'      
-.report.version <- 1.0
+.report.name <- 'pedon_summary_by_taxonname'      
+.report.version <- 1.1
 .report.description <- 'summarize field pedons from NASIS pedon table'
 
 #report manifest
-.paths.to.copy <- c('report.Rmd','custom.R','genhz_rules') #on reportInit() or copyReport()
-.update.paths.to.copy <- c('report.Rmd','custom.R','genhz_rules') #on reportInit(update.report=TRUE) or reportUpdate()
-                          ##AB: making assumption here that you would want to update rules if you were calling update
+.paths.to.copy <- c('report.Rmd','custom.R',
+                    'genhz_rules/Generic_rules.R',
+                    'genhz_rules/Drummer_rules.R') #on reportInit() or copyReport()
+.update.paths.to.copy <- c('report.Rmd','custom.R') #on reportInit(update.report=TRUE) or reportUpdate()
+
 #OPTIONAL
 .has.shiny.interface <- FALSE
 

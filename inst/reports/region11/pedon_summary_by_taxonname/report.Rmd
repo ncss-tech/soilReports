@@ -13,6 +13,7 @@ params:
    series: !r as.character("Miami")
    genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/region11/pedon_summary_by_taxonname/genhz_rules/Generic_rules.R"))
 ---
+
 ```{r setup, echo=FALSE, warning=FALSE}
 # generic horizon rules
 source(params$genhz_rules)
@@ -41,8 +42,8 @@ library(latticeExtra)
 library(RColorBrewer)
 
 # mapping libraries
+library(sp)
 library(maps)
-library(maptools)
 library(mapview)
 
 # custom ggplot2like latticeExtra theme
@@ -57,7 +58,7 @@ trellis.par.set(tpg)
 
 ```{r fetch and format, load-data, echo=FALSE, warning=FALSE}
 # load NASIS data
-pedons <- fetchNASIS_pedons(lab = TRUE)
+pedons <- fetchNASIS()
 
 h <- horizons(pedons)
 s <- site(pedons)
@@ -74,7 +75,6 @@ var <- c("fine_gravel", "gravel", "cobbles", "stones", "boulders", "paragravel",
 h[var] = lapply(h[var], as.integer)
   
 horizons(pedons) <- h
-
 
 # rename rock fragments
 idx <- names(h) == "total_frags_pct"
@@ -166,23 +166,24 @@ for (i in unique(idx)){
 ## Profile Plots
 
 ```{r, echo=FALSE}
-cols <- brewer.pal(n = length(levels(pedons$genhz)), name = "Set1") 
-hz.names <- levels(pedons$genhz)
+hz.names <- aqp::guessGenHzLevels(pedons, "genhz")$levels
+cols <- brewer.pal(n = length(hz.names), name = "Set1") 
 # assign a color to each generalized horizon label
 pedons$genhz.soil_color <- cols[match(pedons$genhz, hz.names)]
 
 idx <- pIndex(pedons, 15)
 
 # plot 15 profiles at a time
-for (i in unique(idx)){
+for (i in unique(idx)) {
   plot(pedons[idx == i], name = 'hzname', color = 'genhz.soil_color', label = 'pedon_id')
   title("Soil profile plots")
-  legend('bottomleft', legend = hz.names, pt.bg = cols, pch = 22, horiz = TRUE, pt.cex = 2, text.width = 1)
+  if (length(hz.names) > 0)
+    legend('bottomleft', legend = hz.names, pt.bg = cols, pch = 22, horiz = TRUE, pt.cex = 2, text.width = 1)
   }
 ```
 
 
-# Range in characteristics (RIC) for NCSS pedon lab data
+# Range in characteristics (RIC) for NASIS Pedons
 
 ## Surface rock fragments
 
