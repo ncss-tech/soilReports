@@ -1,6 +1,6 @@
 # minimal `soilReports` template
 
-This report has {aqp}, {soilDB} and {sharpshootR} off CRAN and GitHub as dependencies. It makes a couple simple graphics from the [{soilDB} documentation](https://ncss-tech.github.io/soilDB/docs/).
+This report has {aqp}, {soilDB} and {sharpshootR} off CRAN and GitHub as dependencies. It makes a couple simple graphics from the [{soilDB} documentation](https://ncss-tech.github.io/soilDB/).
 
 The input vectors of soil names for fetching OSDs etc. are customizable in _config.R_. 
 
