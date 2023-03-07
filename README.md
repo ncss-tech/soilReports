@@ -8,7 +8,7 @@ Reports are a handy way to summarize large volumes of data, particularly with fi
 The `soilReports` package provides a couple important helper functions that do most of the work:
 
  * `listReports()`: print a listing of the available reports, version numbers, and basic metadata
- * `reportSetup(...)`: download any R pacakges required by the named report, e.g. *"region2/mu-comparison"*
+ * `reportSetup(...)`: download any R packages required by the named report, e.g. *"region2/mu-comparison"*
  * `reportInit(...)` | `reportCopy(...)`: copy a named report template into a specific directory
  * `reportUpdate(...)`: update a named report in a specific directory, replacing `report.Rmd` only
 
@@ -22,6 +22,8 @@ Each report contains several files:
  * `changes.txt`: notes on changes and associated version numbers
 
 
+
+<!-- mark for deletion -->
 ## R Profile Setup
 
 **NOTE: The following instructions are rarely, if ever, needed with R 4.2+**
@@ -43,10 +45,10 @@ Run this code if you don't yet have the `soilReports` package or after a new ver
 
 ```r
 # need devtools to install packages from GitHub
-install.packages('remotes', dep=TRUE)
+install.packages('remotes', dep = TRUE)
 
 # get the latest version of the 'soilReports' package
-remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dependencies=FALSE) 
+remotes::install_github("ncss-tech/soilReports", dependencies = FALSE, upgrade_dependencies = FALSE) 
 ```
 
 ## Choose an Available Report
