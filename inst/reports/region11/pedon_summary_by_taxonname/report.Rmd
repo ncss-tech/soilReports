@@ -74,7 +74,7 @@ h <- within(h, {
 var <- c("fine_gravel", "gravel", "cobbles", "stones", "boulders", "paragravel", "paracobbles", "channers", "flagstones")
 h[var] = lapply(h[var], as.integer)
   
-horizons(pedons) <- h
+replaceHorizons(pedons) <- h
 
 # rename rock fragments
 idx <- names(h) == "total_frags_pct"
