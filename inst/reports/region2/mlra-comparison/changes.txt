@@ -1,4 +1,5 @@
-2020-02-19 (1.0): split density plots into sub-figures, legend now more visibble; better table styling with kable_extra
+2023-03-06 (2.0): updated to use current AH296
+2020-02-19 (1.0): split density plots into sub-figures, legend now more visible; better table styling with kable_extra
 2019-05-15 (0.8): fix for low-SD variables causing report failures (https://github.com/ncss-tech/soilReports/issues/87)
 2018-09-25 (0.7): monthly PPT and PET data, along with new figures added
 2018-05-29 (0.6): moving custom functions into custom.r; density curves are now truncated at original range of data
