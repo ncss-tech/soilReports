@@ -86,7 +86,7 @@ s <- within(site(comp), {
   })
   
 cosm <- get_cosoilmoist_from_NASISWebReport(projectname, stringsAsFactors = TRUE)
-idx <- with(cosm, {!is.na(cosm$dept_r) & cosm$status == "wet"})
+idx <- with(cosm, {!is.na(cosm$soimoistdept_r) & cosm$soimoiststat == "wet"})
 if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
 cosm <- within(cosm, {
   comppct_r2 = ifelse(is.na(comppct_r), 0, comppct_r)
@@ -217,13 +217,13 @@ ggplot(., aes(x = slopeshape, y = hillslopeprof, fill = mustatus_new)) +
 ```{r soil moisture, fig.dim = c(8, h_wtables), fig.ext = "png", dev = "png_dplots"}
 
 # component soil moisture month
-ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppct_r)) +
+ggplot(cosm, aes(x = as.integer(month), y = soimoistdept_r, lty = soimoiststat, group = comppct_r)) +
   geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
                 ymin = 0, ymax = max(cosm$depb_r),
                 fill = flodfreqcl)) +
   geom_line(cex = 1) +
   geom_point() +
-  geom_ribbon(aes(ymin = dept_l, ymax = dept_h), alpha = 0.2) +
+  geom_ribbon(aes(ymin = soimoistdept_l, ymax = soimoistdept_h), alpha = 0.2) +
   ylim(max(cosm$depb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
   scale_x_continuous(breaks = 1:12) + #, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
@@ -231,13 +231,13 @@ ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppc
   ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
   theme(legend.position="top")
 
-ggplot(cosm, aes(x = as.integer(month), y = dept_r, lty = status, group = comppct_r)) +
+ggplot(cosm, aes(x = as.integer(month), y = soimoistdept_r, lty = soimoiststat, group = comppct_r)) +
   geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
                 ymin = 0, ymax = max(cosm$depb_r),
                 fill = pondfreqcl)) +
   geom_line(cex = 1) +
   geom_point() +
-  geom_ribbon(aes(ymin = dept_l, ymax = dept_h), alpha = 0.2) +
+  geom_ribbon(aes(ymin = soimoistdept_l, ymax = soimoistdept_h), alpha = 0.2) +
   ylim(max(cosm$depb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
   scale_x_continuous(breaks = 1:12, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
