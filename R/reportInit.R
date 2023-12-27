@@ -9,7 +9,7 @@
 #' @param overwrite Overwrite existing directories and files? Default FALSE
 #' @param updateReport Only update core report files, leaving configuration unchanged? Specific settings are report-dependent and set in the setup.R manifest.
 #'
-#' @return A time-stamped report instance created in outputDir, and a message summarizing the action(s) completed.
+#' @return A time-stamped report instance created in `outputDir`, and a message summarizing the action(s) completed.
 #' @export
 #' @aliases copyReport reportUpdate
 #'
@@ -20,11 +20,11 @@ reportInit <- function(reportName,
     
   # output is saved in working dir when not specified
   
-  if(is.null(reportName) | is.na(reportName) | reportName == "")
-    stop('argument "reportName" is missing, with no default', call.=FALSE)
+  if (is.null(reportName) || is.na(reportName) || reportName == "")
+    stop('argument "reportName" is missing, with no default', call. = FALSE)
   
   # get base directory where reports are stored within package
-  base.dir <- system.file(paste0('reports/', reportName), package='soilReports')
+  base.dir <- system.file(paste0('reports/', reportName), package = 'soilReports')
   
   # all reports must have setup.R file
   setup.file <- paste0(base.dir, '/setup.R')
@@ -33,34 +33,34 @@ reportInit <- function(reportName,
   env <- new.env()
   sys.source(setup.file, envir = env)
   
-  if(missing(outputDir)) {
+  if (missing(outputDir)) {
     outputDir <- getwd()
   } else {
     # check for existing data
-    if(overwrite != TRUE & dir.exists(outputDir)) 
-      stop(paste0('there is already a folder named `', outputDir, '` in the current working directory'), call. = FALSE)
+    if (overwrite != TRUE && dir.exists(outputDir)) 
+      stop(paste0('there is already a folder named `', outputDir, '` in the current working directory. Use `overwrite=TRUE`'), call. = FALSE)
     # create the specified output directory, but only in "init" mode
-    if(!updateReport)
-      dir.create(outputDir, recursive = TRUE)
+    if (!updateReport)
+      dir.create(outputDir, recursive = TRUE, showWarnings = FALSE)
   }  
   
-  if(!updateReport) {
-    if(exists('.paths.to.copy', envir = env)) { # copy everything if not in "update" mode
+  if (!updateReport) {
+    if (exists('.paths.to.copy', envir = env)) { # copy everything if not in "update" mode
       pa <- get('.paths.to.copy', envir = env)
-      lapply(pa, FUN=copyPath, base.dir, outputDir)
+      lapply(pa, FUN = copyPath, base.dir, outputDir)
     } else stop("Failed to instantiate report -- no paths to copy specified in setup.R!")
   } else {
-    if(exists('.update.paths.to.copy', envir = env)) {
+    if (exists('.update.paths.to.copy', envir = env)) {
       pa <- get('.update.paths.to.copy', envir = env)
-      lapply(pa, FUN=copyPath, base.dir, outputDir, overwrite=TRUE)
+      lapply(pa, FUN = copyPath, base.dir, outputDir, overwrite = TRUE)
     } else stop("Failed to update report -- no update paths to copy specified in setup.R!")
   }
   
   # Add HTML comment containing report name, version and instance creation date/time above YAML header at top of report.Rmd
   metadat_vars <- c(".report.name",".report.version",".report.description")
-  if(exists('.report.name', envir=env) & 
-     exists('.report.version', envir=env) & 
-     exists('.report.description', envir=env)) {
+  if (exists('.report.name', envir = env) &
+      exists('.report.version', envir = env) &
+      exists('.report.description', envir = env)) {
     
     rname <- get('.report.name', env)
     rvers <- get('.report.version', env)
@@ -73,14 +73,14 @@ reportInit <- function(reportName,
     shiny.file <- paste0(outputDir,'/shiny.Rmd')
     
     print(paste0(rname," (v", rvers, ") report instance created in ",
-                 outputDir,". [updateReport=", updateReport,"; overwrite=",overwrite,"]"))
+                 shQuote(outputDir),". [updateReport=", updateReport,"; overwrite=",overwrite,"]"))
     
     defineInCodeChunk(report.file, metadat_vars, c(paste0("\'",rname,"\'"),
                                                   paste0("\'",rvers,"\'"),
                                                   paste0("\'",rdesc,"\'")))
     appendBelowYAML(report.file, headtxt)
     
-    if(exists('.has.shiny.interface')) { #put note at top of shiny.Rmd file if one is defined.
+    if (exists('.has.shiny.interface')) { #put note at top of shiny.Rmd file if one is defined.
       
       defineInCodeChunk(shiny.file, metadat_vars, c(paste0("\'",rname,"\'"),
                                                   paste0("\'",rvers,"\'"),
@@ -92,7 +92,7 @@ reportInit <- function(reportName,
 
 reportUpdate <- function(reportName, outputDir=NULL) {
   # Uses report init, only with overwrite and updateReport default value override
-  if(dir.exists(outputDir))
+  if (dir.exists(outputDir))
     reportInit(reportName, outputDir, overwrite = TRUE, updateReport = TRUE)
   else {
     message(sprintf("%s does not exist -- creating new report instance", reportName))
@@ -120,20 +120,20 @@ copyPath <- function(fname, srcDir, outputDir, overwrite = FALSE) {
   dst <- paste0(outputDir, '/', fname)
   
   #files will return false 
-  if(!dir.exists(src)) { 
+  if (!dir.exists(src)) { 
     #but need to make sure it actually is a file
-    if(file.exists(src)) {
+    if (file.exists(src)) {
       #OK we have a path to a file
       #but need to make sure that we can overwrite... or that it is not already extant
-      if(overwrite | !file.exists(dst)) 
-        file.copy(from=src, to=outputDir, overwrite = overwrite)
+      if (overwrite | !file.exists(dst)) 
+        file.copy(from = src, to = outputDir, overwrite = overwrite)
     } else {
       #we have a path to a directory
-      if(!dir.exists(dst)) {
+      if (!dir.exists(dst)) {
         #create directory structure recursively
         dir.create(dst, recursive = T)
       }
-      if(dir.exists(outputDir)) {
+      if (dir.exists(outputDir)) {
         #copy files recursively
         file.copy(src, outputDir, recursive = T, overwrite = overwrite)
       }
