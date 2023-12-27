@@ -232,17 +232,15 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
 d.continuous <- subset(sampling.res$raster.samples, variable.type == 'continuous')
 d.continuous$variable <- factor(d.continuous$variable, levels = names(raster.list$continuous))
 d.circ <- subset(sampling.res$raster.samples, variable.type == 'circular')
-
-# subset and enable aspect summary
-if (nrow(d.circ) > 0) { ## TODO: could there ever be more than one type of circular variable? 
-  do.aspect <- TRUE
-} else do.aspect <- FALSE
+d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
 
 ### SUBSET CATEGORICAL VARIABLEs
-#d.cat is derived from the sample object resulting from running cLHS_sample_by_polygon.R
-d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
 d.cat[[mu.col]] <- factor(d.cat[[mu.col]], levels = mu.set)
 d.cat.sub <- list()
+
+do.continuous <- isTRUE(nrow(d.continuous) > 0)
+do.aspect <- isTRUE(nrow(d.circ) > 0)
+do.categorical <-  isTRUE(nrow(d.cat) > 0)
 
 ### FORMATTING
 ## figure out reasonable figure heights for bwplots and density plots
@@ -314,7 +312,7 @@ Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki
  * Non-overlapping boxes are a strong indication that the central tendencies (of select raster data) differ.
  * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
 
-```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height, eval=do.continuous}
 tps <- list(box.rectangle = list(col = 'black'), 
             box.umbrella = list(col = 'black', lty = 1), 
             box.dot = list(cex = 0.75),
@@ -360,7 +358,7 @@ These plots are a smooth alternative ([density estimation](https://en.wikipedia.
    + narrow peaks vs. wide "mounds"
    + short vs. long "tails"
 
-```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height, eval=do.continuous}
 ## TODO: consider variable line width proportional to area
 ## https://github.com/ncss-tech/soilReports/issues/81
 # var.lwd <- scales::rescale(log(sampling.res$area.stats$`Total Area`), to=c(0.5, 2.5))
@@ -401,7 +399,7 @@ rm(density.plot.data)
 
 Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable. In these tables, headings like "Q5" can be interpreted as the the "5th percentile"; 5% of the data are less than this value. The 50th percentile ("Q50") is the median.
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', eval=do.continuous}
 # summarize raster data for tabular output
 mu.stats <- ddply(d.continuous, c('variable', mu.col), f.summary, p = p.quantiles)
 
@@ -414,7 +412,7 @@ kable(mu.stats.wide, row.names = FALSE, caption = 'Median Values',
       align = 'r', digits = , col.names = c(mu.col, names(mu.stats.wide)[-1]))
 ```
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', eval=do.continuous}
 muv <- split(mu.stats, mu.stats$variable)
 l <- lapply(seq_along(muv), function(i) {
   # remove variable column
@@ -492,7 +490,7 @@ res <- ldply(d.circ.list, function(i) {
 kable(res, align = 'r', col.names = c(mu.col, names(res)[-1]))
 ```
 
-```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis"}
+```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis", eval=do.categorical}
 # make categorical summaries for all categorical variables
 d.cat.list <- split(d.cat, f = d.cat$variable)
 
@@ -520,7 +518,7 @@ This plot displays the similarity of the map units across the set of environment
  * Comment-out raster data sources with low variability off if the multivariate summary is not displayed.
  
 
-```{r, results='hide', warning=FALSE, echo=FALSE, fig.width=9, fig.height=9}
+```{r, results='hide', warning=FALSE, echo=FALSE, fig.width=9, fig.height=9, eval=do.continuous}
 ## TODO: 
 # 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
 
@@ -625,7 +623,7 @@ if (length(d.mu.wide.vars) < 2) {
 }
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=do.continuous}
 if (multivariate.summary == FALSE)
   print('Cannot create ordination plot: >1 rasters required or not enough variance within each map unit.')
 ```
@@ -639,7 +637,7 @@ The following figure highlights shared information among raster data sources bas
  * Look for clustered sets of raster data: typically PRISM-derived and elevation data are closely correlated.
  * Highly correlated raster data sources reduce the reliability of the "raster data importance" figure.
 
-```{r, echo=FALSE, fig.width=10, fig.height=8, eval=multivariate.summary}
+```{r, echo=FALSE, fig.width=10, fig.height=8, eval=do.continuous && multivariate.summary}
 par(mar = c(2,5,2,2))
 ## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
 ## This requires 3 or more variables
@@ -659,7 +657,7 @@ The following figure ranks raster data sources in terms of how accurately each c
  * Highly correlated raster data sources will "compete" for positions in this figure. For example, if *elevation* and *mean annual air temperature* are highly correlated, then their respective "importance" values are interchangeable.
 
 
-```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
+```{r, echo=FALSE, fig.width=8, fig.height=6, eval=do.continuous && multivariate.summary}
 # this will only work with >= 2 map units and >= 2 variables
 
 # reset factor levels so that empty classes are not passed on to randomForest() (will cause error if empty/low-variance MUs are present)
@@ -709,7 +707,7 @@ if (length(levels(d.sub[[mu.col]])) >= 2) {
 ## Polygon Summaries
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=do.continuous}
 # apply across raster values, to all polygons
 
 #calculates prop outside range for _all_ polys
@@ -729,7 +727,7 @@ names(polygons.to.check)[1] <- mu.col
 ```
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=do.continuous}
 #save a SHP file with prop.outside.range for each polygon and raster data source combination
 if (nrow(polygons.to.check) > 0) {
   try(writeVector(mu.check, paste0(file.path('output', shp.qc.fname), ".shp"), overwrite = TRUE))
@@ -741,7 +739,7 @@ if (nrow(polygons.to.check) > 0) {
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, eval=do.continuous}
 # save SHP with any un-sampled polygons
 if (length(sampling.res$unsampled.ids) > 0) {
   try(terra::writeVector(mu[sampling.res$unsampled.ids, ], 
@@ -801,13 +799,13 @@ try(terra::writeVector(mu, paste0(file.path('output', shp.stats.fname), ".shp"),
 
 A variety of output files are created by this report (in `output` folder). The output file names can be adjusted in `config.R`. The quantiles for each continuous variable by mapunit symbol are written to a CSV file that looks like this (first 6 columns):
 
-```{r, echo=FALSE, results='asis'}
-kable(head(mucol.stats.wide[,1:pmin(6, length(names(mucol.stats.wide)))]), row.names = FALSE)
+```{r, echo=FALSE, results='asis', eval=do.continuous}
+kable(head(mucol.stats.wide[, 1:pmin(6, length(names(mucol.stats.wide)))]), row.names = FALSE)
 ```
 
 A shapefile is generated ("polygons-with-stats-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains summaries computed by polygon. Polygons are uniquely identified by the `pID` column. Median raster values are given, with data source names abbreviated to conform to the limitations of DBF files:
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', eval=do.continuous}
 kable(head(poly.stats.wide), row.names = FALSE)
 ```
 
@@ -839,7 +837,7 @@ Delineations with more than 10 - 15% of samples outside the range for a data sou
 
 Here is a sample output table for a few polygons. Sorting these columns by magnitude in your GIS software offers a quick way to find potentially problematic areas.
 
-```{r, echo=FALSE, results='asis'}
+```{r, echo=FALSE, results='asis', eval=do.continuous}
 kable(head(mu.check[complete.cases(as.data.frame(mu.check)),], row.names = FALSE))
 ```
 
