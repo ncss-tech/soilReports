@@ -1,5 +1,5 @@
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/ncss-tech/soilReports/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ncss-tech/soilReports/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/ncss-tech/soilReports/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/ncss-tech/soilReports/actions/workflows/R-CMD-check.yml)
 <!-- badges: end -->
 
 # soilReports
