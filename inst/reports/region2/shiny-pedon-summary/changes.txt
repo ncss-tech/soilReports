@@ -1,4 +1,7 @@
-2020-02-11: major aesthetic upgrade; adds DT::datatable dependency -> version 1.0.1
+2024-01-25: updates for aqp >=2.0; update to use sf/terra instead of rgdal/sp/raster -> version 1.1
+2022-02-03: fix shiny.Rmd code block formatting
+2021-02-05: fixes for new aqp; update for NM630 test set (geomorph) thanks to Aaron Miller
+2020-02-11: major aesthetic upgrade; adds DT::datatable dependency
 2020-01-26: major rework and cleanup of code; better error handling -> version 1.0
 2017-12-20: incorporated filtering option local phase (also, added to soilDB and fetchNASIS)
 2017-09-06: incorporated filtering option for taxon kind

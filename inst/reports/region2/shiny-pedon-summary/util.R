@@ -10,14 +10,14 @@ loadReportData <- function() {
           
           # transform to raster coordinate reference 
           #  system (assumes common between all rasters)
-          pedons_spdf <- spTransform(pedons_spdf, proj4string(rasters[[1]]))
+          pedons_sf <- sf::st_transform(pedons_sf, sf::st_crs(rasters[[1]]))
           
           # extract from raster stack at points
-          l.res <- lapply(rasters, extract, pedons_spdf)
+          l.res <- lapply(lapply(rasters[1:2], terra::extract, pedons_sf), function(x) x[, 2])
           
           # attach raster data to site-level data of SPC
           l.res <- as.data.frame(l.res, stringsAsFactors=FALSE)
-          l.res$peiid <- pedons_spdf$peiid
+          l.res$peiid <- pedons_sf$peiid
           
           site(pedons) <- l.res
           
@@ -55,7 +55,7 @@ loadReportData <- function() {
     }
     loaded <<- TRUE
   }
-  return(list(pedons=pedons, pedons_spdf=pedons_spdf))
+  return(list(pedons=pedons, pedons_sf=pedons_sf))
 }
 
 

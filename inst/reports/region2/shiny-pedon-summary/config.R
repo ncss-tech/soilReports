@@ -1,54 +1,32 @@
-# load packages
-library(aqp)
-library(soilDB)
-library(sharpshootR)
-
-library(rgdal)
-library(raster)
-library(leaflet)
-library(mapview)
-library(leafem)
-
-library(xtable)
-library(knitr)
-library(latticeExtra)
-library(rmarkdown)
-library(shiny)
-library(DT)
-
-library(plyr)
-library(reshape2)
-
-
 ### 
 ### set options
 ### 
 
-  # in demo mode, loafercreek and gopheridge datasets are used from soilDB
-  demo_mode <- FALSE
-  
-  # store pedons etc in Rda files?
-  cache_data <- FALSE
-  
-  # use regex-assigned generalized horizons?
-  # default uses gen.hz.rules.generic defined below
-  # TODO: allow compname/regex-pattern specific gen.hz.rules to be defined
-  use_regex_ghz <- TRUE
-  
-  # probability levels for quantile l-rv-h
-  p.low.rv.high <- c(0.05, 0.5, 0.95)
-  
-  # quantile type
-  q.type <- 7
-  
-  # maximum-likelihood horizon curve smoothing parameter
-  ml.profile.smoothing <- 0.65
+# in demo mode, loafercreek and gopheridge datasets are used from soilDB
+demo_mode <- FALSE
 
-  options(
-    p.low.rv.high = p.low.rv.high,
-    q.type = q.type,
-    ml.profile.smoothing = ml.profile.smoothing
-  )
+# store pedons etc in Rda files?
+cache_data <- FALSE
+
+# use regex-assigned generalized horizons?
+# default uses gen.hz.rules.generic defined below
+# TODO: allow compname/regex-pattern specific gen.hz.rules to be defined
+use_regex_ghz <- TRUE
+
+# probability levels for quantile l-rv-h
+p.low.rv.high <- c(0.05, 0.5, 0.95)
+
+# quantile type
+q.type <- 7
+
+# maximum-likelihood horizon curve smoothing parameter
+ml.profile.smoothing <- 0.65
+
+options(
+  p.low.rv.high = p.low.rv.high,
+  q.type = q.type,
+  ml.profile.smoothing = ml.profile.smoothing
+)
 
 # "generic" gen.hz.rules
 #   TODO: handle caret, primes, virgule etc.
@@ -82,7 +60,7 @@ gen.hz.rules.generic <- list(
 )
 
 # mapview options
-mapviewOptions(basemaps = mapviewGetOption("basemaps")[c(4, 5, 3)])
+mapview::mapviewOptions(basemaps = mapview::mapviewGetOption("basemaps")[c(4, 5, 3)])
 
 # path to folder or geodatabase
 poly.dsn <- "/home/andrew/geodata/soils/loafergopher"
@@ -98,11 +76,11 @@ poly.bounds <- "ca630_b"
 
 ###
 ### end of setup
-###
+#### LOAD PACKAGES (used in config.R, shiny.Rmd and report.Rmd)
+source("packages.R")
 
-
-if(!cache_data) {
-  if(demo_mode) {
+if (!cache_data) {
+  if (demo_mode) {
     # load two datasets from soilDB
     data("loafercreek", package="soilDB")
     data("gopheridge", package="soilDB")
@@ -112,6 +90,7 @@ if(!cache_data) {
     loafergopher <- aqp::combine(loafercreek, gopheridge)
     
     hzidname(loafergopher) <- 'phiid'
+    GHL(loafergopher) <- "genhz"
     
     loafergopher$musym <- rep('<missing>', length(loafergopher))  
     loafergopher$taxonname <- factor(loafergopher$taxonname)
@@ -119,6 +98,7 @@ if(!cache_data) {
     pedons_raw <- loafergopher
   } else {
     pedons_raw <- fetchNASIS()
+    GHL(pedons_raw) <- "genhz"
   }
   
   if (use_regex_ghz | !("genhz" %in% horizonNames(pedons_raw))) {
@@ -133,20 +113,20 @@ if(!cache_data) {
   
   #components <- try(fetchNASIS('components'))
   
-  mu <- try(readOGR(dsn = poly.dsn,
-                    layer = poly.layer,
-                    stringsAsFactors = FALSE))
+  mu <- try(sf::st_read(dsn = poly.dsn,
+                        layer = poly.layer,
+                        stringsAsFactors = FALSE))
       
   rasters <- try(list(
-    # gis_ppt=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAP_mm_800m.tif'),
-    # gis_tavg=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/final_MAAT_800m.tif'),
-    # gis_ffd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/ffd_mean_800m.tif'),
-    # gis_gdd=raster('L:/NRCS/MLRAShared/Geodata/climate/raster/gdd_mean_800m.tif'),
-    # gis_elev=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/elevation_30m.tif'),
-    # gis_solar=raster('L:/NRCS/MLRAShared/Geodata/DEM_derived/beam_rad_sum_mj_30m.tif'),
-    # gis_mast=raster('S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model.tif'),
-    # gis_slope=raster('L:/NRCS/MLRAShared/Geodata/elevation/10_meter/ca630_slope'),
-    # gis_geomorphons=raster('L:/NRCS/MLRAShared/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif')
+    # gis_ppt = rast('F:/Geodata/project_data/MUSUM_PRISM/final_MAP_mm_800m.tif'),
+    # gis_tavg = rast('F:/Geodata/project_data/MUSUM_PRISM/final_MAAT_800m.tif'),
+    # gis_ffd = rast('F:/Geodata/project_data/MUSUM_PRISM/ffd_50_pct_800m.tif'),
+    # gis_gdd = rast('F:/Geodata/project_data/MUSUM_PRISM/gdd_mean_800m.tif'),
+    # gis_elev = rast('F:/Geodata/project_data/MUSUM_10m_SSR2/SSR2_DEM10m_AEA.tif'),
+    # gis_solar = rast('F:/Geodata/project_data/ssro2_ann_beam_rad_int.tif'),
+    # gis_mast = rast('S:/NRCS/Archive_Dylan_Beaudette/CA630-models/hobo_soil_temperature/spatial_data/mast-model.tif'),
+    # gis_slope = rast('F:/Geodata/project_data/MUSUM_30m_SSR2/DEM_30m_SSR2.tif'),
+    # gis_geomorphons = rast('F:/Geodata/project_data/MUSum_Geomorphon/forms30_region2.tif')
   ))
 }
 
@@ -154,23 +134,20 @@ if(!cache_data) {
 good.idx <- which(!is.na(pedons_raw$x_std)) 
 pedons <- pedons_raw[good.idx, ]           
 
-#initalize spatial object
-coordinates(pedons) <- ~ x_std + y_std     
-
-# set spatial reference
-proj4string(pedons) <- '+proj=longlat +datum=WGS84'
+#initalize spatial object & set spatial reference
+initSpatial(pedons, crs = "OGC:CRS84") <- ~ x_std + y_std     
 
 pedons$musym <- rep("<missing>", length(pedons))
 
 # extract spatial data + site level attributes for each pedon
-pedons_spdf <- as(pedons, 'SpatialPointsDataFrame')
+pedons_sf <- as(pedons, 'sf')
 
-if(!inherits(mu, 'try-error')) {
+if (!inherits(mu, 'try-error')) {
   #transform to polygon coordinate reference system
-  pedons_spdf <- spTransform(pedons_spdf, proj4string(mu)) 
+  pedons_sf <- sf::st_transform(pedons_sf, sf::st_crs(mu)) 
   
   # do the overlay on linework
-  musymz <- (pedons_spdf %over% mu)[[musym.col]]
+  musymz <- sf::st_intersection(pedons_sf, mu)[[musym.col]]
   
   # note: that this copies the MUSYM attribute back to the
   # __non-transformed__ SPC object.
@@ -178,8 +155,8 @@ if(!inherits(mu, 'try-error')) {
   pedons$musym <- musymz
   
   #makes sure musym is also available in the SPDF object. 
-  pedons_spdf$MUSYM <- musymz  
-  pedons_spdf$musym <- musymz
+  pedons_sf$MUSYM <- musymz  
+  pedons_sf$musym <- musymz
 }
 
 pedons$musym <- factor(pedons$musym)

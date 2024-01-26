@@ -9,7 +9,18 @@ keep_md: no
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, message=FALSE, warning = FALSE, fig.align='center', out.width="100%", fig.retina=2, dev='png', antialias='cleartype')
+knitr::opts_chunk$set(
+  echo = F,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = 'center',
+  out.width = "100%",
+  fig.retina = 2,
+  dev = 'png',
+  antialias = 'cleartype'
+)
+# LOAD PACKAGES (used in config.R, shiny.Rmd and report.Rmd)
+source("packages.R")
 ```
 
 Shiny Pedon Summary
@@ -39,12 +50,13 @@ kable(site.i[order(site.i$musym, site.i$pedon_id), c('musym', 'pedon_id', 'taxon
 ```{r,fig.width=12, fig.height=8}
 #TODO: abstract these with "reactive" and "static" available as a toggle
 peds$taxonname <- factor(peds$taxonname)
-groupedProfilePlot(peds, groups = 'taxonname', label='pedon_id', 
-                   print.id = TRUE, id.style = 'side', cex.id=1.2, 
-                   cex.names=1, cex.depth.axis=1.25,y.offset=7, 
-                   axis.line.offset=-3.0, group.name.cex=1, 
-                   group.name.offset = -8, color=input$thematic_field,
-                   width=0.1,shrink=T,shrink.cutoff=3)
+groupedProfilePlot(peds, groups = 'taxonname', label = 'pedon_id',
+                   print.id = TRUE, id.style = 'side', cex.id = 1.2,
+                   cex.names = 1,
+                   depth.axis = list(cex = 1.25, line = -3.0),
+                   y.offset = 7, group.name.cex = 1,
+                   group.name.offset = -8, color = input$thematic_field,
+                   width = 0.1, shrink = T, shrink.cutoff = 3)
 ```
 
 ### Map
@@ -93,12 +105,12 @@ if(!input$thematic_field %in% c("moist_soil_color","dry_soil_color")) {
 ### Generalized Grouped Profile Plot
 ```{r,fig.width=12, fig.height=8}
 peds$taxonname <- factor(peds$taxonname)
-groupedProfilePlot(peds,name='genhzraw',groups = 'taxonname', label='pedon_id', 
-                   print.id = TRUE, id.style = 'side', cex.id=1.2, 
-                   cex.names=1, cex.depth.axis=1.25,y.offset=7, 
-                   axis.line.offset=-3.0, group.name.cex=1, 
-                   group.name.offset = -8, color=input$thematic_field,
-                   width=0.1,shrink=T,shrink.cutoff=3)
+groupedProfilePlot(peds, name = 'genhzraw', groups = 'taxonname', label = 'pedon_id',
+                   print.id = TRUE, id.style = 'side', cex.id = 1.2,
+                   cex.names = 1,  depth.axis = list(cex = 1.25, line = -3.0),
+                   y.offset = 7, group.name.cex = 1,
+                   group.name.offset = -8, color = input$thematic_field,
+                   width = 0.1, shrink = T, shrink.cutoff = 3)
 ```
 
 ### Generalized Horizon Probability
