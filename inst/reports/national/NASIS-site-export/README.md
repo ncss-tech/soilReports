@@ -10,7 +10,7 @@ To use the report:
 
 2. Run `soilReports::reportSetup("national/NASIS-site-export")` to install dependencies
 
-3. Run `soilReports::reportInit("national/NASIS-site-export", outputDir = "NASIS-site-export")` to install a report instance in `outputDir`. Specify `overwrite` argument as needed. Use `reportUpdate` if an existing older report instance is being updated and you want to preserve _config.R_ contents.
+3. Run `soilReports::reportInit("national/NASIS-site-export", outputDir = "NASIS-site-export")` to install a report instance in `outputDir`. Specify `overwrite` argument as needed. 
 
 4. Navigate to `"NASIS-site-export"` directory. Open _report.Rmd_ in RStudio and click "Knit" drop-down menu, select "Knit with Parameters...". You can also `render()` with {rmarkdown} manually.
 
