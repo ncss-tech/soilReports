@@ -1,0 +1,58 @@
+---
+title: "NASIS Site Location Export"
+output: html_document
+params:
+  ssa_filter:
+    label: "Soil Survey Area (comma-delimited)"
+    input: text
+    value: ""
+  selected_set:
+    label: "Selected Set?"
+    input: checkbox
+    value: TRUE
+  null_frags_are_zero:
+    label: "Treat NULL rock fragments as zero?"
+    input: checkbox
+    value: TRUE
+  output_path:
+    label: "Output dataset:"
+    value: NASIS-sites.gpkg
+    input: text
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results = 'asis')
+```
+
+```{r}
+library(sf)
+library(soilDB, quietly = TRUE)
+
+sf::sf_use_s2(FALSE)
+
+x <- soilDB::get_site_data_from_NASIS_db(SS = params$selected_set,
+                                         nullFragsAreZero = params$null_frags_are_zero)
+f <- sf::st_as_sf(
+  x,
+  crs = "OGC:CRS84",
+  na.fail = FALSE,
+  coords = c("longstddecimaldegrees", "latstddecimaldegrees")
+)
+
+cat("Loaded", nrow(f), "sites from NASIS", paste0("(selected set: ", params$selected_set, ")"))
+
+if (nchar(params$ssa_filter) > 0) {
+  ssas <- toupper(trimws(strsplit(params$ssa_filter, ",")[[1]]))
+  
+  ssa_b <- soilDB::fetchSDA_spatial(ssas, by.col = "areasymbol", geom.src = "sapolygon")
+  
+  if (!is.null(ssa_b) && !inherits(ssa_b, 'try-error')) {
+    f <- subset(f, as.logical(sf::st_intersects(f, ssa_b)))
+  }
+  cat("\n\nFiltered to", nrow(f), "sites in ", params$ssa_filter)
+}
+```
+
+```{r, results='markup'}
+st_write(f, params$output_path, append = FALSE)
+```
