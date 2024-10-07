@@ -23,7 +23,7 @@ reportInit(
 \item{updateReport}{Only update core report files, leaving configuration unchanged? Specific settings are report-dependent and set in the setup.R manifest.}
 }
 \value{
-A time-stamped report instance created in outputDir, and a message summarizing the action(s) completed.
+A time-stamped report instance created in \code{outputDir}, and a message summarizing the action(s) completed.
 }
 \description{
 \code{reportInit} allows creation new report instances, or updates, from the soilReports R package. soilReports is a container for reports and convenience functions for soil data summary, comparison, and evaluation reports used mainly by USDA-NRCS staff.
