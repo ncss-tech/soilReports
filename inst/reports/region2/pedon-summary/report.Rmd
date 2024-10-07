@@ -8,10 +8,8 @@ output:
 ---
 
 ```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-## TODO convert to knitr::kable
-
 ## load packages
-library(knitr)
+library(aqp)
 library(soilDB)
 library(reshape2)
 library(plyr)
@@ -19,84 +17,147 @@ library(xtable)
 library(Hmisc)
 library(latticeExtra)
 library(gridExtra)
+library(RColorBrewer)
 library(sharpshootR)
 library(MASS)
-library(rgdal)
-library(raster)
+library(sf)
+library(terra)
 
 ## local functions
-source('local_functions.R')
-
-## get the current component to analyze
-#load('this.component.Rda')
-comp <- 'Bellecanyon'
-taxon <- '.'
-
-## get report rules
-#source('report-rules.R')
-
-
-## report formatting:
-opts_chunk$set(message=FALSE, warning=FALSE, background='#F7F7F7', out.width="100%", fig.align='center', dpi=100, fig.retina=2, dev='png', antialias='cleartype', tidy=FALSE, verbose=FALSE)
-options(width=100, stringsAsFactors=FALSE, cache=TRUE)
+source('custom.R')
 
 ## load configuration
 source('config.R')
 
-# save as global options
-options(p.low.rv.high=p.low.rv.high, q.type=q.type, ml.profile.smoothing=ml.profile.smoothing)
+## load genhz patterns
+source(GENHZ_RULES)
 
-# map unit data and rasters are all in the same coordinate system
-# however, the representation isn't exactly the same
-# copy one from the other
-#proj4string(mu) <- CRS('')
-#proj4string(mu) <- projection(r[['gis_elev']])
+## report formatting:
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  background = '#F7F7F7',
+  out.width = "100%",
+  fig.align = 'center',
+  dpi = 100,
+  fig.retina = 2,
+  dev = 'png',
+  antialias = 'cleartype',
+  tidy = FALSE,
+  verbose = FALSE
+)
+
+options(width = 100,
+        stringsAsFactors = FALSE,
+        cache = TRUE)
+
+# save as global options
+options(
+  p.low.rv.high = p.low.rv.high,
+  q.type = q.type,
+  ml.profile.smoothing = ml.profile.smoothing
+)
 
 ## load all pedons from the selected set, do not apply horizonation check / removal
-f <- fetchNASIS(rmHzErrors=FALSE, nullFragsAreZero=T, stringsAsFactors=F)
+f <- fetchNASIS(rmHzErrors = FALSE,
+                nullFragsAreZero = TRUE,
+                mixColors = FALSE,
+                fill = TRUE)
 
-#data transforms and extractions
-good.idx <- which(!is.na(f$x_std))  # may be too restrictive, assumes std lat long are populated in NASIS
-f <- f[good.idx, ]            # keep only pedons with non-NA std coordinates 
+# ## test with loafercreek
+# data(loafercreek)
+# f <- loafercreek
+# f$longstddecimaldegrees <- f$x_std
+# f$latstddecimaldegrees <- f$y_std
 
 # init coordinates
-coordinates(f) <- ~ x_std + y_std
-proj4string(f) <- '+proj=longlat +datum=NAD83'
+initSpatial(f, "EPSG:4326") <- ~ longstddecimaldegrees + latstddecimaldegrees
+
+sf::sf_use_s2(FALSE)
+
+## map unit data: load the official version
+if (!is.null(SPATIAL_DSN) && 
+    !is.null(SPATIAL_LAYER) && 
+    !SPATIAL_DSN %in% c('SSURGO','STATSGO')) {
+  mu <- sf::st_read(SPATIAL_DSN, SPATIAL_LAYER)
+} else {
+  if (is.null(SPATIAL_DSN))
+    SPATIAL_DSN <- "SSURGO"
+  
+  if (is.null(SPATIAL_LAYER))
+    SPATIAL_LAYER <- "mupolygon" 
+  
+  mukey <- soilDB::SDA_spatialQuery(as(f, 'sf'), 
+                                    what = SPATIAL_LAYER, 
+                                    db = SPATIAL_DSN)
+  nmusym <- soilDB::SDA_query(paste0("SELECT DISTINCT mukey, nationalmusym, musym, areasymbol FROM mapunit 
+                                      INNER JOIN legend ON mapunit.lkey = legend.lkey WHERE mukey IN ",
+                              soilDB::format_SQL_in_statement(mukey$mukey)))
+  mu <- merge(mukey, nmusym, by = "mukey", sort = FALSE)
+  
+  ## FULL EXTENT OF nationalmusym
+  # mu <- sf::st_as_sf(soilDB::fetchSDA_spatial(
+  #   nmusym$nationalmusym,
+  #   by.col = "nationalmusym",
+  #   verbose = FALSE,
+  #   db = SPATIAL_DSN,
+  #   add.fields = c("legend.areasymbol", "mapunit.musym")
+  # ))
+  
+  mu$MUSYM <- mu$musym
+  mu$AREASYMBOL <- mu$areasymbol 
+}
 
 # transform from GCS to CRS of map unit linework
-f@sp <- spTransform(f@sp, CRS(proj4string(mu)))
+f_sp <- st_transform(as(f, 'sf'), st_crs(mu))
 
 ## overlay with map unit polys, and clean-up
-f$musym <- as.character(over(f@sp, mu)$MUSYM)
-# if missing a map unit smbol, generate a fake place-holder
-#f$musym[which(is.na(f$musym))] <- 'NOSYM'
-## generate index to subset using pedon IDs listed in report-rules.R
+f$musym <- mu$MUSYM[sapply(st_intersects(f_sp, mu), function(x)
+  if (length(x) > 0) {
+    x
+  } else{
+    NA
+  })]
 
-
-if(subset.rule == 'pedon.id.list')
+SUBSET_RULE <- tolower(SUBSET_RULE)
+if (SUBSET_RULE == 'pedon.id.list') {
   subset.idx <- which(f$pedon_id %in% pedon_set)
+}
 
 ## generate index to subset using regular expression
-if(subset.rule == 'pattern')
-  subset.idx <- grep(pattern=comp, f$taxonname, ignore.case=TRUE)
+if (SUBSET_RULE == 'pattern') {
+  subset.idx <- grep(pattern = TAXONNAME_PATTERN, f$taxonname, ignore.case = TRUE)
+}
 
-if(subset.rule == 'musymtaxon')
-  subset.idx <- (grepl(pattern=comp, f$taxonname, ignore.case=TRUE) & grepl(pattern=taxon, f$taxonkind, ignore.case=TRUE) & grepl(pattern=mu.sym, f$musym, ignore.case=TRUE))
+if (SUBSET_RULE == 'musymtaxon') {
+  subset.idx <- grepl(pattern = TAXONNAME_PATTERN, f$taxonname, ignore.case = TRUE) &
+                grepl(pattern = TAXONKIND_PATTERN, f$taxonkind, ignore.case = TRUE) &
+                grepl(pattern = MUSYM_PATTERN, f$musym, ignore.case = TRUE)
+}
 
-if(subset.rule == 'musym')
-  subset.idx <- grep(pattern=mu.sym, f$musym, ignore.case=TRUE)
+if (SUBSET_RULE == 'musym') {
+  subset.idx <- grep(pattern = MUSYM_PATTERN, f$musym, ignore.case = TRUE)
+}
 
 # perform subset
 f <- f[subset.idx, ]
 
+if (length(f) == 0) {
+  stop('No pedons after applying subset rules from config.R')
+}
 
-# remove map unit polygons, as they just eat-up memory
-rm(mu) ; gc()
-
+# apply genhz rules based on exact match of TAXONNAME_PATTERN
+# TODO: this should allow application of patterns to subsets of SPC
+if (TAXONNAME_PATTERN %in% names(gen.hz.rules)) {
+  p <- gen.hz.rules[[TAXONNAME_PATTERN]]$p
+  n <- gen.hz.rules[[TAXONNAME_PATTERN]]$n
+  f <- generalizeHz(f, new = n, pattern = p)
+}
 
 ## update diagnostic feature slot
 # join pedon_id + additional information into diagnostic table: this is kind of wasteful
-f.diagnostic <- join(site(f)[, c('pedon_id','peiid','musym','taxonname')], diagnostic_hz(f), by='peiid', type='left')
+f.diagnostic <- join(site(f)[, c('pedon_id', 'peiid', 'musym', 'taxonname')], 
+                     diagnostic_hz(f), by = 'peiid', type = 'left')
 
 # remove records where diag_kind is NA
 missing.featkind <- which(is.na(f.diagnostic$featkind))
@@ -108,12 +169,17 @@ diagnostic_hz(f) <- f.diagnostic
 
 ## overlay point data with raster data
 # extract site+coordinates for overlay
-f.sp <- as(f, 'SpatialPointsDataFrame')
+f.sp <- as(f, 'sf')
 
 # iterate over rasters, and extract values at pedon locations
-l.res <- lapply(r, extract, f.sp)
+r <- lapply(RASTER_LIST, terra::rast)
+l.res <- lapply(lapply(r, function(x) {
+  terra::extract(x, terra::vect(sf::st_transform(f.sp, sf::st_crs(x))))
+}), `[[`, 2)
+
 # convert to DF
 l.res <- as.data.frame(l.res, stringsAsFactors=FALSE)
+
 # order is preserved so we can include peiid from sites
 l.res$peiid <- f.sp$peiid
 
@@ -121,14 +187,32 @@ l.res$peiid <- f.sp$peiid
 site(f) <- l.res
 
 ## convert some columns to factors and set levels
-# set geomorphons levels
-f$gis_geomorphons <- factor(f$gis_geomorphons, levels=1:10, labels=c('flat', 'summit', 'ridge', 'shoulder', 'spur', 'slope', 'hollow', 'footslope', 'valley', 'depression'))
+if (!is.null(f$gis_geomorphons)) {
+  # set geomorphons levels
+  f$gis_geomorphons <- factor(
+    f$gis_geomorphons,
+    levels = 1:10,
+    labels = c(
+      'flat',
+      'summit',
+      'ridge',
+      'shoulder',
+      'spur',
+      'slope',
+      'hollow',
+      'footslope',
+      'valley',
+      'depression'
+    )
+  )
+}
 
 ### TODO: this will cause problems when the rules file isn't up to date
 # set GLH levels from original rules
 # f$genhz <- factor(f$genhz, levels=gen.hz.rules[[comp]]$n)
+
 # set GHL levels from depths
-f$genhz <- factor(f$genhz, levels=guessGenHzLevels(f, 'genhz')$levels)
+f$genhz <- factor(f$genhz, levels = guessGenHzLevels(f, 'genhz')$levels)
 
 # compute depth-class information
 sdc <- getSoilDepthClass(f)
@@ -147,7 +231,7 @@ Component Report
 <br>
 `r format(Sys.time(), "%Y-%m-%d")`
 <br>
-<center>**`r comp`**
+<center>**`r paste(MUSYM_PATTERN, TAXONNAME_PATTERN, TAXONKIND_PATTERN)`**
 
 ranges are (`r p.low.rv.high`) percentiles
 </center>
@@ -160,11 +244,31 @@ Check to make sure that pedons used within this report have been correctly assig
 # join missing genhz data to site
 site(f) <- s$mgz
 site.i <- site(f)
-this.data <- site.i[order(site.i$musym, site.i$pedon_id), c('musym', 'pedon_id', 'taxonname', 'taxonkind', 'pedontype', 'depth', 'depth.class', 'taxpartsize', 'taxsubgrp', 'missing.genhz')]
-this.align <- rep('l', times=ncol(this.data) + 1)
+this.data <- site.i[order(site.i$musym, site.i$pedon_id), c(
+  'musym',
+  'pedon_id',
+  'taxonname',
+  'taxonkind',
+  'pedontype',
+  'depth',
+  'depth.class',
+  'taxpartsize',
+  'taxsubgrp',
+  'ecositeid',
+  'missing.genhz'
+)]
+this.align <- rep('l', times = ncol(this.data) + 1)
 
 # note in order to include pre-made HTML, we need to explicitly define a sanitizing function that does nothing
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"', sanitize.text.function=function(x){x})
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"',
+  sanitize.text.function = function(x) { x }
+)
 ```
 </p>
 
@@ -174,8 +278,15 @@ print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, 
 <p>
 ```{r musym-tables, echo=FALSE, results='asis'}
 this.data <- t(table(f$musym))
-this.align <- rep('l', times=ncol(this.data) + 1)
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+this.align <- rep('l', times = ncol(this.data) + 1)
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 </p>
 
@@ -185,10 +296,17 @@ print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, 
 
 <p>
 ```{r hillslope-position-tables, echo=FALSE, results='asis'}
-this.data <- categorical.prop.table(f$hillslope_pos)
-this.align <- rep('c', times=ncol(this.data) + 1)
+this.data <- categorical.prop.table(f$hillslopeprof)
+this.align <- rep('c', times = ncol(this.data) + 1)
 
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 </p>
 
@@ -196,19 +314,34 @@ print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, 
 
 <p>
 ```{r, echo=FALSE, results='asis'}
-this.data <- categorical.prop.table(f$geompos_hill)
-this.align <- rep('c', times=ncol(this.data) + 1)
+this.data <- categorical.prop.table(f$geomposhill)
+this.align <- rep('c', times = ncol(this.data) + 1)
 
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 </p>
 
 <p>
 ```{r, echo=FALSE, results='asis'}
-this.data <- categorical.prop.table(f$geompos_mntn)
-this.align <- rep('c', times=ncol(this.data) + 1)
+this.data <- categorical.prop.table(f$geomposmntn)
+this.align <- rep('c', times = ncol(this.data) + 1)
 
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 </p>
 
@@ -217,9 +350,16 @@ print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, 
 <p>
 ```{r geomorphons-position-tables, echo=FALSE, results='asis'}
 this.data <- categorical.prop.table(f$gis_geomorphons)
-this.align <- rep('c', times=ncol(this.data) + 1)
+this.align <- rep('c', times = ncol(this.data) + 1)
 
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 </p>
 
@@ -230,7 +370,14 @@ print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, 
 this.data <- categorical.prop.table(f$drainagecl)
 this.align <- rep('c', times=ncol(this.data) + 1)
 
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 </p>
 
@@ -241,8 +388,15 @@ print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, 
 ```{r surface-shape-tables, echo=FALSE, results='asis'}
 ## TODO: output isn't ideal...
 d <- site(f)[, c('shapeacross', 'shapedown')]
-this.data <- prop.table(table(d$shapedown, d$shapeacross, dnn=c('shape down', 'shape across')))
-print(xtable(this.data), type='html', incliude.colnames=TRUE, include.rownames=TRUE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+this.data <- prop.table(table(d$shapedown, d$shapeacross, dnn = c('shape down', 'shape across')))
+print(
+  xtable(this.data),
+  type = 'html',
+  incliude.colnames = TRUE,
+  include.rownames = TRUE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"')
 ```
 </p>
 
@@ -254,7 +408,14 @@ print(xtable(this.data), type='html', incliude.colnames=TRUE, include.rownames=T
 this.data <- categorical.prop.table(f$ecositenm)
 this.align <- rep('c', times=ncol(this.data) + 1)
 
-print(xtable(this.data, align=this.align), type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 </p>
 
@@ -266,8 +427,14 @@ These tables describe the mapping between field-described horizonation (top row)
 <p>
 ```{r genhz-tables, echo=FALSE, results='asis'}
 this.data <- s$ct
-this.align <- c('l', rep('c', times=ncol(this.data)))
-print(xtable(this.data, align=this.align), type='html', table.placement="H", caption.placement="top", html.table.attributes='cellpadding="1" cellspacing="3"')
+this.align <- c('l', rep('c', times = ncol(this.data)))
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="1" cellspacing="3"'
+)
 ```
 </p>
 
@@ -277,14 +444,26 @@ col.palette <- colorRampPalette(cols)
 
 this.data <- t(s$ct)
 this.data[this.data == 0] <- NA
-
-levelplot(this.data, col.regions=col.palette, colorkey=list(tick.number=15), xlab='Original Horizon Designation', ylab='GHL', main='GHL Assignment Evaluation', scales=list(alternating=3), panel=function(x, y, z, ...) {
-  panel.levelplot(x, y, z, ...)
-  idx <- which(!is.na(z))
-  panel.text(x[idx], y[idx], z[idx], font=2)
-  panel.abline(h=seq(from=0.5, to=length(y), by=1), col=grey(0.45))
-  panel.abline(v=seq(from=0.5, to=length(x), by=1), col=grey(0.45))
-})
+if (ncol(this.data) > 0) {
+  levelplot(
+    this.data,
+    col.regions = col.palette,
+    colorkey = list(tick.number = 15),
+    xlab = 'Original Horizon Designation',
+    ylab = 'GHL',
+    main = 'GHL Assignment Evaluation',
+    scales = list(alternating = 3),
+    panel = function(x, y, z, ...) {
+      panel.levelplot(x, y, z, ...)
+      idx <- which(!is.na(z))
+      panel.text(x[idx], y[idx], z[idx], font = 2)
+      panel.abline(h = seq(from = 0.5, to = length(y), by = 1),
+                   col = grey(0.45))
+      panel.abline(v = seq(from = 0.5, to = length(x), by = 1),
+                   col = grey(0.45))
+    }
+  )
+}
 ```
 
 GHL assignment as a network graph.
@@ -292,27 +471,49 @@ GHL assignment as a network graph.
 this.data <- t(s$ct)
 # convert contingency table -> adj. matrix
 m <- genhzTableToAdjMat(this.data)
-# plot using a function from the sharpshootR package
-par(mar=c(1,1,1,1))
-plotSoilRelationGraph(m, graph.mode = 'directed', edge.arrow.size=0.5, vertex.label.family='sans')
+if (any(m > 0)) {
+  # plot using a function from the sharpshootR package
+  par(mar = c(1, 1, 1, 1))
+  plotSoilRelationGraph(
+    m,
+    graph.mode = 'directed',
+    edge.arrow.size = 0.5,
+    vertex.label.family = 'sans'
+  )
+}
 ```
 
 ```{r, echo=FALSE, fig.height=4, fig.width=6}
 # clay box-whisker plot, grouped by genhz, over-printed with original hz names
 # subset data
 h.i <- horizons(f)
-h.i.sub <- subset(h.i, subset=!is.na(clay), drop=TRUE)
+h.i.sub <- subset(h.i, subset = !is.na(clay), drop = TRUE)
 # hack: reset factor levels, to accomodate filtered O horizons
 h.i.sub$genhz <- factor(h.i.sub$genhz)
 
 # plotting style
-tps <- list(box.umbrella=list(col=grey(0.4)), 
-  					box.rectangle=list(col=grey(0.4)), 
-						box.dot=list(col=grey(0.4), cex=0.75), 
-						plot.symbol=list(col=grey(0.4), cex=0.5)
+tps <- list(
+  box.umbrella = list(col = grey(0.4)),
+  box.rectangle = list(col = grey(0.4)),
+  box.dot = list(col = grey(0.4), cex = 0.75),
+  plot.symbol = list(col = grey(0.4), cex = 0.5)
 )
 # plot
-print(bwplot(genhz ~ clay, data=h.i.sub, main=f, par.settings=tps) + layer(panel.text(x=h.i.sub$clay, y=jitter(as.numeric(h.i.sub$genhz), factor=1.5), label=h.i.sub$hzname, cex=0.75, font=2, col='RoyalBlue')))
+print(bwplot(
+  genhz ~ clay,
+  data = h.i.sub,
+  main = f,
+  par.settings = tps
+) + layer(
+  panel.text(
+    x = h.i.sub$clay,
+    y = jitter(as.numeric(h.i.sub$genhz), factor = 1.5),
+    label = h.i.sub$hzname,
+    cex = 0.75,
+    font = 2,
+    col = 'RoyalBlue'
+  )
+))
 ```
 
 
@@ -320,7 +521,7 @@ print(bwplot(genhz ~ clay, data=h.i.sub, main=f, par.settings=tps) + layer(panel
 The figure below describes the most likely horizonation, based on the collection of pedons associated with this component. This is only an estimate, expert knowledge should be used to adjust these values as needed. When pedon numbers are low or horizonation is not consistent, overlap can occur. Values in square brackets are related to [Brier Scores](http://en.wikipedia.org/wiki/Brier_score#Original_definition_by_Brier), smaller values suggest more consistent horizonation within the collection.
 <p>
 ```{r ML-hz-figures, echo=FALSE, fig.height=5, fig.width=6}
-trellis.par.set(list(superpose.line=list(lwd=2)))
+trellis.par.set(list(superpose.line = list(lwd = 2)))
 print(s$ml.hz.plot)
 ```
 </p>
@@ -331,22 +532,33 @@ These profile sketches represent the entire collection of named components withi
 
 ```{r profile-matrix-fig-size-reset, echo=FALSE, results='hide'}
 # this resets the default image width according to the number of profiles
-opts_chunk$set(fig.width=max.comp.profiles * 1.25)
-opts_chunk$set(fig.height=4)
+knitr::opts_chunk$set(fig.width = max.comp.profiles * 1.25)
+knitr::opts_chunk$set(fig.height = 4)
 ```
 
 <p>
 ```{r profile-plot, echo=FALSE, results='hide', out.width='100%'}
-par(mar=c(1,1,1,1))
+par(mar = c(1, 1, 1, 1))
 # new horizon name with old + generalized
-f$new.hz.name <- paste(f$hzname, f$genhz, sep='|')
+f$new.hz.name <- paste(f$hzname, f$genhz, sep = '|')
 
 # get approximate max depth for plotting
 max.depth.for.plotting <- max(200)
 
 # group by musym
-groupedProfilePlot(f, groups='musym', name='new.hz.name', label='pedon_id', id.style='side', max.depth=max.depth.for.plotting, cex.names=0.6, cex.id=1.0)
-abline(h=c(50, 100, 150), lty=2, col='grey')
+groupedProfilePlot(
+  f,
+  groups = 'musym',
+  name = 'new.hz.name',
+  label = 'pedon_id',
+  id.style = 'side',
+  max.depth = max.depth.for.plotting,
+  cex.names = 0.6,
+  cex.id = 1.0
+)
+abline(h = c(50, 100, 150),
+       lty = 2,
+       col = 'grey')
 ```
 </p>
 
@@ -357,8 +569,17 @@ These tables describe the frequency of textural classes, summarized by component
 <p>
 ```{r summary-tables-1, echo=FALSE, results='asis'}
 this.data <- s$tt
-this.align <- rep('l', times=ncol(this.data) + 1)
-print(xtable(this.data, align=this.align), type='html', table.placement="H", caption.placement="top", include.rownames=FALSE, html.table.attributes='cellpadding="1" cellspacing="3"')
+if (!is.null(this.data)){
+  this.align <- rep('l', times = ncol(this.data) + 1)
+  print(
+    xtable(this.data, align = this.align),
+    type = 'html',
+    table.placement = "H",
+    caption.placement = "top",
+    include.rownames = FALSE,
+    html.table.attributes = 'cellpadding="1" cellspacing="3"'
+  )
+}
 ```
 </p>
 
@@ -371,22 +592,46 @@ These table describe low-rv-high values for morphologic properties, summarized b
 <p>
 ```{r summary-tables-2, echo=FALSE, results='asis'}
 this.data <- s$rt
-this.align <- c('l', rep('c', times=ncol(this.data)))
-print(xtable(this.data, align=this.align), type='html', table.placement="H", caption.placement="top", include.rownames=FALSE, html.table.attributes='cellpadding="3" cellspacing="5"', sanitize.text.function=function(x){x})
+if (!is.null(this.data)) {
+  this.align <- c('l', rep('c', times = ncol(this.data)))
+  print(
+    xtable(this.data, align = this.align),
+    type = 'html',
+    table.placement = "H",
+    caption.placement = "top",
+    include.rownames = FALSE,
+    html.table.attributes = 'cellpadding="3" cellspacing="5"',
+    sanitize.text.function = function(x) {
+      x
+    }
+  )
+}
 ```
 </p>
 
 ### Aggregate Color Summary, dry
 ```{r agg-color-plot-d, echo=FALSE, fig.width=12, fig.height=8}
-par(mar=c(4.5, 2, 0, 0))
-aggregateColorPlot(aggregateColor(f, groups = 'genhz', col = 'dry_soil_color'), label.font = 2, label.cex = 0.95, print.n.hz = TRUE)
+par(mar = c(4.5, 2, 0, 0))
+f$genhz <- as.character(f$genhz)
+f$genhz[is.na(f$genhz)] <- "<not-used>"
+aggregateColorPlot(
+  aggregateColor(f, groups = 'genhz', col = 'dry_soil_color'),
+  label.font = 2,
+  label.cex = 0.95,
+  print.n.hz = TRUE
+)
 ```
 
 
 ### Aggregate Color Summary, moist
 ```{r agg-color-plot-m, echo=FALSE, fig.width=12, fig.height=8}
-par(mar=c(4.5, 2, 0, 0))
-aggregateColorPlot(aggregateColor(f, groups = 'genhz', col = 'moist_soil_color'), label.font = 2, label.cex = 0.95, print.n.hz = TRUE)
+par(mar = c(4.5, 2, 0, 0))
+aggregateColorPlot(
+  aggregateColor(f, groups = 'genhz', col = 'moist_soil_color'),
+  label.font = 2,
+  label.cex = 0.95,
+  print.n.hz = TRUE
+)
 ```
 
 
@@ -404,8 +649,15 @@ These table describe low-rv-high values for surface rock fragments, summarized b
 
 ```{r summary-tables-3, echo=FALSE, results='asis'}
 this.data <- s$sf
-this.align <- c('l', rep('c', times=ncol(this.data)))
-print(xtable(this.data, align=this.align), type='html', table.placement="H", caption.placement="top", include.rownames=FALSE, html.table.attributes='cellpadding="3" cellspacing="3"')
+this.align <- c('l', rep('c', times = ncol(this.data)))
+print(
+  xtable(this.data, align = this.align),
+  type = 'html',
+  table.placement = "H",
+  caption.placement = "top",
+  include.rownames = FALSE,
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 
 
@@ -414,12 +666,37 @@ print(xtable(this.data, align=this.align), type='html', table.placement="H", cap
 The low values are the `r p.low.rv.high[1]` percentile, RV values are the `r p.low.rv.high[2]` percentile, and the high values are the `r p.low.rv.high[3]` percentile.
 ```{r summary-tables-4, echo=FALSE, results='asis'}
 this.data <- s$dt
-this.align <- c('l', rep('c', times=ncol(this.data)))
-print(xtable(this.data, align=this.align), type='html', table.placement="H", caption.placement="top", include.rownames=FALSE, html.table.attributes='cellpadding="3" cellspacing="5"')
+if (!is.null(this.data)) {
+  this.align <- c('l', rep('c', times = ncol(this.data)))
+  print(
+    xtable(this.data, align = this.align),
+    type = 'html',
+    table.placement = "H",
+    caption.placement = "top",
+    include.rownames = FALSE,
+    html.table.attributes = 'cellpadding="3" cellspacing="5"'
+  )
+}
 ```
 
 ```{r diagnostic-prop-plot, eval=FALSE, fig.height=12, fig.width=10, include=FALSE}
-diagnosticPropertyPlot2(f, v=c('lithic.contact', 'paralithic.contact', 'argillic.horizon', 'cambic.horizon', 'ochric.epipedon', 'mollic.epipedon', 'very.shallow', 'shallow', 'mod.deep', 'deep', 'very.deep'), k=3)
+diagnosticPropertyPlot2(
+  f,
+  v = c(
+    'lithic.contact',
+    'paralithic.contact',
+    'argillic.horizon',
+    'cambic.horizon',
+    'ochric.epipedon',
+    'mollic.epipedon',
+    'very.shallow',
+    'shallow',
+    'mod.deep',
+    'deep',
+    'very.deep'
+  ),
+  k = 3
+)
 ```
 
 
@@ -428,20 +705,35 @@ The low values are the `r p.low.rv.high[1]` percentile, RV values are the `r p.l
 
 ```{r pedon-gis-tables, echo=FALSE, results='asis'}
 this.data <- s$pg
-this.align <- rep('c', times=ncol(this.data) + 1)
-i.xt <- xtable(this.data, align=this.align)
+this.align <- rep('c', times = ncol(this.data) + 1)
+i.xt <- xtable(this.data, align = this.align)
 digits(i.xt) <- 0
-print(i.xt, type='html', include.rownames=FALSE, table.placement="H", caption.placement="top", html.table.attributes='cellpadding="3" cellspacing="3"')
+print(
+  i.xt,
+  type = 'html',
+  include.rownames = FALSE,
+  table.placement = "H",
+  caption.placement = "top",
+  html.table.attributes = 'cellpadding="3" cellspacing="3"'
+)
 ```
 
 ```{r aspect-circular-hist-fig-size-reset, echo=FALSE, results='hide'}
 # this resets the default image width according to the number of profiles
-opts_chunk$set(fig.width=4.5)
+knitr::opts_chunk$set(fig.width = 4.5)
 ```
 
 ```{r aspect-circular-hist, fig.height=5, echo=FALSE}
-par(mar=c(0,0,0,0))
-aspect.plot(f$aspect_field, q=p.low.rv.high, plot.title=comp, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
+par(mar = c(0, 0, 0, 0))
+aspect.plot(
+  f$aspect_field,
+  q = p.low.rv.high,
+  plot.title = TAXONNAME_PATTERN,
+  pch = 21,
+  bg = 'RoyalBlue',
+  col = 'black',
+  arrow.col = c('grey', 'red', 'grey')
+)
 ```
 
 ```{r cleanup, echo=FALSE, results='hide'}

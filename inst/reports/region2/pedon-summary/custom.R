@@ -6,27 +6,25 @@
 ## many different summaries have low-rv-high percentiles hard-coded
 ##
 
-
 options(stringsAsFactors=FALSE)
 options(width=140)
 
 ##
 ## plotting styles:
 ##
-tps.standard <- list(plot.symbol=list(col=1, cex=1, pch=1), 
-										 plot.line=list(col=1, lwd=2, alpha=0.75), 
-										 strip.background=list(col=grey(c(0.85,0.75))), 
-										 layout.heights=list(strip=1.5),
-										 box.umbrella=list(col=1, lty=1), 
-										 box.rectangle=list(col=1), 
-										 box.dot=list(col=1, cex=0.5)
-										 )
-
+tps.standard <- list(
+  plot.symbol = list(col = 1, cex = 1, pch = 1),
+  plot.line = list(col = 1, lwd = 2, alpha = 0.75),
+  strip.background = list(col = grey(c(0.85, 0.75))),
+  layout.heights = list(strip = 1.5),
+  box.umbrella = list(col = 1, lty = 1),
+  box.rectangle = list(col = 1),
+  box.dot = list(col = 1, cex = 0.5)
+)
 
 ##
 ## functions 
 ##
-
 
 # return a table of proportions, including missing data, along with sample size as data.frame
 # 'x' must be a factor with levels set in logical order
@@ -71,9 +69,6 @@ dend.by.musym <- function(f.i, v=c('clay','total_frags_pct')) {
   }
   
 }
-
-
-
 
 ## TODO: which quantile "type" is most appropriate?
 ##    see: http://stackoverflow.com/questions/95007/explain-the-quantile-function-in-r
@@ -272,18 +267,25 @@ summarize.component <- function(f.i) {
 	# summary by variable / generalized hz label
 	s.i <- ddply(h.i.long, c('variable', 'genhz'), .fun=conditional.l.rv.h.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
 	
-	## tables
-	# long -> wide
-	prop.by.genhz.table <- dcast(s.i, genhz ~ variable, value.var='range')
-	names(prop.by.genhz.table) <- var.names
-	
-	# texture class tables
-	texture.table <- ddply(h.i, c('genhz'), summarize.texture.class)
-  names(texture.table) <- c('Generalized HZ', 'Texture Classes')
-	
-	# diagnostic hz tables
-	diag.hz.table <- ddply(diagnostic_hz(f.i), c('featkind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
-	names(diag.hz.table) <- c('kind', 'N', 'top', 'bottom', 'thick')
+	if (nrow(s.i) > 0) {
+  	## tables
+  	# long -> wide
+  	prop.by.genhz.table <- dcast(s.i, genhz ~ variable, value.var='range')
+  	names(prop.by.genhz.table) <- var.names
+  	
+  	# texture class tables
+  	texture.table <- ddply(h.i, c('genhz'), summarize.texture.class)
+    names(texture.table) <- c('Generalized HZ', 'Texture Classes')
+  	
+  	# diagnostic hz tables
+  	diag.hz.table <- ddply(diagnostic_hz(f.i), c('featkind'), .fun=diagnostic.hz.summary, p=getOption('p.low.rv.high'), qt=getOption('q.type'))
+  	names(diag.hz.table) <- c('kind', 'N', 'top', 'bottom', 'thick')
+	} else {
+	  prop.by.genhz.table <- NULL
+	  texture.table <- NULL
+	  diag.hz.table <- NULL
+	  f.i$genhz <- "<not-used>"
+	}
 	
 	## ML-horizonation
 	# aggregate
@@ -350,13 +352,29 @@ summarize.component <- function(f.i) {
   h.i.long.sub <- h.i.long[grep('R|Cr|Cd', h.i.long$genhz, ignore.case=TRUE, invert=TRUE), ]
   
   # bwplot
-  prop.by.musym.and.genhz <- bwplot(musym ~ value | variable + genhz, data=h.i.long.sub, as.table=TRUE, xlab='', scales=list(x=list(relation='free')), drop.unused.levels=TRUE, par.settings=tps.standard, stats=custom.bwplot, par.strip.text=list(cex=0.75), panel=function(...) {
-    panel.grid(-1, -1)
-    panel.bwplot(...)
-  })
-	
-  # convert second paneling dimension to outer strips
-  prop.by.musym.and.genhz <- useOuterStrips(prop.by.musym.and.genhz)
+  if (nrow(h.i.long.sub) > 0) {
+    prop.by.musym.and.genhz <- bwplot(
+      musym ~ value | variable + genhz,
+      data = h.i.long.sub,
+      as.table = TRUE,
+      xlab = '',
+      scales = list(x = list(relation = 'free')),
+      drop.unused.levels = TRUE,
+      par.settings = tps.standard,
+      stats = custom.bwplot,
+      par.strip.text = list(cex = 0.75),
+      panel = function(...) {
+        panel.grid(-1, -1)
+        panel.bwplot(...)
+      }
+    )
+    
+    # convert second paneling dimension to outer strips
+    prop.by.musym.and.genhz <- useOuterStrips(prop.by.musym.and.genhz)
+  } else {
+    prop.by.musym.and.genhz <- bwplot(musym ~ value,
+                                      data = h.i.long.sub)
+  }
   
 	# pack into list and return
 	return(list(n=length(f.i), pg=pedon.gis.table, mgz=missing.genhz.IDs, ct=gen.hz.classification.table, rt=prop.by.genhz.table, dt=diag.hz.table, tt=texture.table, ml.hz=gen.hz.ml, ml.hz.plot=gen.hz.aggregate.plot, sf=pedon.surface.frags.table, pmg=prop.by.musym.and.genhz))

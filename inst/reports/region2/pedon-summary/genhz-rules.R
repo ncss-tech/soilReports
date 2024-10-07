@@ -53,6 +53,10 @@ gen.hz.rules <- list(
 	  n=c('Oi','A','BA','Bw1','Bw2','Bt1','Bt2','BC','Cr','R'),
 	  p=c('Oi', 'A', 'AB|BA', 'Bw1','Bw[23]', 'Bt|Bt[12]', 'Bt[345]', 'BC|CB|C', 'Cr', 'R')
 	),
+	'loafercreek'=list(
+	  n=c('Oi','A','BA','Bw1','Bw2','Bt1','Bt2','BC','Cr','R'),
+	  p=c('Oi', 'A', 'AB|BA', 'Bw1','Bw[23]', 'Bt|Bt[12]', 'Bt[345]', 'BC|CB|C', 'Cr', 'R')
+	),
 	'hetchy'=list(
 	  n=c('Oi', 'A','AB','Bw','Bt1','Bt2','Bt3','BC','C','Cr', 'R'),
 	  p=c('O', 'A','AB|BA|ABt','Bw','Bt1|^Bt','Bt2','Bt[34]','^BC|^2BC','^C$|^2C$','Cr', 'R')
