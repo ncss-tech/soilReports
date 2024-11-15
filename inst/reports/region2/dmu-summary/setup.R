@@ -13,7 +13,7 @@
 .report.name <- 'DMU-summary'
 
 # version of report
-.report.version <- '0.3'
+.report.version <- '0.4'
 
 # brief description for `soilReports::listReports()`
 .report.description <- 'DMU Summary Report'

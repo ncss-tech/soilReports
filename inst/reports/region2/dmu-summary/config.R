@@ -15,12 +15,17 @@
   .label = 'CA792',
   variable = factor(
     c('elev', 'ffd', 'maat', 'map', 'slope'),
-    labels = c('Elevation (m)', 'Frost-Free Days', 'MAAT (deg C)', 'MAP (mm)', 'Slope (%)')
+    labels = c(
+      'Elevation (m)',
+      'Frost-Free Days',
+      'MAAT (deg C)',
+      'MAP (mm)',
+      'Slope (%)'
+    )
   ),
   rv = c(3005, 83, 3.28, 984, 43),
   low = c(1469, 40, -1.02, 583, 8),
   high = c(3728, 193, 12.01, 1381, 99)
-  
 )
 
 

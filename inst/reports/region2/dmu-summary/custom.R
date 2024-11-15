@@ -16,23 +16,23 @@
 #' 
 #' # simplest case, use a SPC
 #' data("jacobs2000")
-#' emtpySPC(jacobs2000)
+#' emptySPC(jacobs2000)
 #' 
 #' # convert to SPC with data.table internals
 #' x <- jacobs2000
 #' aqp_df_class(x) <- 'data.table'
 #' x <- rebuildSPC(x)
 #' 
-#' emtpySPC(x)
+#' emptySPC(x)
 #' 
 #' # convert to SPC with tibble internals
 #' x <- jacobs2000
 #' aqp_df_class(x) <- 'tibble'
 #' x <- rebuildSPC(x)
 #' 
-#' emtpySPC(x)
+#' emptySPC(x)
 #' 
-emtpySPC <- function(x, fakeID = 'MISSING', top = 0, bottom = max(x)) {
+emptySPC <- function(x, fakeID = 'MISSING', top = 0, bottom = max(x)) {
   
   # use the first profile / horizon
   # as template

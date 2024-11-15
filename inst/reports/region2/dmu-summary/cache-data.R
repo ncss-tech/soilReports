@@ -80,6 +80,6 @@ cm <- cm[, c('.label', 'comppct_r', cm.names)]
 # TODO: re-level component names based on mean comppct
 
 ## save
-save(co, cm, p, cp, osds, cotx, geom, pm, file = 'data.rda')
+save(co, cm, p, cp, osds, cotx, geom, pm, file = params$cache_file)
 
 

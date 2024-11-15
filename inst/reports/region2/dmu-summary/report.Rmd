@@ -6,31 +6,37 @@ output:
     smart: no
     keep_md: no
 params:
-  musym: '3110'
+  musym: '3145'
+  cache_file: 'CA792.rda'
 ---
 
-<!-- TODO: remove this in favor of copyReport() auto-generated chunk -->
-```{r, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-	.report.name <- 'DMU-summary'
-	.report.version <- '0.3'
-	.report.description <- 'DMU Summary Report'
-```
-
 ```{r echo=FALSE, results='hide', warning=FALSE, message=FALSE}
-library(knitr, quietly=TRUE)
+## debugging
+# params <- list(musym = '3145',
+#                cache_file = 'CA792.rda')
 
 # chunk options
-opts_chunk$set(message=FALSE, warning=FALSE, background='#F7F7F7', fig.align='center', fig.retina=2, dev='png', tidy=FALSE, verbose=FALSE, progress=FALSE, echo = FALSE)
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  background = '#F7F7F7',
+  fig.align = 'center',
+  fig.retina = 2,
+  dev = 'png',
+  tidy = FALSE,
+  verbose = FALSE,
+  progress = FALSE,
+  echo = FALSE
+)
 
-
-library(aqp, quietly=TRUE)
-library(soilDB, quietly=TRUE)
-library(sharpshootR, quietly=TRUE)
-library(latticeExtra, quietly=TRUE)
-library(reshape2, quietly=TRUE)
-library(tactile, quietly=TRUE)
-library(ggplot2, quietly=TRUE)
-library(cluster, quietly=TRUE)
+library(aqp, quietly = TRUE)
+library(soilDB, quietly = TRUE)
+library(sharpshootR, quietly = TRUE)
+library(latticeExtra, quietly = TRUE)
+library(reshape2, quietly = TRUE)
+library(tactile, quietly = TRUE)
+library(ggplot2, quietly = TRUE)
+library(cluster, quietly = TRUE)
 
 # local functions
 source('custom.R')
@@ -38,16 +44,13 @@ source('custom.R')
 # local configuration
 source('config.R')
 
-
 ## re-make cached data
-# source('cache-data.R')
-
-
-# load cached data
-load('data.rda')
-
-## debugging
-# params <- list(musym = '3145')
+if (is.null(params$cache_file) || !file.exists(params$cache_file)) {
+  source('cache-data.R')
+} else {
+  # load cached data
+  load(params$cache_file)
+}
 
 ## subset pieces
 
@@ -56,7 +59,6 @@ co <- subset(co, musym == params$musym)
 
 # component month (DF)
 cm <- subset(cm, subset = coiid %in% profile_id(co))
-
 
 # component pedon linkage (DF)
 cp <- subset(cp, subset = coiid %in% profile_id(co))
@@ -76,29 +78,24 @@ geom <- subset(geom, subset = coiid %in% profile_id(co))
 
 pm <- subset(pm, subset = coiid %in% profile_id(co))
 
-
 ## re-level component labels
 co$.label <- factor(
   co$.label,
   levels = co$.label[order(co$comppct_r, decreasing = TRUE)]
 )
 
-
 ## add component pedon / component data to pedons
 
 ## TODO: check to make sure that there is only a single case of each pedon
 any(table(cp$peiid) > 1)
 
-
 # merge subset component pedons into SPC
 site(p) <- cp[, c('peiid', 'coiid', 'representative')]
-
 
 # look-up associated component label
 site(p)$.comp_label <- co$.label[match(p$coiid, site(co)$coiid)]
 
 ## TODO: sort component names / labels by decreasing component percent
-
 # pedon convenience label
 p$.pedon_label <- p$taxonname
 
@@ -129,9 +126,6 @@ do.comp.comparison <- length(co) > 1
 
 ```
 
-
-
-
 <br>
 <div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;">
 <span style="font-size: 150%; font-weight: bold;">
@@ -143,16 +137,12 @@ report version `r .report.version`
 `r format(Sys.time(), "%Y-%m-%d %H:%M")`</div>
 <hr>
 
-
 <br>
-This report requires setting up a selected set in your local NASIS database:
+This report requires loading several related objects into your NASIS Selected Set, including Area, Legend Mapunit, Correlation, Component Pedon, Pedon and Site Observation. 
 
-   * load legend by area symbol
-   * load related MU (approved / provisional only)
-   * load related DMU (rep DMU only)
-   * load related component pedons
-   * load related site observation
+A useful NASIS query that gets all of the necessary objects is **_NSSC Pangaea_: _Area/Legend/Mapunit/DMU/Pedon/Site by areasymbol_**.
 
+This query has detailed instructions for loading necessary data, and includes only representative data map units. Several other variants of this same query can be used to obtain data based on component or pedon information rather than area symbol.
 
 ## Components
 ```{r echo = FALSE}
@@ -164,7 +154,6 @@ kableExtra::kable_styling(
 )
 ```
 
-
 ### Component Parent Material | Landform
 ```{r echo = FALSE}
 pm.summary <- site(co)[, c('.label', 'landform_string', 'pmkind', 'pmorigin')]
@@ -174,7 +163,6 @@ kableExtra::kable_styling(
    full_width = FALSE
 )
 ```
-
 
 ### Component Text Notes
 ```{r echo = FALSE}
@@ -191,7 +179,7 @@ txt <- merge(
 txt <- txt[order(txt$comppct_r, decreasing = TRUE), ]
 
 kableExtra::kable_styling(
-  kable(txt[, c('.label', 'textentry')], row.names = FALSE, format = 'html'), full_width = FALSE, font_size = 11
+  knitr::kable(txt[, c('.label', 'textentry')], row.names = FALSE, format = 'html'), full_width = FALSE, font_size = 11
 )
 ```
 
@@ -217,7 +205,6 @@ txt <- txt[order(txt$comppct_r, decreasing = TRUE), ]
 # txt.table <- read.table(textConnection(object = txt$textentry[1]), skip = 3)
 # names(txt.table) <- nm
 
-
 for(i in 1:nrow(txt)) {
   cat('<div id="mu_textnote"><pre>')
   cat(txt$.label[i])
@@ -228,14 +215,10 @@ for(i in 1:nrow(txt)) {
 
 ```
 
-
-
 <!-- TODO: this is failing -->
 <!-- climate comparison / summary between OSDs (if present and component) -->
 ```{r echo=FALSE, results='hide', fig.width=12, fig.height=6.5, eval=do.osd.dend}
-try(
-  print(vizAnnualClimate(osds.ac)$fig)
-  )
+try(print(vizAnnualClimate(osds.ac)$fig))
 ```
 
 ### Component Climate
@@ -293,8 +276,6 @@ segplot(
   )
 ```
 
-
-
 ### Component | OSD Taxonomic Comparison
 ```{r echo=FALSE, results='hide', fig.width=osd.fig.width, fig.height=6, eval=do.osd.dend}
 # combine OSDs + comp
@@ -318,8 +299,6 @@ try(
 # SoilTaxonomyDendrogram(osds, cex.taxon.labels = 0.8, width = 0.25, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE)
 ```
 
-
-
 ### Component Diagnostic Features
 ```{r echo = FALSE, fig.width=8, fig.height=6}
 d.wide <- soilDB:::.diagHzLongtoWide(diagnostic_hz(co), feature = 'featkind', id = 'coiid')
@@ -333,23 +312,24 @@ try(
 )
 ```
 
-
 ### Component Comparison
 ```{r echo = FALSE, fig.width=8, fig.height=6, eval = do.comp.comparison}
-suppressMessages(
-  d <- profile_compare(
-    co, 
-    vars = c('sandtotal_r', 'claytotal_r', 'fragvoltot_r', 'ph1to1h2o_r', 'om_r'),
-    max_d = max(co, v = 'claytotal_r'),
-    k = 0,
-    rescale.result = TRUE
+try({
+  suppressMessages(
+    d <- NCSP(
+      co, 
+      vars = c('sandtotal_r', 'claytotal_r', 'fragvoltot_r', 'ph1to1h2o_r', 'om_r'),
+      # max_d = max(co, v = 'claytotal_r'),
+      k = 0,
+      # rescale.result = TRUE
+    )
   )
-)
-
-h <- as.hclust(diana(d))
-
-par(mar = c(0, 0, 0, 0))
-plotProfileDendrogram(co, clust = h, width = 0.25, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, label = '.label', y.offset = 0.15, scaling.factor = 0.007, color = 'claytotal_r')
+  
+  h <- as.hclust(diana(d))
+  
+  par(mar = c(0, 0, 0, 0))
+  plotProfileDendrogram(co, clust = h, width = 0.25, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, label = '.label', y.offset = 0.15, scaling.factor = 0.007, color = 'claytotal_r')
+})
 ```
 
 <!-- texture triangle by component -->
@@ -357,15 +337,25 @@ plotProfileDendrogram(co, clust = h, width = 0.25, name.style = 'center-center',
 textureTriangleSummary(data.frame(SAND=co$sandtotal_r, SILT=co$silttotal_r, CLAY = co$claytotal_r))
 ```
 
-
 ### Component Pedons
 ```{r echo = FALSE, fig.width = copedon.profile.fig.width, fig.height = 6.5}
-par(mar = c(0, 0, 1, 0))
-# component convenience labels
-groupedProfilePlot(p, groups = '.comp_label', label = '.pedon_label', group.name.offset = c(-15, -5), id.style = 'side', group.name.cex = 0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+try({
+  par(mar = c(0, 0, 1, 0))
+  # component convenience labels
+  groupedProfilePlot(
+    p,
+    groups = '.comp_label',
+    label = '.pedon_label',
+    group.name.offset = c(-15, -5),
+    id.style = 'side',
+    group.name.cex = 0.75,
+    name.style = 'center-center',
+    hz.depths = TRUE,
+    plot.depth.axis = FALSE,
+    cex.names = 0.66
+  )
+})
 ```
-
-
 
 ### Component RV Evaluation
 ```{r echo = FALSE, fig.width=comp.profile.fig.width, fig.height=6.5}
@@ -385,7 +375,6 @@ plotSPC(co, label='.label', group.name.cex = 0.75, color='ecec_r', col.label='EC
 
 plotSPC(co, label='.label', group.name.cex = 0.75, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66, width = 0.25)
 ```
-
 
 ### Component Low/RV/High Evaluation
 ```{r echo = FALSE, fig.width = 10, fig.height = 6.5}
@@ -407,14 +396,14 @@ for(comp in co.ids){
   # there may not be an OSD yet
   if(length(osds.sub) == 0) {
     # use filler based on deepest component subset
-    osds.sub <- emtpySPC(co.sub[1, ], top = 0, bottom = max(co.sub)) 
+    osds.sub <- emptySPC(co.sub[1, ], top = 0, bottom = max(co.sub)) 
 
   }
   
   # there may be no component pedons
   if(length(p.sub) == 0) {
     # use filler based on deepest component subset
-    p.sub <- emtpySPC(co.sub[1, ], top = 0, bottom = max(co.sub)) 
+    p.sub <- emptySPC(co.sub[1, ], top = 0, bottom = max(co.sub)) 
   }
 
 
@@ -438,10 +427,6 @@ thematicSketches(v.co = 'ph1to1h2o', v.p = 'phfield', fig.title = 'pH 1:1 H2O', 
 } # end iterating over components
 
 ```
-
-
-
-
 
 ### Component Month
 ```{r echo=FALSE, results='hide', fig.width=9, fig.height=4.5}
