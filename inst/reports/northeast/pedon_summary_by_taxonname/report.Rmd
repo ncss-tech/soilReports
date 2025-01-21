@@ -1,0 +1,377 @@
+---
+title: Summary of NASIS Pedon Horizon Table
+author: "`r Sys.getenv('USERNAME')`"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+params:
+   series: !r as.character("Miami")
+   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/northeast/pedon_summary_by_taxonname/genhz_rules/Generic_rules.R"))
+---
+
+```{r setup, echo=FALSE, warning=FALSE}
+# generic horizon rules
+source(params$genhz_rules)
+
+# knit options
+knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE, background="#F7F7F7", fig.retina=1, dev="png", tidy=FALSE, verbose=FALSE)
+
+options(stringsAsFactors = FALSE)
+```
+
+```{r load packages}
+# soil libraries
+library(aqp)
+library(soilDB)
+library(soilReports)
+
+# data manipulation libraries
+library(knitr)
+library(plyr)
+library(reshape2)
+library(circular)
+
+# graphic libraries
+library(lattice)
+library(latticeExtra)
+library(RColorBrewer)
+
+# mapping libraries
+library(sp)
+library(maps)
+library(mapview)
+
+# custom ggplot2like latticeExtra theme
+opar <- trellis.par.get()
+trellis.par.set(theme = ggplot2like())
+tpg <- trellis.par.get()
+tpg$axis.line <-  list(alpha = 1, col = "#000000", lty = rep(1, 7), lwd = rep(0.2, 7))
+tpg$strip.border <- list(alpha = 1, col = "#000000", lty = rep(1, 7), lwd = rep(0.2, 7))
+trellis.par.set(tpg)
+```
+
+
+```{r fetch and format, load-data, echo=FALSE, warning=FALSE}
+# load NASIS data
+pedons <- fetchNASIS()
+
+h <- horizons(pedons)
+s <- site(pedons)
+d <- diagnostic_hz(pedons)
+
+# modify the horizon table
+h <- within(h, {
+  hzname = ifelse(is.na(hzname), "missing", hzname)
+  hzdepm = (hzdept + hzdepb) / 2
+  genhz  = generalize.hz(hzname, ghr$n, ghr$p, hzdepm = hzdepm)
+  gravel = gravel - fine_gravel
+  })
+var <- c("fine_gravel", "gravel", "cobbles", "stones", "boulders", "paragravel", "paracobbles", "channers", "flagstones")
+h[var] = lapply(h[var], as.integer)
+  
+replaceHorizons(pedons) <- h
+
+# rename rock fragments
+idx <- names(h) == "total_frags_pct"
+names(h)[idx] <- c("fragvoltotc")
+
+# vector of names to exclude from numeric summary
+vars <- c('peiid', 'phiid', 'hzname', 'genhz', 'hzdept', 'hzdepb', 'labsampnum', 'd_value', 'd_chroma', 'm_value', 'm_chroma', 'parafine_gravel', 'paragravel', 'paracobbles', 'parastones', 'paraboulders', 'parachanners', 'paraflagstones', 'unspecified', 'd_r', 'd_b', 'd_g', 'd_sigma', 'm_r', 'm_b', 'm_g', 'm_sigma')
+
+# create vector of names for numeric soil variables excluding vars vector
+num_vars <- names(h)[! names(h) %in%  vars &                     # remove vars
+                       sapply(h, is.numeric) &                   # select numeric columns
+                       sapply(h, function(x) !all(is.na(x)))  &  # select non-empty columns 
+                       sapply(h, function(x) !all(x == 0))       # remove columns were all observations == 0
+                     ]
+
+# fig.height
+nh <- length(num_vars[num_vars %in% names(h)]) / 4 * 3
+
+# modify diagnostic table
+# create a empty diagnostic table if data is NULL
+if (nrow(d) == 0) {
+  d <- data.frame(peiid = s$peiid,
+                  featkind = as.character("missing"),
+                  featdept = as.integer(NA), 
+                  featdepb = as.integer(NA)
+                  )
+  }
+d <- transform(d, 
+               thickness = featdepb - featdept,
+               featkind = as.character(featkind)
+               )
+
+# modify site table
+# rename psc depths
+idx <- names(s) == "psctopdepth" | names(s) == "pscbotdepth"
+names(s)[idx] <- c("featdept", "featdepb")
+
+s <- transform(s, thickness = featdepb - featdept)
+
+srf <- s[grepl("surface_", names(s))]
+names(srf) <- gsub("surface_", "", names(srf))
+srf <- within(srf, {
+  total_srf = gravel + cobbles + stones + boulders + flagstones + channers
+  gravel = gravel - fgravel
+  })
+```
+
+# Brief summary of pedon data
+
+## Interactive Map
+
+```{r map, echo=FALSE, results='asis'}
+
+if (dim(s)[1] != 0) {
+  pedon_locations <- s[complete.cases(s[c("x_std", "y_std")]), ]
+  coordinates(pedon_locations) <- ~ x_std + y_std
+  proj4string(pedon_locations) <- CRS("+init=epsg:4326")
+  
+  if(params$series != "Generic") {
+    series_extent <- seriesExtent(params$series)
+    
+    mapView(pedon_locations) + series_extent
+    } else mapView(pedon_locations)
+  } else("no coordinates")
+```
+
+## Site Data
+
+```{r format site data, results='asis', echo=FALSE}
+# Site information
+kable(subset(s, select = c("pedon_id", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "describer")), caption = "Summary of data in the selected set")
+```
+
+
+## Comparison of genhz and hzname pattern matching
+
+```{r genhz matching, fig.width=8}
+hz_t <- addmargins(table(h$genhz, h$hzname))
+
+idx <- pIndex(hz_t, 15)
+
+# plot 15 horizon designations per row
+for (i in unique(idx)){
+  print(kable(hz_t[, c(idx == i)], align = "c", digits = 0, caption = "Horizon designations vs generic horizon designations (counts)"))
+  }
+```
+
+
+## Profile Plots
+
+```{r, echo=FALSE}
+hz.names <- aqp::guessGenHzLevels(pedons, "genhz")$levels
+cols <- brewer.pal(n = length(hz.names), name = "Set1") 
+# assign a color to each generalized horizon label
+pedons$genhz.soil_color <- cols[match(pedons$genhz, hz.names)]
+
+idx <- pIndex(pedons, 15)
+
+# plot 15 profiles at a time
+for (i in unique(idx)) {
+  plot(pedons[idx == i], name = 'hzname', color = 'genhz.soil_color', label = 'pedon_id')
+  title("Soil profile plots")
+  if (length(hz.names) > 0)
+    legend('bottomleft', legend = hz.names, pt.bg = cols, pch = 22, horiz = TRUE, pt.cex = 2, text.width = 1)
+  }
+```
+
+
+# Range in characteristics (RIC) for NASIS Pedons
+
+## Surface rock fragments
+
+```{r surface rock fragments, echo=FALSE, results='asis'}
+vars <- c("total_srf", "fgravel", "gravel", "cobbles", "stones", "boulders", "channers", "flagstones")
+srf.lo <- melt(srf, measure.vars = vars)
+srf.5n <- ddply(srf.lo, .(variable), summarize,
+                range = prettySummary(value)
+                )
+
+kable(srf.5n, align = "c", caption =  "Surface rock fragments (min, 25th, median, 75th, max)(n)")
+ 
+if (sum(srf$total_srf, na.rm = T) != 0) {
+  bwplot(variable ~ value, data = srf.lo, 
+         main = "Boxplots of surface rock fragments",
+         ylab = "percent",
+         axis = axis.grid
+         )
+  }         
+```
+
+## Diagnostic horizons and soil characteristics
+
+```{r diagnostics, echo=FALSE, results='asis', warning=FALSE}
+diag.lo <- melt(d, id.vars = "featkind", measure.vars = c("featdept", "featdepb", "thickness"), factorsAsStrings = FALSE)
+pscs.lo <- melt(s, id.vars = "peiid", measure.vars = c("featdept", "featdepb", "thickness"), factorsAsStrings = FALSE)
+pscs.lo <- data.frame(featkind = "particle size control section", 
+                      variable = pscs.lo$variable, 
+                      value = pscs.lo$value
+                      )
+
+# combine diagnostic and particle size control section long tables
+diag.lo <- rbind(diag.lo, pscs.lo)
+diag.5n <- ddply(diag.lo, .(variable, featkind), summarize,
+                range = prettySummary(value)
+                )
+diag.wi <- dcast(diag.5n, featkind ~ variable, value.var = 'range')
+
+kable(diag.wi, align = "c", caption = "Depths and thickness of diagnostic horizons and features(min, 25th, median, 75th, max)(n)")
+
+
+if (!all(is.na(diag.lo$value))) {
+  bwplot(featkind ~ value | variable, data = diag.lo, 
+         main = "Boxplots of diagnostic horizon and feature depths", 
+         scales =list(x="free"), axis = axis.grid, 
+         as.table = TRUE
+         )
+  }
+```
+
+
+## Generalized horizon depths
+
+```{r hzname vs genhz, echo=FALSE, results='asis'}
+genhz.lo <- melt(h, id.vars="genhz", measure.vars = c('hzdept', 'hzdepb'))
+genhz.thk <- ddply(h, .(phiid, genhz), summarize, thickness=sum(hzdepb-hzdept))
+genhz.lo2 <- melt(genhz.thk, id.vars = "genhz", measure.vars = 'thickness')
+genhz.lo <- rbind(genhz.lo, genhz.lo2)
+genhz.5n <- ddply(genhz.lo, .(variable, genhz), summarize,
+                range = prettySummary(value)
+                )
+
+kable(dcast(genhz.5n, genhz ~ variable, value.var = 'range'), align = "c", caption = "Depths and thickness of generic horizons (min, 25th, median, 75th, max)(n)")
+
+genhz.lo$genhz <- factor(genhz.lo$genhz, levels = rev(levels(genhz.lo$genhz)))
+
+bwplot(genhz ~ value | variable, data = genhz.lo, 
+       main = "Boxplots of horizon generic horizon depths and thickness",
+       scales =list(x="free"), axis = axis.grid,
+       as.table = TRUE
+       )
+```
+
+
+## Range in characteristics (RIC) for static soil properties 
+
+### Tables
+
+```{r ric ssp tables}
+h.lo <- melt(h, id.vars="genhz", measure.vars = num_vars)
+h.5n <- ddply(h.lo, .(variable, genhz), summarize,
+                range = prettySummary(value)
+                )
+h.wi <- dcast(h.5n, genhz ~ variable, value.var = 'range')
+
+idx <- pIndex(h.wi, 5)
+
+for (i in unique(idx)) {
+  print(kable(h.wi[, c(T, idx == i)], align = "c", caption = "Numeric variables by generic horizon (min, 25th, median, 75th, max)(n)"))
+  # inserting an empty line so the last table doesn't come out corrupted
+  cat("\n")
+  }
+
+h.lo$genhz <- factor(h.lo$genhz, levels = rev(levels(h.lo$genhz)))
+n <- ceiling(length(levels(h.lo$variable))/4)
+```
+
+### Boxplots
+
+```{r ric ssp boxplots, fig.height=nh, fig.width=8}
+bwplot(genhz ~ value | variable, data = h.lo,
+       main = "Box plots of numeric variables by generic horizon",
+       scales=list(x="free"), axis = axis.grid,
+       as.table = TRUE, layout = c(4, n)
+       )
+```
+
+
+### Texture
+
+```{r texture}
+kable(addmargins(xtabs(~ genhz + texcl, data = h, drop.unused.levels = TRUE)), digits = 0, caption = "Texture by generic horizon (counts)")
+
+hz_tex <- addmargins(xtabs(~ genhz + texture, data = h))
+idx <- pIndex(hz_tex, 15)
+
+for (i in unique(idx)){
+  print(kable(hz_tex[, c(idx == i)], align = "c", digits = 0, caption = "Tex Mod & Class by generic horizon (counts)"))
+  }
+```
+
+### Color
+
+```{r color}
+kable(addmargins(xtabs(~ h$genhz + h$d_hue, data = h, drop.unused.levels = TRUE)), digits = 0, caption = "Dry hue by generic horizon (counts)")
+
+kable(addmargins(xtabs(~ genhz + m_hue, data = h, drop.unused.levels = TRUE)), digits = 0, caption = "Moist hue by generic horizon (counts)")
+```
+
+### Effervescence
+
+```{r effervesence}
+kable(addmargins(xtabs(~ genhz + effclass, data = h, drop.unused.levels = TRUE)), digits = 0, caption = "Effervescence by generic horizon (counts)")
+```
+
+
+## Range in characteristics (RIC) for the geographic setting
+
+### Elevation, Slope and Aspect
+
+```{r, echo=FALSE, results='asis', warning=FALSE}
+vars <- c("elev_field", "slope_field")
+morf <- subset(s, select = vars)
+morf.lo <- melt(morf, measure.vars = vars)
+morf.5n <- ddply(morf.lo, .(variable), summarize,
+                range = prettySummary(value)
+                )
+
+if (!all(is.na(s$aspect_field))) {
+  aspect <- subset(s, select = c("aspect_field"))
+  aspect.lo <- melt(aspect, measure.vars = "aspect_field")
+  aspect.lo$value <- circular(aspect.lo$value, template="geographic", units="degrees", modulo="2pi")
+  aspect.5n <- ddply(aspect.lo, .(variable), summarize,
+                range = prettySummary(value)
+                )
+  kable(rbind(morf.5n, aspect.5n), caption = "Elevation, slope gradient and aspect (min, 25th, median, 75th, max)(n)", align = "c")
+  } else(kable(morf.5n, caption="Elevation and slope gradient (min, 25th, median, 75th, max)(n)", align = "c"))         
+
+bwplot(~ value | variable, data = morf.lo, 
+       main = "Boxplots of elevation and slope gradient",
+       scales=list(x="free"), axis = axis.grid,
+       as.table = TRUE
+       )
+```
+
+### Parent Material vs. Landform
+
+```{r parent material}
+if (!all(is.na(s[c("pmorigin", "pmkind", "landform_string")]))) {
+  pm_comb <- factor(paste0(s$pmorigin, " ", s$pmkind))
+  pm_land <- factor(s$landform_string)
+  pm.lf <- addmargins(table(pm_comb, pm_land))
+  kable(pm.lf, caption="Parent material vs landform (counts)")
+  } else "The parent material and landform fields are empty."
+```
+
+### Slope Shape
+
+```{r shape}
+if (!all(is.na(s[c("shapedown", "shapeacross")]))) {
+  kable(addmargins(xtabs(~ shapedown + shapeacross, data = s)), caption = "Down slope (y-axis) vs across slope (x-axis) (counts)")
+  } else "The slope shape fields are empty."
+```
+
+### Hillslope Position vs. Drainage Class
+
+```{r hillslope position}
+if (any(complete.cases(s[c("hillslopeprof", "drainagecl")]))) {
+  kable(addmargins(xtabs(~ drainagecl + hillslopeprof, data = s)), digits = 0, caption = "Drainage class vs hillslope position (counts)")
+  } else "The hillslope position and drainage class fields are empty."
+```

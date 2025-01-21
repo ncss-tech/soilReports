@@ -1,0 +1,478 @@
+---
+title: null
+output:
+  html_document:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
+---
+
+
+
+```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(knitr, quietly=TRUE)
+
+# package options
+opts_knit$set(message=FALSE, warning=FALSE, verbose=FALSE, progress=FALSE)
+
+# chunk options
+# R session options
+options(width=100, stringsAsFactors=FALSE)
+
+
+### -----
+### SANITY CHECK #1 - make sure user has run reportSetup recently :)
+### TODO: verify they are not running an old report version that might rely on outdated packages?
+
+### check if needed CRAN packages are installed
+packz <- c("MASS","rgdal","rgeos","raster","plyr","latticeExtra","cluster","clhs","spdep","reshape2","aqp","sharpshootR", "randomForest")
+newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
+
+loaded <- lapply(packz, FUN=require, character.only=TRUE, quietly=TRUE)
+if(sum(as.numeric(loaded)) != length(packz)) {
+  stop("Failed to load one or more required packages! Be sure you have the latest version of the soilReports package from GitHub. Then run `soilReports::reportSetup('southwest/mu-comparison')` to install all required packages. Use reportUpdate() to ensure you have the latest version of report.", call. = FALSE)
+  geterrmessage()
+}
+### -----
+
+## load report-specific functions
+source('custom.R')
+
+## load local configuration 
+# TODO: allow entry of simple fields interactively if they are not specified?
+# TODO: allow for batching from a basic report.Rmd
+source('config.R')
+
+### -----
+### Sanity check #2 - make sure the shapefile to be summarized exists,can be read and has the specified column
+## load map unit polygons from OGR data source
+mu <- try(readOGR(dsn=mu.dsn, layer=mu.layer, stringsAsFactors = FALSE))
+if(class(mu) == 'try-error')
+  stop(paste0('Cannot read map unit polygon/feature file: "', mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
+if(!(mu.col %in% names(mu)))
+  stop(paste0('Cannot find map unit column (',mu.col,') in attribute table of: "', mu.dsn, ' / ', mu.layer,'"'), call. = FALSE)
+### -----
+
+### -----
+### Sanity check #3 - make sure all raster/input file paths exist and are readable
+###                   NB: this might not give correct results for parallel computation. Actual file read calls will also be wrapped in try()
+accessible.inputs <- file.access(as.character(unlist(raster.list)), mode = 4) + 1 #file.access returns 0 for success and -1 for failure
+if(any( accessible.inputs == 0 )) {
+  unreadable.files <- names(which(accessible.inputs == 0))
+  stop(paste0("The following input files either do not exist or are unreadable: \n", paste0(unreadable.files, collapse=", ")))
+}
+### -----
+
+# just in case, coerce mu.col to character
+mu[[mu.col]] <- as.character(mu[[mu.col]])
+
+# TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
+if(exists('mu.set')) { 
+  # coerce mu.set to character just in integers were specified
+  mu.set <- as.character(mu.set)
+
+  # check to see if the mu.set specifies musyms that are not in the spatial layer
+  mu.set.bak <- mu.set
+  mu_nosp <- !(mu.set %in% mu[[mu.col]])
+  
+  # check if any of the predefined musyms are absent from the spatial
+  if(any(mu_nosp))
+    mu.set <- mu.set[-which(mu_nosp)] #if so, remove them
+  
+  # if we removed everything (e.g. no musyms match due to wrong config file?), fail gracefully
+  if(length(mu.set) == 0) 
+    stop(paste0("Cannot find map unit polygons with symbol: ",paste0(mu.set.bak,collapse=", ")))
+  
+  # if mu.set defined in config.R, only keep the features with musym matching set
+  mu <- mu[which(mu[[mu.col]] %in% mu.set), ] 
+} else {
+  # if mu.set is not predefined, ordering is determined by the order of musyms in the source file
+  mu.set <- sort(unique(mu[[mu.col]]))
+}
+
+
+# in order to avoid column name collisions due to DBF limitations, keep only the mu.col column
+mu <- mu[, mu.col, drop=FALSE]
+
+# add a unique polygon ID
+mu$pID <- seq(from=1, to=length(mu))
+
+if(cache.samples & file.exists('cached-samples.Rda')) {
+  message('Using cached raster samples...')
+  .sampling.time <- 'using cached samples'
+  load('cached-samples.Rda')
+} else {
+  # suppressing warnings: these have to do with conversion of CRS of points
+  # iterate over map units and sample rasters
+  # result is a list
+  .timer.start <- Sys.time()
+  sampling.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list, pts.per.acre, estimateEffectiveSampleSize = correct.sample.size))
+  .timer.stop <- Sys.time()
+  
+  .sampling.time <- format(difftime(.timer.stop, .timer.start, units='mins'), digits=2)
+  print(paste0("Completed sampling of raster stack for poly symbols (",paste(mu.set,collapse=","),") in ",.sampling.time,"."))
+  
+  sampling.res$raster.samples$.id <- factor(sampling.res$raster.samples$.id, levels=mu.set)
+  
+  print("DONE!")
+  
+  if(cache.samples)
+    save(mu, sampling.res,file = 'cached-samples.Rda')
+}
+
+## subset raster samples by data type: continuous, categorical, circular
+d.continuous <- subset(sampling.res$raster.samples, variable.type == 'continuous')
+d.continuous$variable <- factor(d.continuous$variable, levels=names(raster.list$continuous))
+
+
+### SUBSET CATEGORICAL VARIABLEs
+# d.cat is derived from the sample object resulting from running cLHS_sample_by_polygon.R
+d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
+d.cat$.id <- factor(d.cat$.id, levels=mu.set)
+d.cat.sub <- list()
+categorical.defs <- list()#this defines the aliases and label:value:color sets for displaying categorical variables
+source("categorical_definitions.R") #this will load the structures that define value:label:color for categorical plot. 
+                                    #updates the "section_toggle" variable defined at top of report which will knit the appropriate plots for the specified categoricals from config.R
+
+### FORMATTING
+## figure out reasonable figure heights for bwplots and density plots
+# baseline height for figure margins, axes, and legend
+min.height <- 2 
+# height required for each panel
+panel.height <- 2 * length(levels(d.continuous$variable))
+# extra height for each ID
+id.height <- 0.25 * length(levels(d.continuous$.id))
+dynamic.fig.height <- min.height + panel.height + id.height
+
+# nice colors
+cols <- makeNiceColors(length(mu.set))
+
+# TODO: Null out raster samples to save memory TOGGLE
+## http://adv-r.had.co.nz/memory.html#memory
+# sampling.res$raster.samples <- NULL
+
+
+# TODO / DEBUGGING: report on invalid geometries that could be interfering with sampling
+#    * https://github.com/ncss-tech/sharpshootR/commit/9ada343fea46d18f7c2e10c12a7dc1cbfb71679f
+#    * 
+# 
+# results in:
+# sampling.res$mu.validity.check
+```
+
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;"><span style="font-size: 200%; font-weight: bold;">Map units (`r mu.col`): `r paste(mu.set, collapse = ", ")`</span>
+<br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d")`</div>
+
+<br>
+This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) are used as robust metrics of distribution central tendency and spread. Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
+
+### Polygon Data Source
+```{r, echo=FALSE}
+fd <- data.frame(`MU Polygons`=mu.dsn, `File or Feature`=mu.layer)
+kable(fd, row.names = FALSE)
+```
+
+### Raster Data Sources
+```{r, echo=FALSE}
+kable(sampling.res$raster.summary, row.names = FALSE, digits = 3)
+```
+
+### Area Summaries
+Target sampling density: <b>`r pts.per.acre` points/ac.</b> defined in `config.R`. Consider increasing if there are unsampled polygons or if the number of samples is less than *about 200*. Note that the mean sampling density (per polygon) will always be slightly lower than the target sampling density, depending on polygon shape.
+```{r, echo=FALSE}
+kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r', col.names=c(mu.col, names(sampling.res$area.stats)[-1]))
+```
+
+
+### Modified Box and Whisker Plots
+Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Box width is proportional to the number of samples per map unit (e.g. total map unit area). Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
+
+**Suggested usage:**
+
+ * Gauge overlap between map units in terms of boxes (25th-75th percentiles) and whiskers (5th-95th percentiles).
+ * Non-overlapping boxes are a strong indication that the central tendencies (of select raster data) differ.
+ * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
+
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
+tps <- list(box.rectangle=list(col='black'), box.umbrella=list(col='black', lty=1), box.dot=list(cex=0.75), plot.symbol=list(col=rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex=0.25))
+
+# NOTE: notches rely on effective sampling size
+bwplot(.id ~ value | variable, data=d.continuous, 
+       scales=list(y=list(alternating=1), x=list(relation='free', tick.number=10)), as.table=TRUE, col='black', 
+       strip=strip.custom(bg=grey(0.85)), xlab='', par.settings=tps, subscripts=TRUE, 
+       layout=c(1, length(levels(d.continuous$variable))),
+       varwidth=TRUE,
+       panel=function(x, subscripts=subscripts, ...) {
+         
+         # extract the current raster name
+         this.raster <- as.character(unique(d.continuous$variable[subscripts]))
+         
+         # get associated Moran's I
+         idx <- which(sampling.res$Moran_I$Variable == this.raster)
+         this.Moran.I <- sampling.res$Moran_I$Moran.I[idx]
+         
+         # make a grid
+         panel.grid(h=0, v=-1, col='grey', lty=3)
+         panel.abline(h=1:length(unique(d.continuous$.id)), col='grey', lty=3)
+         
+         # boxplots with custom sampling size:
+         # coef: Moran's I associated with this raster
+         panel.bwplot(x, stats=custom.bwplot, notch=correct.sample.size, coef=this.Moran.I, ...)
+
+       })
+
+```
+
+
+### Density Plots
+These plots are a smooth alternative ([density estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
+
+**Suggested usage:**
+
+ * Density plots depict a more detailed summary of distribution shape.
+ * When making comparisons, be sure to look for:
+   + multiple peaks
+   + narrow peaks vs. wide "mounds"
+   + short vs. long "tails"
+
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height}
+## TODO: consider variable line width proportional to area
+## https://github.com/ncss-tech/soilReports/issues/81
+# var.lwd <- scales::rescale(log(sampling.res$area.stats$`Total Area`), to=c(0.5, 2.5))
+tps <- list(superpose.line=list(col=cols, lwd=2, lend=2))
+
+# dynamic setting of columns in legend
+n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
+
+# scaling of density curves
+# just in case this isn't in the config file, set a default value here
+if( ! exists('scaleDensityCurves'))
+  scaleDensityCurves <- TRUE
+
+# compute densities and optionally re-scale to {0,1}
+density.plot.data <- ddply(d.continuous, c('.id', 'variable'), scaled.density, constantScaling=scaleDensityCurves)
+
+xyplot(y ~ x | variable, groups=.id, data=density.plot.data, xlab='', ylab='Relative Proportion', scales=list(relation='free', x=list(tick.number=10), y=list(at=NULL)), plot.points=FALSE, strip=strip.custom(bg=grey(0.85)), as.table=TRUE, layout=c(1, length(levels(d.continuous$variable))), auto.key=list(lines=TRUE, points=FALSE, columns=n.cols, cex=0.8), par.settings=tps, type=c('l','g'))
+
+rm(density.plot.data)
+```
+
+### Tabular Summaries
+Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable. In these tables, headings like "Q5" can be interpreted as the the "5th percentile"; 5% of the data are less than this value. The 50th percentile ("Q50") is the median.
+
+```{r, echo=FALSE, results='asis'}
+# summarize raster data for tabular output
+mu.stats <- ddply(d.continuous, c('variable', '.id'), f.summary, p=p.quantiles)
+
+# print medians
+dg <- c(0, rep(2, times=length(unique(mu.stats$variable))))
+mu.stats.wide <- dcast(mu.stats, .id ~ variable, value.var = 'Q50')
+kable(mu.stats.wide, row.names=FALSE, caption = 'Median Values', align = 'r', digits=dg, col.names=c(mu.col, names(mu.stats.wide)[-1]))
+```
+
+```{r, echo=FALSE, results='asis'}
+# iterate over variables and print smaller tables
+# note: https://github.com/yihui/knitr/issues/886
+l_ply(split(mu.stats, mu.stats$variable), function(i) {
+  # remove variable column
+  var.name <- unique(i$variable)
+  i$variable <- NULL
+  dg <- c(0, rep(2, times=length(p.quantiles)), 3)
+  print(kable(i, caption = var.name, row.names=FALSE, align = 'r', digits=dg, col.names=c(mu.col, names(i)[-1])))
+})
+
+```
+
+
+
+```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis"}
+# make categorical summaries for all categorical variables
+d.cat.list <- split(d.cat, f=d.cat$variable)
+
+l <- lapply(d.cat.list, FUN=makeCategoricalOutput)
+```
+
+### Multivariate Summary
+
+This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 75% (dotted line), 50% (dashed line), and 25% (solid line) of the points in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Data from map units with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/chapter_5.html), from the new *Statistics for Soil Scientists* NEDS course, for an soils-specific introduction to these concepts.
+
+**Suggested usage:**
+
+ * The relative position of points and contours are meaningful; absolute position will vary each time the report is run.
+ * Colors match those used in the density plots above. Be sure to cross-reference this figure with density plots.
+ * Look for "diffuse" vs. "concentrated" clusters: these suggest relatively broadly vs. narrowly defined map unit concepts.
+ * Multiple, disconnected contours (per map unit) could indicate errors or small map unit separated by large distances. Check for multiple peaks in the associated density plots.
+ * Nesting of clusters (e.g. smaller cluster contained by larger cluster) suggests superset/subset relationships.
+ * Overlap is proportional to similarity.
+ * Comment-out raster data sources with low variability off if the multivariate summary is not displayed.
+ 
+
+```{r, results='hide', warning=FALSE, echo=FALSE, fig.width=9, fig.height=9}
+## TODO: 
+# 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
+
+# cast to wide format
+d.mu.wide <- dcast(d.continuous, sid + pID + .id ~ variable, value.var = 'value')
+
+# drop rows with NA
+d.mu.wide <- na.omit(d.mu.wide)
+
+# locate "non-id" vars
+d.mu.wide.vars <- which(! names(d.mu.wide) %in% c('.id', 'sid', 'pID'))
+
+# must have > 1 variables to perform multivariate summary
+if(length(d.mu.wide.vars) < 2) {
+  multivariate.summary <- FALSE
+} else {
+  # check SD of each column, by group
+  sd.by.id <- ddply(d.mu.wide, '.id', function(i) {sapply(i[, d.mu.wide.vars, drop=FALSE], sd, na.rm=TRUE)})
+  sd.by.id$res <- apply(sd.by.id[, -1], 1, function(i) any(i < 1e-5))
+  
+  # if the SD is low in any column from all MU then stop  
+  if(all(sd.by.id$res)) {  
+    multivariate.summary <- FALSE
+  } else {
+    # OK to run MV summaries
+    multivariate.summary <- TRUE
+    
+    ## TODO: this may be too strict, remove variables first
+    ## https://github.com/ncss-tech/soilReports/issues/87
+    # filter out low-variance MU
+    if(any(sd.by.id$res)) {
+      ids.to.keep <- sd.by.id$.id[which(!sd.by.id$res)]
+      d.mu.wide <- d.mu.wide[which(d.mu.wide$.id %in% ids.to.keep), ]
+      
+      # reset mu.set accordingly
+      idx.to.keep <- which(! mu.set %in% setdiff(mu.set, ids.to.keep))
+      mu.set <- mu.set[idx.to.keep]
+    }
+    
+    ## TODO: https://github.com/ncss-tech/soilReports/issues/87
+    # filter out low-variance variables
+    
+    ## TODO: what is a reasonable sample size?
+    ## TODO: there is likely a subset of variables worth including
+    # only sub-sample if there are "a lot" of samples
+    if(nrow(d.mu.wide) > 1000) {
+      # sub-sample via LHS: this takes time
+      # first three columns are IDs
+      # n: this is the number of sub-samples / map unit
+      # non.id.vars: this is an index to non-ID columns
+      d.sub <- ddply(d.mu.wide, '.id', f.subset, n=50, non.id.vars=d.mu.wide.vars)
+    } else {
+      d.sub <- d.mu.wide
+    }
+    
+    ## NOTE: data with very low variability will cause warnings
+    # eval numerical distance, removing 'sid' and '.id' columns
+    d.dist <- daisy(d.sub[, d.mu.wide.vars], stand=TRUE)
+    
+    ## map distance matrix to 2D space via principal coordinates
+    d.betadisper <- vegan::betadisper(d.dist, group=d.sub$.id, bias.adjust = TRUE, sqrt.dist = TRUE, type='median')
+    d.scores <- vegan::scores(d.betadisper)
+    
+    ## TODO: there might be a better way to do this, ask Jay
+    # contour density estimates
+    # add contours for fixed pct of data density using KDE
+    # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
+    s <- data.frame(x=d.scores$sites[, 1], y=d.scores$sites[, 2], .id=d.sub$.id)
+    s <- split(s, s$.id)
+    
+    
+    # default plot is OK, but density-based contours are more useful
+    # vegan:::plot.betadisper(d.betadisper, ellipse = TRUE, hull = FALSE, col=cols[1:length(mu.set)], conf=0.5, segments=FALSE, xlab='', ylab='', main='', sub='', las=1)
+    
+    # plot
+    par(mar=c(1,1,3,1))
+    plot(d.scores$sites, type='n', axes=FALSE)
+    abline(h=0, v=0, lty=2, col='grey')
+    
+    # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
+    # add contours of prob density
+    res <- lapply(s, kdeContours, prob=c(0.75), cols=cols, m=levels(d.sub$.id), lwd=1, lty=3)
+    res <- lapply(s, kdeContours, prob=c(0.5), cols=cols, m=levels(d.sub$.id), lwd=1, lty=2)
+    res <- lapply(s, kdeContours, prob=c(0.25), cols=cols, m=levels(d.sub$.id), lwd=2, lty=1)
+    
+    points(d.scores$sites, cex=0.45, col=cols[as.numeric(d.sub$.id)], pch=16)
+    # note special indexing for cases when low-var MU have been removed
+    vegan::ordilabel(d.betadisper, display='centroids', col=cols[match(mu.set, levels(d.sub$.id))])
+    title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
+    box()
+  }
+}
+```
+
+```{r, echo=FALSE}
+if(multivariate.summary == FALSE)
+  print('Cannot create ordination plot: >1 rasters required or not enough variance within each map unit.')
+```
+
+
+### Raster Data Correlation
+The following figure highlights shared information among raster data sources based on [Spearman's Ranked Correlation coefficient](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient). Branch height is associated with the degree of shared information between raster data.
+
+**Suggested usage:**
+
+ * Look for clustered sets of raster data: typically PRISM-derived and elevation data are closely correlated.
+ * Highly correlated raster data sources reduce the reliability of the "raster data importance" figure.
+
+```{r, echo=FALSE, fig.width=10, fig.height=8, eval=multivariate.summary}
+par(mar=c(2,5,2,2))
+## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
+## This requires 3 or more variables
+if(length(d.mu.wide.vars) > 3) {
+  try(plot(Hmisc::varclus(as.matrix(d.sub[, d.mu.wide.vars]))), silent=TRUE)
+} else
+  print('This plot requires three or more raster variables, apart from aspect, curvature class, and geomorphons.')
+```
+
+
+### Raster Data Importance
+The following figure ranks raster data sources in terms of how accurately each can be used to discriminate between map unit concepts. 
+
+**Suggested usage:**
+
+ * Map unit concepts are more consistently predicted (by supervised classification) using those raster data sources with relatively larger "Mean Decrease in Accuracy" values.
+ * Highly correlated raster data sources will "compete" for positions in this figure. For example, if *elevation* and *mean annual air temperature* are highly correlated, then their respective "importance" values are interchangeable.
+
+
+```{r, echo=FALSE, fig.width=8, fig.height=6, eval=multivariate.summary}
+# this will only work with >= 2 map units and >= 2 variables
+
+# reset factor levels so that empty classes are not passed on to randomForest() (will cause error if empty/low-variance MUs are present)
+d.sub$.id <- factor(d.sub$.id)
+
+if(length(levels(d.sub$.id)) >= 2) {
+ # use supervised classification to empirically determine the relative importance of each raster layer
+  # TODO: include geomorphons and curvature classes
+  # TODO: consider using party::cforest() for conditional variable importance-- varimp
+  m <- randomForest(x=d.sub[, d.mu.wide.vars], y=d.sub$.id, importance = TRUE)
+  
+  # variable importance
+  # TODO: how to interpret raw output from importance:
+  # http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
+  varImpPlot(m, scale=TRUE, type=1, main='Mean Decrease in Accuracy')
+  # kable(importance(m, scale=FALSE, type=2), digits = 3)
+  
+
+} else {
+  # print message about not enough map unit s
+  print('This plot requires two or more map units.')
+}
+
+```
+
+
+
+----------------------------
+This document is based on `sharpshootR` version `r utils::packageDescription("sharpshootR", field="Version")`.
+<br>
+Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+<br>
+Sampling time: `r .sampling.time`
+

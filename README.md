@@ -8,7 +8,7 @@ Reports are a handy way to summarize large volumes of data, particularly with fi
 The `soilReports` package provides a couple important helper functions that do most of the work:
 
  * `listReports()`: print a listing of the available reports, version numbers, and basic metadata
- * `reportSetup(...)`: download any R packages required by the named report, e.g. *"region2/mu-comparison"*
+ * `reportSetup(...)`: download any R packages required by the named report, e.g. *"southwest/mu-comparison"*
  * `reportInit(...)` | `reportCopy(...)`: copy a named report template into a specific directory
  * `reportUpdate(...)`: update a named report in a specific directory, replacing `report.Rmd` only
 
@@ -54,15 +54,15 @@ remotes::install_github("ncss-tech/soilReports", dependencies = FALSE, upgrade_d
 ## Choose an Available Report
 
   * Region 2
-     + [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mu-comparison)
-     + [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/mlra-comparison)
-     + [DMU Difference Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/dmu-diff)
-     + [QA Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/QA-summary)
-     + [Shiny Pedon Summary](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region2/shiny-pedon-summary)
+     + [Map Unit Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/southwest/mu-comparison)
+     + [MLRA Comparison/Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/southwest/mlra-comparison)
+     + [DMU Difference Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/southwest/dmu-diff)
+     + [QA Summary Report](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/southwest/QA-summary)
+     + [Shiny Pedon Summary](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/southwest/shiny-pedon-summary)
      
   * Region 11
-     + [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/component_summary_by_project)
-     + [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/region11/mupolygon_summary_by_project)
+     + [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/northeast/component_summary_by_project)
+     + [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/northeast/mupolygon_summary_by_project)
 
 
 ## Example Output
@@ -102,14 +102,14 @@ library(soilReports)
 listReports()
 
 # install required packages for a named report
-reportSetup(reportName='region2/mu-comparison')
+reportSetup(reportName='southwest/mu-comparison')
 
 # copy report file 'MU-comparison' to your current working directory
-reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison')
+reportInit(reportName='southwest/mu-comparison', outputDir='MU-comparison')
 ```
 
 ## Updating Existing Reports - Example: Map Unit Comparison report 
-Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "region2/mu-comparison" report. Note that your existing configuration files will not be modified.
+Updates to report templates, documentation, and custom functions are available *after installing the latest* `soilReports` package from GitHub. Use the following examples to update an existing copy of the "southwest/mu-comparison" report. Note that your existing configuration files will not be modified.
 
 ```r
 # get latest version of package + report templates
@@ -119,10 +119,10 @@ remotes::install_github("ncss-tech/soilReports", dependencies=FALSE, upgrade_dep
 library(soilReports)
 
 # get any new packages that may be required by the latest version
-reportSetup(reportName='region2/mu-comparison')
+reportSetup(reportName='southwest/mu-comparison')
 
 # overwrite report files in an existing report instance (does NOT overwrite config)
-reportUpdate(reportName='region2/mu-comparison', outputDir='MU-comparison')
+reportUpdate(reportName='southwest/mu-comparison', outputDir='MU-comparison')
 ```
 
 ## Suggested Background Material

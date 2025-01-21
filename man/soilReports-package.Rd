@@ -17,10 +17,10 @@ library(soilReports)
 listReports()
 
 # install required packages for a named report
-reportSetup(reportName='region2/mu-comparison')
+reportSetup(reportName='southwest/mu-comparison')
 
 # copy default configuration file and report to 'MU-comparison' in current working directory
-reportInit(reportName='region2/mu-comparison', outputDir='MU-comparison', overwrite=FALSE)
+reportInit(reportName='southwest/mu-comparison', outputDir='MU-comparison', overwrite=FALSE)
 }
 }
 

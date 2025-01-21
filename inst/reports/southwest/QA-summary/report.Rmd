@@ -1,0 +1,475 @@
+---
+title: null
+output:
+  html_vignette:
+    mathjax: null
+    smart: no
+    keep_md: no
+    css: style.css
+---
+
+
+<!-- can we override CSS here ?-->
+<!-- <style> -->
+<!-- body { -->
+<!--     font: normal 12px Verdana, Arial, sans-serif; -->
+<!-- } -->
+
+
+<!-- #mu_textnote { -->
+<!--   background-color: #ddd; -->
+<!--   padding: 5px 25px 5px; -->
+<!--   width: 80%; -->
+<!--   font: normal 12px Monospace; -->
+<!-- } -->
+
+
+<!-- .table { -->
+<!--     width: 100%; -->
+<!--     max-width: 100%; -->
+<!--     margin-bottom: 20px; -->
+<!-- } -->
+<!-- table { -->
+<!--     background-color: transparent; -->
+<!-- } -->
+<!-- table { -->
+<!--     border-spacing: 0; -->
+<!--     border-collapse: collapse; -->
+<!-- } -->
+<!-- </style> -->
+
+
+```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(knitr, quietly=TRUE)
+
+# chunk options
+opts_chunk$set(message=FALSE, warning=FALSE, background='#F7F7F7', fig.align='center', fig.retina=2, dev='png', tidy=FALSE, verbose=FALSE, progress=FALSE)
+
+# R session options
+options(width=100, stringsAsFactors=FALSE)
+
+## load dependencies
+library(aqp, quietly=TRUE)
+library(soilDB, quietly=TRUE)
+library(sharpshootR, quietly=TRUE)
+library(latticeExtra, quietly=TRUE)
+library(RColorBrewer, quietly=TRUE)
+library(plyr, quietly=TRUE)
+library(ggplot2, quietly=TRUE)
+library(kableExtra, quietly = TRUE)
+library(mapview, quietly = TRUE)
+
+## load report-specific functions
+source('custom.R') 
+
+## load relevant stuff from local NASIS
+
+# project metadata from local NASIS
+# defined in custom.R
+project.metadata <- get_project_meta()
+
+# mu text + mu names / symbols
+mutext <- get_mutext_from_NASIS_db()
+# replace \n with <br> -- this will ensure presentation in HTML is same as in text editor
+mutext$textentry <- gsub(pattern = '\n', replacement = '<br>', x = mutext$textentry, fixed = TRUE)
+
+
+## TODO: should we bring in those component that are missing hz data?
+## probably not at this point, as profile sketches and aggregation will be messed up
+# DMU / components as SPC
+x <- fetchNASIS(from = 'components')
+
+## TODO: encode soil texture class as an ordered factor via SoilTextureLevels()
+
+# MU / correlation
+nc <- get_component_correlation_data_from_NASIS_db(dropNotRepresentative = FALSE)
+
+## additional stuff via WWW reports
+
+## TODO: check for "old" DMU not linked to "new" MLRA MU
+## look for NA in mu.set
+
+# MU affected
+# 2021-01-20: use this function now
+mu.set <- get_projectmapunit_from_NASISWebReport(projectname = project.metadata$projectname)
+
+# flag records that should be removed:
+mu.set$drop <- FALSE
+
+# archived SSA
+idx <- grep('arch', mu.set$areasymbol, ignore.case = TRUE)
+mu.set$drop[idx] <- TRUE
+
+# mustatus of additional / provisional
+idx <- which(mu.set$mustatus %in% c('Provisional', 'Additional'))
+mu.set$drop[idx] <- TRUE
+
+## Note: this could indicate and old DMU not linked to new MU
+# mustatus of NA (except MLRA Map Unit)
+idx <- which(is.na(mu.set$mustatus) & is.na(mu.set$mutype))
+mu.set$drop[idx] <- TRUE
+
+## OSD data for dendrogram
+series.set <- unique(get_component_data_from_NASIS_db()$compname)
+spc <- fetchOSD(series.set)
+n.spc <- length(spc)
+
+# this figure is only possible if there are more than 1 series
+do.osd.dend <- n.spc > 1
+
+## TODO: specify join condition explicitly
+# join MU / correlation into DMU / component @site
+site(x) <- nc
+
+## post-processing
+# TODO: better to use mutype?
+# flag vintage via pattern matching
+x$vintage <- rep('old', times=length(x))
+
+# flag new DMU
+# could also use repdmu == 1
+# x$vintage[grep('MLRA', x$dmudesc)] <- 'new'
+x$vintage[which(x$repdmu == 1)] <- 'new'
+x$dmuname <- sprintf('%s\n%s', x$compname, x$vintage)
+
+# abbreviated dmudesc, MLRA DMU have a very long name
+x$dmudesc_short <- ifelse(x$vintage == 'new', '*NEW*', x$dmudesc)
+
+
+
+# still working on this...
+# group name for profile plots
+# x$groupname <- sprintf("%s\n%s", x$nationalmusym, x$dmudesc_short)
+x$groupname <- factor(sprintf("%s\n%s", x$nationalmusym, ifelse(is.na(x$localphase), x$compname, sprintf("%s-%s", x$compname, x$localphase))))
+
+## estimate base saturation at pH 7
+x$base.sat <- pmin(100, (x$sumbases_r / x$cec7_r) * 100)
+
+
+## MU BBOX from SDA
+bb <- fetchSDA_spatial(mu.set$nationalmusym, by.col = 'nmusym', method = 'bbox', verbose = FALSE)
+
+
+## TODO: this may include some false positives for dropping: DMU linked to multiple MU
+## TODO: 2020-05-17: old map units not linked to the project will be filtered out!
+
+# 
+# ## keep only those data associated with correlated MU in active SSA
+# test.1 <- x$dmuiid %in% mu.set$dmuiid[which(! mu.set$drop)]
+# ## OR vintage marked as "new" --> these are the new, MLRA DMU
+# test.2 <- x$vintage == 'new'
+# 
+# idx <- which( test.1 | test.2)
+# x <- x[idx, ]
+
+
+
+## TODO: this should be split of MLRA MU symbols
+## TODO: this should use compname + localphase for >1 instance of same compname
+
+## component month summaries
+# load comonth
+cm <- get_comonth_from_NASIS_db(fill = TRUE)
+# combine DMU/component names
+cm <- join(site(x), cm, by='coiid')
+# re-level component names based on mean comppct
+cm.compname.level.data <- sort(round(tapply(cm$comppct, cm$compname, mean)), decreasing = TRUE)
+cm$compname <- factor(cm$compname, 
+                      levels=names(cm.compname.level.data), 
+                      labels = sprintf("%s (%s%%)", names(cm.compname.level.data), cm.compname.level.data)
+                      )
+
+## TODO: maybe add this
+# # drop component names which aren't present in the MLRA MU
+# missing.test <- tapply(cm$dmudesc_short == '*NEW*', cm$compname, which)
+# idx <- which(sapply(missing.test, length) == 0)
+
+
+## establish some reasonable figure widths in inches
+
+# profile figures
+profile.fig.width <- 2 + (length(x) * 1)
+
+# OSD dendrogram for all components that are named series
+osd.fig.width <- 5 + (n.spc * 0.7)
+
+# slab figures
+# TODO: base this on user-supplied properties
+slab.fig.width <- 12
+
+## establish some reasonable figure heights
+mu.prop.panels.height <- 1 + (length(unique(x$nationalmusym)) * 2.5)
+
+## TODO: lab data
+## TODO: linked pedons
+
+## TODO user-specified horizon properties as parameter
+
+## TODO / ideas
+##  
+
+## project correlation table ?
+## get_project_correlation_from_NASISWebReport('2-KEA', '2020', 'MLRA 163 - Pearl Harbor clay')
+
+## project details
+## get_project_from_NASISWebReport('2-KEA', '2020')
+
+##  site-level comparisons in aggregate
+##  table(x$dmuname, x$taxsubgrp)
+##
+## link to SEE or mapview of series extents
+## http://ncss-tech.github.io/stats_for_soil_survey/chapters/2_data/2b_spatial_data.html
+##
+## table of affected components
+##
+## graphical breakdown of Legend -> MU -> DMU -> component by mutype
+##
+
+
+```
+
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;">
+<span style="font-size: 200%; font-weight: bold;">QA Summary</span>
+<span style="font-size: 100%;">
+<br>
+<br>
+`r project.metadata$projectname`
+</span>
+<br><br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d %H:%M")`</div>
+
+<br>
+This report requires setting up a selected set in your local NASIS database:
+
+   * load project by name
+   * add data associated with MLRA map units into *mapunit table*
+   * add data associated with old and new DMU into *data mapunit table*
+
+
+## Project Description
+
+```{r echo=FALSE, results='asis'}
+txt <- sprintf("<div id='mu_textnote'>%s</div>\n\n", project.metadata$projectdesc)
+cat(txt)
+```
+
+## MLRA Map Unit Text Notes
+
+```{r echo=FALSE, results='asis'}
+# just the MLRA map units
+mutext <- mutext[which(mutext$mutype == 'mlra map unit'), ]
+
+# split by national musym
+mutext.list <- split(mutext, f = mutext$nationalmusym)
+
+# iterate over national musym
+l_ply(mutext.list, function(text.notes) {
+  
+  # start section
+  cat(sprintf("### %s: %s\n", unique(text.notes$nationalmusym), unique(text.notes$muname)))
+  
+  # split by text note type
+  notes <- split(text.notes, text.notes$mapunittextkind)
+  
+  # iterate over note type
+  l_ply(notes, function(this.note) {
+    
+    # in the case of multiple rows
+    for(i in 1:nrow(this.note)) {
+      txt <- sprintf("#### %s\n<div id='mu_textnote'>%s</div>\n", this.note$mapunittextkind[i], this.note$textentry[i])
+      cat(txt)
+    }
+    
+    
+  })
+  
+})
+
+```
+
+## Overview Map
+```{r echo = FALSE, out.width = "800", out.height="700"}
+mapview(bb, legend = FALSE, layer.name = as.character(bb$nationalmusym[1]))
+```
+
+
+## Affected Map Units
+NASIS WWW Report
+<div style="width: 33%; font-size: 90%;">
+```{r echo=FALSE}
+kable_styling(
+  kable(
+    mu.set[order(mu.set$drop, mu.set$areasymbol), c('areasymbol', 'musym', 'nationalmusym', 'mutype', 'mustatus', 'drop')],
+    row.names = FALSE, format = 'html'
+  ), 
+  full_width = TRUE
+)
+```
+</div>
+
+## Component Breakdown
+Local NASIS Database
+<div style="width: 33%; font-size: 90%;">
+```{r echo=FALSE}
+kable_styling(
+  kable(
+    site(x)[order(x$vintage, x$dmudesc, x$comppct_r, decreasing = TRUE), c('dmudesc', 'vintage', 'compname', 'comppct_r')],
+    row.names = FALSE, format = 'html'
+  ), 
+  full_width = TRUE
+)
+```
+</div>
+
+```{r echo=FALSE, results='hide', fig.width=osd.fig.width, fig.height=6.5, eval=do.osd.dend}
+SoilTaxonomyDendrogram(spc, cex.taxon.labels = 0.8, width = 0.25, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE)
+```
+
+
+
+## Profile Sketches
+Groups are formed by the new national map unit symbol / component name. Profiles associated with the "old" DMU are labeled with the parent `dmudesc`. Profiles associated with  the "new" MLRA DMU are labeled as `*NEW*`.
+```{r echo=FALSE, results='hide', fig.width=profile.fig.width, fig.height=6.5}
+
+# setup a reasonable group name offset
+n.groups <- length(unique(x$groupname))
+if(n.groups > 1) {
+  # use an alternating group name offset
+  # this is usually a good strategy
+  gno <- c(-12, -14)
+} else {
+  # single group, use a single offset
+  gno <- -13
+}
+
+par(mar=c(0.25, 0.5, 4, 0))
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='claytotal_r', col.label='Clay Content (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sandtotal_r', col.label='Sand Content (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='fragvoltot_r', col.label='Total Fragment Volumne (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='texture', col.label='Texture', col.legend.cex=0.75, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='lep_r', col.label='LEP', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='cec7_r', col.label='CEC @ pH 7 (cmol[+] / kg)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ecec_r', col.label='ECEC (cmol[+] / kg)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sumbases_r', col.label='Sum of Bases (cmol[+] / kg)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='base.sat', col.label='Base Saturation @ pH 7 (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ph1to1h2o_r', col.label='pH 1:1 H2O', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ec_r', col.label='EC (mmhos/cm)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='sar_r', col.label='SAR', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='caco3_r', col.label='CaCO3 (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='awc_r', col.label='AWC (cm / cm)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='ksat_r', col.label='Ksat (um/s)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='om_r', col.label='Organic Matter (%)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+groupedProfilePlot(x, groups = 'groupname', label='dmudesc_short', group.name.cex = 0.75, group.name.offset = gno, color='dbthirdbar_r', col.label='Db 1/3 Bar (g / cc)', col.legend.cex=0.85, name.style = 'center-center', hz.depths = TRUE, plot.depth.axis = FALSE, cex.names = 0.66)
+
+
+```
+
+## Component Month Summaries
+
+```{r echo=FALSE, results='hide', fig.width=10, fig.height=8}
+ggplot(cm, aes(month, dmudesc_short, flodfreqcl)) + geom_tile(aes(fill = flodfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
+
+ggplot(cm, aes(month, dmudesc_short, floddurcl)) + geom_tile(aes(fill = floddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Flooding Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
+
+
+ggplot(cm, aes(month, dmudesc_short, pondfreqcl)) + geom_tile(aes(fill = pondfreqcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Frequency') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
+
+ggplot(cm, aes(month, dmudesc_short, ponddurcl)) + geom_tile(aes(fill = ponddurcl), color='white', lwd=1) + scale_fill_brewer(palette = "Spectral", drop=FALSE, na.value='grey80', name='Ponding  Duration') + scale_x_discrete(drop=FALSE) + theme_minimal() + xlab('') + ylab('') + facet_wrap(vars(groupname)) + theme(legend.position="bottom")
+```
+
+
+## RV Summaries by Depth
+Median component RV along 1cm slices, grouped by component name and mapunit type ("new" vs. "old").
+```{r echo=FALSE, results='hide', fig.width=slab.fig.width, fig.height=6, out.width="100%"}
+# quantiles over depth slices as grouped by dmuname/vintage labels
+a <- slab(x, dmuname ~ claytotal_r + cec7_r + awc_r + om_r + ph1to1h2o_r, slab.fun = aqp:::.slab.fun.numeric.fast)
+a$dmuname <- factor(a$dmuname)
+
+# better plot style
+cols <- brewer.pal(n=8, 'Paired')[c(2,1,4,3,6,5,8,7,10,9)]
+tps <- list(superpose.line=list(lwd=2, col=cols))
+
+xyplot(
+  top ~ p.q50 | variable, data=a, groups=dmuname,
+  lower=a$p.q5, upper=a$p.q95, sync.colors=TRUE, alpha=0.5,
+  ylim=c(160,-5), layout=c(5,1), scales=list(x=list(relation='free')),
+  xlab='', ylab='',
+  par.settings=tps,
+  strip = strip.custom(bg=grey(0.85)),
+  panel=panel.depth_function, 
+  prepanel=prepanel.depth_function,
+  auto.key=list(columns=length(levels(a$dmuname)), lines=TRUE, points=FALSE)
+)
+```
+
+Median component RV along 1cm slices, grouped by component name and mapunit type ("new" vs. "old"), and split into panels by national map unit symbol.
+```{r echo=FALSE, results='hide', fig.width=slab.fig.width, fig.height=mu.prop.panels.height, out.width="100%"}
+# iterate over MU
+mu <- unique(x$nationalmusym)
+ll <- list()
+for(i in mu) {
+  
+  # subset to current MU
+  # quantiles over depth slices as grouped by dmuname/vintage labels
+  # just in case there are multiple "old" / "new" groups, use quantiles vs. identity
+  a <- slab(x[which(x$nationalmusym == i), ], dmuname ~ claytotal_r + cec7_r + awc_r + om_r + ph1to1h2o_r, slab.fun = aqp:::.slab.fun.numeric.fast)
+  
+  # convert to factor for plotting
+  a$dmuname <- factor(a$dmuname)
+  
+  # add to indexed list
+  ll[[i]] <- a
+}
+
+# convert back to DF
+aa <- ldply(ll)
+
+# plot styling
+cols <- brewer.pal(n=8, 'Paired')[c(2,1,4,3,6,5,8,7,10,9)]
+tps <- list(superpose.line=list(lwd=2, col=cols))
+
+p <- xyplot(
+  top ~ p.q50 | variable + .id, data=aa, groups=dmuname,
+  ylim=c(200,-5), 
+  scales=list(x=list(relation='free'), alternating=3),
+  par.settings=tps,
+  panel=panel.depth_function, 
+  prepanel=prepanel.depth_function,
+  auto.key=list(columns=length(levels(a$dmuname)), lines=TRUE, points=FALSE)
+)
+
+# move MU groups to outerstrip
+p <- useOuterStrips(p, strip = strip.custom(bg=grey(0.85)), strip.left = strip.custom(bg=grey(0.75)))
+
+# fix axis labels and print
+update(p, xlab='', ylab='')
+```
+
+
+----------------------------
+This document is based on `soilDB` version `r utils::packageDescription("soilDB", field="Version")` and `aqp` version `r utils::packageDescription("aqp", field="Version")`.
+<br>
+Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+

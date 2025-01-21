@@ -1,0 +1,850 @@
+---
+title: Mapunit Comparison Report
+output:
+  html_document:
+    mathjax: null
+    jquery: null
+    smart: no
+    keep_md: no
+---
+
+```{r setup, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+library(knitr, quietly = TRUE)
+
+# need to do this in order to access general-purpose functions
+library(soilReports, quietly = TRUE)
+
+# package options
+opts_knit$set(message = FALSE, warning = FALSE, verbose = FALSE, progress = FALSE)
+
+# chunk options
+# R session options
+options(width = 100, stringsAsFactors = FALSE)
+
+### SANITY CHECK #1 - make sure user has run reportSetup recently
+
+### check if needed CRAN packages are installed
+packz <- c("MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer", "spdep")
+newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
+
+loaded <- lapply(packz, FUN = require, character.only = TRUE, quietly = TRUE)
+if (sum(as.numeric(loaded)) != length(packz)) {
+  stop("Failed to load one or more required packages! Be sure you have the latest version of the soilReports package from GitHub. Then run `soilReports::reportSetup('southwest/mu-comparison')` to install all required packages. Use reportUpdate() to ensure you have the latest version of report.", call. = FALSE)
+  geterrmessage()
+}
+
+### SANITY CHECK #2: make sure required report files are present
+required_src_files <- c("custom.R", "config.R", "categorical_definitions.R") 
+required_src <- required_src_files %in% list.files()
+
+if (any(!required_src)) {
+  stop(sprintf("Required report files (%s) are missing in current directory (%s). Re-install your report instance with `soilReports::reportInit()`", paste0(required_src_files[!required_src], collapse = ","), getwd()), call. = FALSE)
+}
+
+## load report-specific functions
+source('custom.R')
+
+## load local configuration 
+# TODO: allow entry of simple fields interactively if they are not specified?
+# TODO: allow for batching from a basic report.Rmd
+source('config.R')
+
+# load the structures that define value:label:color for categorical plot. 
+#this defines the aliases and label:value:color sets for displaying categorical variables
+categorical.defs <- list()
+source("categorical_definitions.R") 
+#  updates the "section_toggle" variable defined at top of report 
+#  which will knit the appropriate plots for the specified categoricals from config.R
+
+### SANITY CHECK #3 - make sure all top-level elements of raster.list are "allowed"
+if (!all(names(raster.list) %in% c("continuous", "categorical", "circular"))) {
+  stop('Check formatting of config.R raster list.\nAllowed top-level elements in `raster.list` include: "continuous", "categorical", "circular".', call. = FALSE)
+}
+
+### SANITY CHECK #4 - make sure the shapefile to be summarized exists and has the specified column
+## load map unit polygons from OGR data source
+mu <- try(terra::vect(mu.dsn, layer = mu.layer))
+
+if (inherits(mu, 'try-error'))
+  stop(paste0('Cannot read map unit polygon/feature file: "', 
+              mu.dsn, ' / ', mu.layer, '"'), call. = FALSE)
+if (!(mu.col %in% names(mu)))
+  stop(paste0('Cannot find map unit column (',mu.col,') in attribute table of: "', 
+              mu.dsn, ' / ', mu.layer,'"'), call. = FALSE)
+
+if (terra::crs(mu) == "") {
+  stop("CRS of input polygon file is undefined.", call. = FALSE)
+}
+
+if (terra::is.lonlat(mu)) {
+  stop("CRS of input polygon file must be projected (meters), not geographic (longitude/latitude) for constant density sampling.", call. = FALSE)
+}
+
+### SANITY CHECK #5 - make sure all raster/input file paths exist and are readable
+###                   NB: this might not give correct results for parallel computation
+accessible.inputs <- file.access(as.character(unlist(raster.list)), mode = 4) + 1 
+
+#file.access returns 0 for success and -1 for failure
+if (any(accessible.inputs == 0 )) {
+  unreadable.files <- names(which(accessible.inputs == 0))
+  stop(paste0("The following input files either do not exist or are unreadable: \n", 
+              paste0(unreadable.files, collapse = ", ")))
+}
+### -----
+
+# just in case, coerce mu.col to character
+# mu[[mu.col]] <- as.character(mu[[mu.col]])
+
+# TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
+if (exists('mu.set')) { 
+  # coerce mu.set to character just in integers were specified
+  mu.set <- as.character(mu.set)
+
+  # check to see if the mu.set specifies musyms that are not in the spatial layer
+  mu.set.bak <- mu.set
+  mu_nosp <- !(mu.set %in% mu[[mu.col]][[1]])
+  
+  # check if any of the predefined musyms are absent from the spatial
+  if (any(mu_nosp))
+    mu.set <- mu.set[-which(mu_nosp)] #if so, remove them
+  
+  # if we removed everything (e.g. no musyms match due to wrong config file?), fail gracefully
+  if (length(mu.set) == 0) {
+    stop(paste0("Cannot find map unit polygons with symbol: ",
+                paste0(mu.set.bak, collapse = ", ")))
+  }
+  
+  # if mu.set defined in config.R, only keep the features with musym matching set
+  mu <- mu[which(mu[[mu.col]][[1]] %in% mu.set), ] 
+} else {
+  # if mu.set is not predefined, ordering is determined by the order of musyms in the source file
+  mu.set <- sort(unique(mu[[mu.col]][[1]]))
+}
+
+
+### -----
+### SANITY CHECK #6 - make sure output paths are valid (no illegal characters)
+###
+# make an output directory if it doesn't exist
+if (!dir.exists('output')) 
+  dir.create('./output')
+
+# shapefile/CSV output names; 
+
+# NB: writeOGR uses 'output' as the data source name, so just the base file name
+#     whereas the CSV file names end in .csv
+if (!exists('shp.unsampled.fname')) 
+  shp.unsampled.fname <- paste0('un-sampled-', paste(mu.set, collapse = '_'))
+if (!exists('shp.stats.fname')) 
+  shp.stats.fname <- paste0('polygons-with-stats-', paste(mu.set, collapse = '_'))
+if (!exists('shp.qc.fname')) 
+  shp.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse = '_'))
+
+if (!exists('csv.mucol.stats.fname')) 
+  csv.mucol.stats.fname <- paste0('mucol-stats-', paste(mu.set, collapse = '_'), '.csv')
+if (!exists('csv.stats.fname')) 
+  csv.stats.fname <- paste0('poly-stats-', paste(mu.set, collapse = '_'),  '.csv')
+if (!exists('csv.qc.fname')) 
+  csv.qc.fname <- paste0('poly-qc-', paste(mu.set, collapse = '_'),'.csv')
+
+outputfiles <- c(paste0(c(shp.unsampled.fname, shp.stats.fname, shp.qc.fname), ".shp"), 
+                 csv.qc.fname, csv.stats.fname)
+
+# SANITY CHECK #7: let the user know that things might not quite look right with tons of mapunit symbols
+if (length(mu.set) > 8) {
+  warning(sprintf("This report was designed to work with 1 to 8 map units. Found %s in `mu.set`. The report tabular and spatial output is stable for larger numbers of map units, but graphics and colors in the report itself may become cluttered or impossible to interpret.", length(mu.set)), call. = FALSE)
+}
+
+# SANITY CHECK #6: default names do not exceed Windows path length limits
+if (any(nchar(outputfiles) > 260)) {
+  
+  # shapefile containing any unsampled polygons (usually too small or odd shape)
+  shp.unsampled.fname <- 'un-sampled-polygons'
+  
+  # shapefile containing median values / most likely classes by delineation
+  shp.stats.fname <- 'polygons-with-stats'
+  
+  # shapefile containing "proportion of samples outside 5-95% quantile range" by delineation
+  shp.qc.fname <- 'poly-qc'
+  
+  # comma-separated value file containing quantiles by mapunit column level
+  csv.mucol.stats.fname <- 'mucol-stats.csv'
+  
+  # comma-separated value file containing median values / most likely classes by delineation
+  csv.stats.fname <- 'poly-stats.csv'
+  
+  # comma-separated value file containing "proportion of samples outside 5-95% quantile range" by delineation
+  csv.qc.fname <- 'poly-qc.csv'
+  
+  outputfiles <- c(paste0(c(shp.unsampled.fname,shp.stats.fname,shp.qc.fname),".shp"), csv.qc.fname, csv.stats.fname)
+  
+  warning(sprintf("One or more SHP or output file paths exceeds 260 character limit when including all `mu.col` symbols (n = %s) in the name. Reverting to shorter (non-specific) file names. See options in config.R to customize output file names.", length(mu.set)), call. = FALSE)
+}
+
+if (any(grepl(basename(outputfiles), pattern = '([/\\|<>:\\*?\"])'))) {
+  stop("Map unit set or output file name contains invalid characters for filename. Either override default output filenames in config.R or remove [/\\|<>:\\*?\"] characters from your map unit symbols.", call. = FALSE)
+}
+### -----
+
+mu$pID <- 1:nrow(mu)
+
+if (cache.samples & file.exists('cached-samples.Rda')) {
+  
+  message('Using cached raster samples...')
+  .sampling.time <- 'using cached samples'
+  load('cached-samples.Rda')
+  
+} else {
+  
+  # suppressing warnings: these have to do with conversion of CRS of points
+  # iterate over map units and sample rasters
+  # result is a list
+  # 
+  # .timer.start <- Sys.time()
+  # target.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list,
+  #                                                         pts.per.acre, progress = FALSE, 
+  #                                                         estimateEffectiveSampleSize = correct.sample.size))
+  # .timer.stop <- Sys.time()
+  # 
+  # .sampling.time <- format(difftime(.timer.stop, .timer.start, units = 'mins'), digits = 2)
+  # print(paste0("Completed sampling of raster stack for poly symbols (",
+  #              paste(mu.set, collapse = ","),") in ", .sampling.time, "."))
+  # 
+  .timer.start <- Sys.time()
+  sampling.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list,
+                                                          pts.per.acre, progress = FALSE, 
+                                                          estimateEffectiveSampleSize = correct.sample.size))
+  .timer.stop <- Sys.time()
+  
+  .sampling.time <- format(difftime(.timer.stop, .timer.start, units = 'mins'), digits = 2)
+  print(paste0("Completed sampling of raster stack for poly symbols (",
+               paste(mu.set, collapse = ","),") in ", .sampling.time, "."))
+
+  sampling.res$raster.samples[[mu.col]] <- factor(sampling.res$raster.samples[[mu.col]], levels = mu.set)
+
+  print("DONE!")
+  
+  if (cache.samples)
+    save(mu, sampling.res,file = 'cached-samples.Rda')
+}
+
+## subset raster samples by data type: continuous, categorical, circular
+d.continuous <- subset(sampling.res$raster.samples, variable.type == 'continuous')
+d.continuous$variable <- factor(d.continuous$variable, levels = names(raster.list$continuous))
+d.circ <- subset(sampling.res$raster.samples, variable.type == 'circular')
+d.cat <- subset(sampling.res$raster.samples, variable.type == 'categorical')
+
+### SUBSET CATEGORICAL VARIABLEs
+d.cat[[mu.col]] <- factor(d.cat[[mu.col]], levels = mu.set)
+d.cat.sub <- list()
+
+do.continuous <- isTRUE(nrow(d.continuous) > 0)
+do.aspect <- isTRUE(nrow(d.circ) > 0)
+do.categorical <-  isTRUE(nrow(d.cat) > 0)
+
+### FORMATTING
+## figure out reasonable figure heights for bwplots and density plots
+# baseline height for figure margins, axes, and legend
+min.height <- 2 
+# height required for each panel
+panel.height <- 2 * length(levels(d.continuous$variable))
+# extra height for each ID
+id.height <- 0.25 * length(levels(d.continuous[[mu.col]]))
+dynamic.fig.height <- min.height + panel.height + id.height
+
+# nice colors
+cols <- makeNiceColors(length(mu.set))
+
+# TODO: Null out raster samples to save memory TOGGLE
+## http://adv-r.had.co.nz/memory.html#memory
+# sampling.res$raster.samples <- NULL
+
+# TODO / DEBUGGING: report on invalid geometries that could be interfering with sampling
+#    * https://github.com/ncss-tech/sharpshootR/commit/9ada343fea46d18f7c2e10c12a7dc1cbfb71679f
+# 
+# results in:
+# sampling.res$mu.validity.check
+```
+
+<br>
+<div style="text-align: center; border-top-style: solid; border-bottom-style: solid; border-top-width: 2px; border-bottom-width: 2px;"><span style="font-size: 200%; font-weight: bold;">Map units (`r mu.col`): `r paste(mu.set, collapse = ", ")`</span>
+<br>
+report version `r .report.version`
+<br>
+`r format(Sys.time(), "%Y-%m-%d")`</div>
+
+<br>
+This report is designed to provide statistical summaries of the environmental properties for one or more map units. Summaries are based on raster data extracted from [fixed-density sampling of map unit polygons](http://ncss-tech.github.io/AQP/sharpshootR/sample-vs-population.html). [Percentiles](https://ncss-tech.github.io/soil-range-in-characteristics/why-percentiles.html) are used as robust metrics of distribution central tendency and spread. Please see the document titled *R-Based Map Unit Summary Report Introduction and Description* for background and setup.
+
+
+### Map Unit Polygon Data Source
+
+```{r, echo=FALSE}
+fd <- data.frame(`MU Polygons` = mu.dsn, `File or Feature` = mu.layer)
+kable(fd, row.names = FALSE)
+```
+
+
+### Raster Data Sources
+
+```{r, echo=FALSE}
+kable(sampling.res$raster.summary, row.names = FALSE, digits = 3)
+```
+
+
+### Area Summaries
+
+Target sampling density: <b>`r pts.per.acre` points/ac.</b> defined in `config.R`. Consider increasing if there are unsampled polygons or if the number of samples is less than *about 200*. Note that the mean sampling density (per polygon) will always be slightly lower than the target sampling density, depending on polygon shape.
+
+```{r, echo=FALSE}
+kable(sampling.res$area.stats, caption='Map Unit Acreage by Polygon', align = 'r', 
+      col.names = c(mu.col, names(sampling.res$area.stats)[-1]))
+```
+
+
+### Modified Box and Whisker Plots
+
+Whiskers extend from the 5th to 95th [percentiles](https://en.wikipedia.org/wiki/Percentile), the body represents the 25th through 75th percentiles, and the dot is the 50th percentile. Box width is proportional to the number of samples per map unit (e.g. total map unit area). Notches (if enabled) represent an approximate confidence interval around the median, adjusted for spatial autocorrelation. Overlapping notches suggest that median values are not significantly different. This feature can be enabled by setting `correct.sample.size=TRUE` in `config.R`.
+
+**Suggested usage:**
+
+ * Gauge overlap between map units in terms of boxes (25th-75th percentiles) and whiskers (5th-95th percentiles).
+ * Non-overlapping boxes are a strong indication that the central tendencies (of select raster data) differ.
+ * Distribution shape is difficult to infer from box and whisker plots, remember to cross-reference with density plots below.
+
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height, eval=do.continuous}
+tps <- list(box.rectangle = list(col = 'black'), 
+            box.umbrella = list(col = 'black', lty = 1), 
+            box.dot = list(cex = 0.75),
+            plot.symbol = list(col = rgb(0.1, 0.1, 0.1, alpha = 0.25, maxColorValue = 1), cex = 0.25))
+
+# NOTE: notches rely on effective sampling size
+bwplot(as.formula(sprintf("%s ~ value | variable", mu.col)), data = d.continuous, 
+       scales = list(y = list(alternating = 1), x = list(relation = 'free', tick.number = 10)), 
+       as.table = TRUE, col = 'black', strip = strip.custom(bg = grey(0.85)), 
+       xlab = '', par.settings = tps, subscripts = TRUE, 
+       layout = c(1, length(levels(d.continuous$variable))),
+       varwidth = TRUE, panel = function(x, subscripts=subscripts, ...) {
+         
+         # extract the current raster name
+         this.raster <- as.character(unique(d.continuous$variable[subscripts]))
+         
+         # get associated Moran's I
+         idx <- which(sampling.res$Moran_I$Variable == this.raster)
+         this.Moran.I <- sampling.res$Moran_I$Moran.I[idx]
+         
+         # make a grid
+         panel.grid(h = 0, v = -1, col = 'grey', lty = 3)
+         panel.abline(h = 1:length(unique(d.continuous[[mu.col]])), col = 'grey', lty = 3)
+         
+         # boxplots with custom sampling size:
+         # coef: Moran's I associated with this raster
+         panel.bwplot(x, stats = custom.bwplot, 
+                      notch = correct.sample.size, coef = this.Moran.I, ...)
+
+       })
+```
+
+
+### Density Plots
+
+These plots are a smooth alternative ([density estimation](https://en.wikipedia.org/wiki/Density_estimation)) to the classic "binned" ([histogram](https://en.wikipedia.org/wiki/Histogram)) approach to visualizing distributions. Peaks correspond to values that are most frequent within a data set. Each data set (ID / variable) are rescaled to {0,1} so that the y-axis can be interpreted as the "relative proportion of samples".
+
+**Suggested usage:**
+
+ * Density plots depict a more detailed summary of distribution shape.
+ * When making comparisons, be sure to look for:
+   + multiple peaks
+   + narrow peaks vs. wide "mounds"
+   + short vs. long "tails"
+
+```{r, echo=FALSE, fig.width=8, fig.height=dynamic.fig.height, eval=do.continuous}
+## TODO: consider variable line width proportional to area
+## https://github.com/ncss-tech/soilReports/issues/81
+# var.lwd <- scales::rescale(log(sampling.res$area.stats$`Total Area`), to=c(0.5, 2.5))
+tps <- list(superpose.line = list(col = cols, lwd = 2, lend = 2))
+
+# dynamic setting of columns in legend
+n.cols <- ifelse(length(mu.set) <= 4, length(mu.set), 5)
+
+# scaling of density curves
+# just in case this isn't in the config file, set a default value here
+if (!exists('scaleDensityCurves'))
+  scaleDensityCurves <- TRUE
+
+# compute densities and optionally re-scale to {0,1}
+density.plot.data <- ddply(d.continuous, c(mu.col, 'variable'), 
+                           scaled.density, 
+                           constantScaling = scaleDensityCurves)
+density.plot.data$.id <- density.plot.data[[mu.col]]
+
+xyplot(y ~ x | variable, 
+       groups = .id, 
+       data = density.plot.data, 
+       xlab = '', 
+       ylab = 'Relative Proportion', 
+       scales = list(relation = 'free', 
+                   x = list(tick.number = 10), 
+                   y = list(at = NULL)), 
+       plot.points = FALSE, 
+       strip = strip.custom(bg = grey(0.85)), 
+       as.table = TRUE, 
+       layout = c(1, length(levels(d.continuous$variable))), 
+       auto.key = list(lines = TRUE, points = FALSE, columns = n.cols, cex = 0.8),
+       par.settings = tps, type = c('l','g'))
+rm(density.plot.data)
+```
+
+### Tabular Summaries
+
+Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by variable. In these tables, headings like "Q5" can be interpreted as the the "5th percentile"; 5% of the data are less than this value. The 50th percentile ("Q50") is the median.
+
+```{r, echo=FALSE, results='asis', eval=do.continuous}
+# summarize raster data for tabular output
+mu.stats <- ddply(d.continuous, c('variable', mu.col), f.summary, p = p.quantiles)
+
+# print medians
+dg <- c(0, rep(2, times = length(unique(mu.stats$variable))))
+mu.stats.wide <- data.table::dcast(data.table::setDT(mu.stats), 
+                                   as.formula(sprintf("%s ~ variable", mu.col)), 
+                                   value.var = 'Q50')
+kable(mu.stats.wide, row.names = FALSE, caption = 'Median Values', 
+      align = 'r', digits = , col.names = c(mu.col, names(mu.stats.wide)[-1]))
+```
+
+```{r, echo=FALSE, results='asis', eval=do.continuous}
+muv <- split(mu.stats, mu.stats$variable)
+l <- lapply(seq_along(muv), function(i) {
+  # remove variable column
+  var.name <- unique(muv[[i]]$variable)
+  if (length(var.name) == 0 || is.null(var.name) || is.na(var.name)) {
+    return(NULL)
+  }
+  muv[[i]]$variable <- NULL
+  dg <- c(0, rep(2, times = length(p.quantiles)), 3)
+  # note: chunk option results='asis'
+  print(kable(
+    muv[[i]],
+    caption = var.name,
+    row.names = FALSE,
+    align = 'r',
+    digits = dg,
+    col.names = c(mu.col, names(muv[[i]])[-1])
+  ))
+})
+```
+
+
+### Slope Aspect
+
+A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality. Use the figures and table below to determine "clockwise" / "counter clockwise" values for NASIS component records.
+
+**Suggested usage:**
+
+ * Check circular density estimates for peaks: this suggests directionality.
+ * These summaries are meaningless when slope values are less than approximately 3%.
+ * These summaries are (mostly) meaningless when arrow lengths are short; e.g. low directionality.
+ * There is no general relationship between 10th/90th percentiles and "clockwise" vs. "counterclockwise"
+
+```{r, echo=FALSE, results='hide', eval=do.aspect}
+## circular stats, by map unit
+d.circ.list <- split(d.circ, d.circ[[mu.col]])
+
+# this has to be called 2x, as we are adjusting the device settings on the fly
+fig.geom <- dynamicPar(length(d.circ.list))
+
+# update default device output size
+opts_chunk$set(fig.height = fig.geom[1] * 5) # rows
+opts_chunk$set(fig.width = fig.geom[2] * 5) # cols
+```
+
+
+```{r, echo=FALSE, results='asis', eval=do.aspect}
+# reset multi-figure plotting parameters
+dynamicPar(length(d.circ.list))
+
+res <- ldply(d.circ.list, function(i) {
+  mu <- unique(i[[mu.col]])
+  circ.stats <- sharpshootR::aspect.plot(
+    i$value,
+    q = c(0.1, 0.5, 0.9),
+    plot.title = mu,
+    pch = NA,
+    bg = 'RoyalBlue',
+    col = 'black',
+    arrow.col = c('grey', 'red', 'grey'),
+    stack = FALSE,
+    p.bw = 90
+  )
+  qs <- as.numeric(circ.stats)
+  names(qs) <- c("Q10", "Q50", "Q90")
+  us <- attr(circ.stats, "uniformity")
+  us[1] <- signif(us[1], 3)
+  if (us[2] < 1e-8) {
+    us[2] <- "<1e-8"
+  }
+  return(c(round(qs), us))
+})
+
+# tabular summary
+kable(res, align = 'r', col.names = c(mu.col, names(res)[-1]))
+```
+
+```{r, echo=FALSE, fig.width=12, fig.height=6, results="asis", eval=do.categorical}
+# make categorical summaries for all categorical variables
+d.cat.list <- split(d.cat, f = d.cat$variable)
+
+l <- lapply(
+    d.cat.list,
+    FUN = makeCategoricalOutput,
+    mu.col = mu.col,
+    categorical.defs = categorical.defs
+  )
+```
+
+
+### Multivariate Summary
+
+This plot displays the similarity of the map units across the set of environmental variables used in this report. The contours contain 75% (dotted line), 50% (dashed line), and 25% (solid line) of the points in an optimal [2D projection](https://en.wikipedia.org/wiki/Multidimensional_scaling#Non-metric_multidimensional_scaling) of multivariate data space. Data from map units with more than 1,000 samples are (sub-sampled via [cLHS](https://en.wikipedia.org/wiki/Latin_hypercube_sampling)). Map units with very low variation in environmental variables can result in tightly clustered points in the 2D projection. It is not possible to generate a multivariate summary when any sampled variable (e.g. slope) has a near-zero variance. See [this chapter](http://ncss-tech.github.io/stats_for_soil_survey/book/sampling.html), from the *Statistics for Soil Survey* NEDS course, for an soils-specific introduction to these concepts.
+
+**Suggested usage:**
+
+ * The relative position of points and contours are meaningful; absolute position will vary each time the report is run.
+ * Colors match those used in the density plots above. Be sure to cross-reference this figure with density plots.
+ * Look for "diffuse" vs. "concentrated" clusters: these suggest relatively broadly vs. narrowly defined map unit concepts.
+ * Multiple, disconnected contours (per map unit) could indicate errors or small map unit separated by large distances. Check for multiple peaks in the associated density plots.
+ * Nesting of clusters (e.g. smaller cluster contained by larger cluster) suggests superset/subset relationships.
+ * Overlap is proportional to similarity.
+ * Comment-out raster data sources with low variability off if the multivariate summary is not displayed.
+ 
+
+```{r, results='hide', warning=FALSE, echo=FALSE, fig.width=9, fig.height=9, eval=do.continuous}
+## TODO: 
+# 1. combine median of continuous, geomorphons proportions, and NLCD proportions for dendrogram
+
+# cast to wide format
+d.mu.wide <- as.data.frame(data.table::dcast(data.table::setDT(d.continuous),
+                           as.formula(sprintf("sid + pID + %s ~ variable", mu.col)),
+                           value.var = 'value'))
+
+# drop rows with NA
+d.mu.wide <- na.omit(d.mu.wide)
+
+# locate "non-id" vars that have non-zero SD
+# these are safe for cLHs and distance calc
+# solution for https://github.com/ncss-tech/soilReports/issues/87
+d.mu.wide.vars <- findSafeVars(d.mu.wide, id = c(mu.col, 'sid', 'pID'))
+
+# must have > 1 variables to perform multivariate summary
+if (length(d.mu.wide.vars) < 2) {
+  multivariate.summary <- FALSE
+} else {
+  multivariate.summary <- TRUE
+  
+  ## DEB 2019-05-15: the following check for low SD variables is too strict
+  ##             keeping it around just in case, slated for removal
+  # https://github.com/ncss-tech/soilReports/issues/87
+  
+  # # check SD of each column, by group
+  # sd.by.id <- ddply(d.mu.wide, mu.col, function(i) {sapply(i[, d.mu.wide.vars, drop=FALSE], sd, na.rm=TRUE)})
+  # sd.by.id$res <- apply(sd.by.id[, -1], 1, function(i) any(i < 1e-5))
+  # 
+  # # if the SD is low in any column from all MU then stop  
+  # if(all(sd.by.id$res)) {  
+  #   multivariate.summary <- FALSE
+  # } else {
+  #   # OK to run MV summaries
+  #   multivariate.summary <- TRUE
+  #   
+  #   ## TODO: this may be too strict, remove variables first
+  #   ## https://github.com/ncss-tech/soilReports/issues/87
+  #   # filter out low-variance MU
+  #   if(any(sd.by.id$res)) {
+  #     ids.to.keep <- sd.by.id[[mu.col]][which(!sd.by.id$res)]
+  #     d.mu.wide <- d.mu.wide[which(d.mu.wide[[mu.col]] %in% ids.to.keep), ]
+  #     
+  #     # reset mu.set accordingly
+  #     idx.to.keep <- which(! mu.set %in% setdiff(mu.set, ids.to.keep))
+  #     mu.set <- mu.set[idx.to.keep]
+  #   }
+    
+
+    
+    ## TODO: what is a reasonable sample size?
+    # only sub-sample if there are "a lot" of samples
+    if (nrow(d.mu.wide) > 1000) {
+      # sub-sample via LHS: this takes time
+      # first three columns are IDs
+      # n: this is the number of sub-samples / map unit
+      # non.id.vars: this is an index to non-ID columns
+      d.sub <- ddply(d.mu.wide, mu.col, cLHS_subset, n = 50, non.id.vars=d.mu.wide.vars)
+    } else {
+      d.sub <- d.mu.wide
+    }
+    
+    ## NOTE: data with very low variability will cause warnings
+    # eval numerical distance, removing 'sid' and '.id' columns
+    d.dist <- daisy(d.sub[, d.mu.wide.vars], stand = TRUE)
+    
+    ## map distance matrix to 2D space via principal coordinates
+    d.betadisper <- vegan::betadisper(d.dist, group = d.sub[[mu.col]], 
+                                      bias.adjust = TRUE, 
+                                      sqrt.dist = TRUE, type = 'median')
+    d.scores <- vegan::scores(d.betadisper)
+    
+    # contour density estimates
+    # add contours for fixed pct of data density using KDE
+    # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
+    s <- data.frame(x = d.scores$sites[, 1], y = d.scores$sites[, 2],
+                    .id = d.sub[[mu.col]])
+    colnames(s)[3] <- mu.col
+    s <- split(s, s[[mu.col]])
+    
+    # plot
+    par(mar = c(1,1,3,1))
+    plot(d.scores$sites, type = 'n', axes = FALSE)
+    abline(h = 0, v = 0, lty = 2, col = 'grey')
+    
+    # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
+    # add contours of prob density
+    res <- lapply(s, kdeContours, id = mu.col, prob = c(0.75), 
+                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 1, lty = 3)
+    res <- lapply(s, kdeContours, id = mu.col, prob = (0.5), 
+                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 1, lty = 2)
+    res <- lapply(s, kdeContours, id = mu.col, prob = c(0.25), 
+                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 2, lty = 1)
+    
+    points(d.scores$sites, cex = 0.45, col = cols[as.numeric(d.sub[[mu.col]])], pch = 16)
+    
+    # note special indexing for cases when low-var MU have been removed
+    vegan::ordilabel(d.betadisper, display = 'centroids', col = cols[match(mu.set, levels(d.sub[[mu.col]]))])
+    title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
+    box()
+}
+```
+
+```{r, echo=FALSE, eval=do.continuous}
+if (multivariate.summary == FALSE)
+  print('Cannot create ordination plot: >1 rasters required or not enough variance within each map unit.')
+```
+
+
+### Raster Data Correlation
+The following figure highlights shared information among raster data sources based on [Spearman's Ranked Correlation coefficient](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient). Branch height is associated with the degree of shared information between raster data.
+
+**Suggested usage:**
+
+ * Look for clustered sets of raster data: typically PRISM-derived and elevation data are closely correlated.
+ * Highly correlated raster data sources reduce the reliability of the "raster data importance" figure.
+
+```{r, echo=FALSE, fig.width=10, fig.height=8, eval=do.continuous && multivariate.summary}
+par(mar = c(2,5,2,2))
+## note that we don't load the Hmisc package as it causes many NAMESPACE conflicts
+## This requires 3 or more variables
+if (length(d.mu.wide.vars) > 3) {
+  try(plot(Hmisc::varclus(as.matrix(d.sub[, d.mu.wide.vars]))), silent = TRUE)
+} else
+  print('This plot requires three or more raster variables, apart from aspect, curvature class, and geomorphons.')
+```
+
+
+### Raster Data Importance
+The following figure ranks raster data sources in terms of how accurately each can be used to discriminate between map unit concepts. 
+
+**Suggested usage:**
+
+ * Map unit concepts are more consistently predicted (by supervised classification) using those raster data sources with relatively larger "Mean Decrease in Accuracy" values.
+ * Highly correlated raster data sources will "compete" for positions in this figure. For example, if *elevation* and *mean annual air temperature* are highly correlated, then their respective "importance" values are interchangeable.
+
+
+```{r, echo=FALSE, fig.width=8, fig.height=6, eval=do.continuous && multivariate.summary}
+# this will only work with >= 2 map units and >= 2 variables
+
+# reset factor levels so that empty classes are not passed on to randomForest() (will cause error if empty/low-variance MUs are present)
+d.sub[[mu.col]] <- factor(d.sub[[mu.col]])
+
+if (length(levels(d.sub[[mu.col]])) >= 2) {
+ # use supervised classification to empirically determine the relative importance of each raster layer
+  # TODO: include geomorphons and curvature classes
+  # TODO: consider using party::cforest() for conditional variable importance-- varimp
+  m <- randomForest(x = d.sub[, d.mu.wide.vars], y = d.sub[[mu.col]], importance = TRUE)
+  
+  # variable importance
+  # TODO: how to interpret raw output from importance:
+  # http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
+  varImpPlot(m, scale = TRUE, type = 1, main = 'Mean Decrease in Accuracy')
+  # kable(importance(m, scale=FALSE, type=2), digits = 3)
+  
+  # ## this adds several seconds to processing time
+  # # predict using samples from each polygon, to get proportions of each MU
+  # d.mu.wide <- na.omit(d.mu.wide)
+  # d.mu.wide$.predMU <- as.character(predict(m, d.mu.wide))
+  # 
+  # ## TODO: add number of samples / sid
+  # # compute proportion of each class by sid
+  # pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
+  #   # explicit setting of levels results in exact output each iteration
+  #   prop.table(table(factor(i$.predMU, levels=mu.set)))
+  # })
+  
+  ## TODO
+  # compute Shannon Entropy at each sid and fix names (useful?)
+  
+  ## TODO: join with output SHP via sid 
+} else {
+  # print message about not enough map unit s
+  print('This plot requires two or more map units.')
+}
+
+
+## re-make example tables below
+# kable(head(x[, c(1,2, 14:22)], 4), row.names = FALSE, digits = 2)
+# kable(head(x[, c(1,2, 23:34)], 4), row.names = FALSE, digits = 2)
+# kable(head(x[, c(1,2, 35)], 3), row.names = FALSE, digits = 2)
+```
+
+
+## Polygon Summaries
+
+
+```{r, echo=FALSE, eval=do.continuous}
+# apply across raster values, to all polygons
+
+#calculates prop outside range for _all_ polys
+polygons.to.check <- ddply(d.continuous, c(mu.col, 'variable'), flagPolygons) #, p.crit = 0)
+
+poly.check.wide <- as.data.frame(data.table::dcast(data.table::setDT(polygons.to.check),
+                                 pID ~ variable, value.var = 'prop.outside.range'))
+
+#replace NAs with zero (no samples outside 5-95% percentile range)
+poly.check.wide[is.na(poly.check.wide)] = 0 
+
+mu.check <- merge(mu, poly.check.wide, by = 'pID', all.x = TRUE)
+names(mu.check)[-1] <- abbreviateNames(mu.check)
+
+# fix names for printing
+names(polygons.to.check)[1] <- mu.col
+```
+
+
+```{r, echo=FALSE, eval=do.continuous}
+#save a SHP file with prop.outside.range for each polygon and raster data source combination
+if (nrow(polygons.to.check) > 0) {
+  try(writeVector(mu.check, paste0(file.path('output', shp.qc.fname), ".shp"), overwrite = TRUE))
+  try(write.csv(mu.check, paste0('output/', csv.qc.fname)))
+}
+
+## generates sample prop.outside.range table for documentation purposes
+#kable(head(mu.check[,c(1,2,14:20)],3), row.names = FALSE, digits = 2)
+```
+
+
+```{r echo=FALSE, eval=do.continuous}
+# save SHP with any un-sampled polygons
+if (length(sampling.res$unsampled.ids) > 0) {
+  try(terra::writeVector(mu[sampling.res$unsampled.ids, ], 
+                         paste0(file.path('output', shp.unsampled.fname), ".shp"), 
+                         overwrite = TRUE))
+}
+
+# compute summaries by polygon*variable
+poly.stats <- ddply(d.continuous, c('pID', 'variable'), f.summary, p = p.quantiles)
+
+# convert to wide format, keeping median value
+poly.stats.wide <- as.data.frame(data.table::dcast(data.table::setDT(poly.stats), 
+                                 pID ~ variable, value.var = 'Q50'))
+
+# compute summaries by variable
+mucol.stats <- ddply(d.continuous, c(mu.col, 'variable'), f.summary, p = p.quantiles)
+mucol.stats.wide <- data.frame(.id = unique(d.continuous[[mu.col]]))
+names(mucol.stats.wide)[1] <- mu.col
+
+res <- lapply(split(mucol.stats, mucol.stats$variable), function(vardata) {
+  varname <- abbreviate(gsub('[^[:alpha:]_]', '', unique(vardata$variable)), minlength = 10)
+  names(vardata) <- paste0(varname,"_", names(vardata))
+  names(vardata)[1] <- mu.col
+  mucol.stats.wide <<- merge(mucol.stats.wide, vardata)
+})
+
+# # convert to wide format, keeping log_abs_madm
+# poly.stats.wide.2 <- dcast(poly.stats, pID ~ variable, value.var = 'log_abs_madm')
+
+# add a suffix to variable names so that we can combine
+# names(poly.stats.wide.1)[-1] <- paste0(names(poly.stats.wide.1)[-1], '_med')
+# names(poly.stats.wide.2)[-1] <- paste0(names(poly.stats.wide.2)[-1], '_var')
+
+## TODO: pending further review
+# join median + MADM stats for each polygon
+# poly.stats.wide <- join(poly.stats.wide.1, poly.stats.wide.2, by='pID')
+# poly.stats.wide <- poly.stats.wide.1
+
+# save
+try(write.csv(poly.stats.wide, file = paste0('output/', csv.stats.fname), row.names = FALSE))
+try(write.csv(mucol.stats.wide, file = paste0('output/', csv.mucol.stats.fname), row.names = FALSE))
+
+## join stats to map unit polygon attribute table
+mu <- merge(mu, poly.stats.wide, by = 'pID', all.x = TRUE)
+names(mu)[-1] <- abbreviateNames(mu)
+
+# remove internally-used MU ID
+mu$.id <- NULL
+
+# save to file
+try(terra::writeVector(mu, paste0(file.path('output', shp.stats.fname), ".shp"), overwrite = TRUE))
+
+## TODO: how do you trap warnings within a .Rmd knitting session?
+# save warnings to log file
+# cat(warnings(), file = 'output/warning-log.txt')
+```
+
+A variety of output files are created by this report (in `output` folder). The output file names can be adjusted in `config.R`. The quantiles for each continuous variable by mapunit symbol are written to a CSV file that looks like this (first 6 columns):
+
+```{r, echo=FALSE, results='asis', eval=do.continuous}
+kable(head(mucol.stats.wide[, 1:pmin(6, length(names(mucol.stats.wide)))]), row.names = FALSE)
+```
+
+A shapefile is generated ("polygons-with-stats-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains summaries computed by polygon. Polygons are uniquely identified by the `pID` column. Median raster values are given, with data source names abbreviated to conform to the limitations of DBF files:
+
+```{r, echo=FALSE, results='asis', eval=do.continuous}
+kable(head(poly.stats.wide), row.names = FALSE)
+```
+
+<!-- 
+
+When/why was this removed? I don't think this output exists any more -- but it used to after I generalized categoricals. AGB 2020/09/14
+
+There are several columns containing the proportions of each landform element (geomorphons algorithm), the most likely ("ml_landfrm") landform element, and the [Shannon entropy](https://en.wiktionary.org/wiki/Shannon_entropy) associated with landform proportions. The Shannon entropy value can be used to judge the relative "landform purity" of a delineation: smaller values are associated with more homogeneous delineations. Equal proportions of all landform elements (within a polygon) would result in a Shannon entropy value of 1.
+
+| pID|MUSYM | flat| summit| ridge| shoulder| spur| slope| hollow| footslope| valley| depression|ml_landfrm | shannon_h|
+|---:|:-----|----:|------:|-----:|--------:|----:|-----:|------:|---------:|------:|----------:|:----------|---------:|
+|   1|7011  | 0.00|   0.01|  0.03|     0.00| 0.05|  0.12|   0.19|      0.04|   0.52|       0.03|valley     |      0.44|
+|   2|7011  | 0.34|   0.00|  0.02|     0.02| 0.05|  0.15|   0.04|      0.20|   0.17|       0.00|flat       |      0.62|
+|   3|7089  | 0.00|   0.04|  0.08|     0.00| 0.32|  0.45|   0.08|      0.00|   0.02|       0.02|slope      |      0.54|
+|   4|7011  | 0.00|   0.00|  0.00|     0.00| 0.00|  0.00|   0.08|      0.08|   0.85|       0.00|valley     |      0.17|
+
+-->
+
+In the case of un-sampled polygons (very small delineations or too low sampling density), an additional shapefile will be saved in the output folder with a prefix of "un-sampled-". This file contains those polygons that were not allocated any sampling points and thus not included in the report summaries.
+
+
+### Polygon Quality Control
+
+A shapefile is generated each time a report is run ("poly-qc-XXX" where "XXX" is the set of map units symbols listed in `config.R`) that contains the proportion of samples outside the 5-95% percentile range. In the attribute table there is one column per raster data source and one row per map unit delineation. 
+
+The 5 - 95% percentile range for each map unit is derived from the samples across all polygons with the corresponding map unit symbol. The proportion of samples _outside_ the 5 - 95% range within _individual_ polygons is given for each (continuous) raster data source. Approximately 10% of samples across the extent of a particular map unit are expected to fall outside the 5 - 95% percentile range. 
+
+Delineations with more than 10 - 15% of samples outside the range for a data source may need to be investigated. It is expected that some delineations will occur at the margins of the map unit extent. Expert judgement is required to determine whether action should be taken to resolve any potentially problematic delineations. 
+
+Here is a sample output table for a few polygons. Sorting these columns by magnitude in your GIS software offers a quick way to find potentially problematic areas.
+
+```{r, echo=FALSE, results='asis', eval=do.continuous}
+kable(head(mu.check[complete.cases(as.data.frame(mu.check)),], row.names = FALSE))
+```
+
+----------------------------
+This document is based on `sharpshootR` version `r utils::packageDescription("sharpshootR", field="Version")`.
+<br>
+Report [configuration and source code are hosted on GitHub](https://github.com/ncss-tech/soilReports).
+<br>
+Sampling time: `r .sampling.time`
+

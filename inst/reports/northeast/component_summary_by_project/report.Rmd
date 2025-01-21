@@ -1,0 +1,432 @@
+---
+title: "Component Report"
+author: "`r Sys.getenv('USERNAME')`"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+params:
+  projectname: !r as.character("MLRA 95 - Poygan silty clay loam, 0 to 2 percent slopes")
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = FALSE)
+
+```
+
+
+```{r packages}
+library(soilDB)
+library(soilReports) ##AB: Is this required?
+library(aqp)
+library(ggplot2)
+library(RColorBrewer)
+library(Cairo)
+library(DT)
+```
+
+
+# Project Data
+
+```{r project data}
+
+# project mapunits
+projectname <- unlist(strsplit(params$projectname, ";"))
+f    <- fetchNASISWebReport(projectname, fill = TRUE, stringsAsFactors = TRUE)
+pm   <- f$mapunit
+comp <- f$spc
+
+# comp <- subsetProfiles(comp, s = 'dmuiid != 552940')
+
+idx <- !duplicated(pm$projectname)
+datatable(pm[idx, c("mlrassoarea", "projecttypename", "fiscalyear", "projectname")],
+          options = list(pageLength = length(pm))
+          )
+
+datatable(rbind(
+  pm[c("areasymbol", "musym", "nationalmusym", "muname", "muacres")],
+  data.frame(areasymbol = "SUM", musym = "", nationalmusym = "", muname = "", muacres = sum(pm$muacres, na.rm = TRUE))
+  ),
+  options = list(pageLength = nrow(pm) + 1)
+  )
+
+```
+
+
+# Component Data
+
+```{r component data}
+
+# load component data
+
+horizons(comp) <- within(horizons(comp), {
+  dep   = hzdept_r
+  hzdepm_r = (hzdept_r + hzdepb_r) / 2
+  genhz = generalize.hz(hzname, 
+                        new = c("O", "A",  "E",     "B",  "Bt", "Btg", "2Btx", "C", "Cr", "R", "H"), 
+                        pat = c("O", "^A", "E|^A2", "^B", "t",  "g",   "x",    "C", "r",  "R", "H"),
+                        hzdepm = hzdepm_r
+                        )
+  color = brewer.pal(nlevels(genhz), "RdYlBu")[as.numeric(genhz)]
+})
+
+s <- within(site(comp), {
+  dmudesc_short = abbreviate(dmudesc, 20)
+  comppct_r2 = ifelse(is.na(comppct_r), 0, comppct_r)
+  compname2 = reorder(compname, comppct_r2, max)
+  comp_id   = factor(paste(compname, "\n", dmuiid ,"\n" , comppct_r, "%"))
+  comp_id   = factor(comp_id, levels = unique(comp_id[order(- as.numeric(compname2), - dmuiid)]))
+  })
+  
+cosm <- get_cosoilmoist_from_NASISWebReport(projectname, stringsAsFactors = TRUE)
+idx <- with(cosm, {!is.na(cosm$soimoistdept_r) & cosm$soimoiststat == "wet"})
+if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
+cosm <- within(cosm, {
+  comppct_r2 = ifelse(is.na(comppct_r), 0, comppct_r)
+  compname2 = reorder(compname, comppct_r2, max)
+  comp_id   = factor(paste(compname, "\n", dmuiid ,"\n" , comppct_r, "%", "\n", drainagecl))
+  comp_id   = factor(comp_id, levels = unique(comp_id[order(- as.numeric(compname2), - dmuiid)]))
+  })
+
+s <- s[order(- s$dmuiid, - s$comppct_r, s$compname), ]
+h <- merge(horizons(comp), s[c("coiid", "comp_id")], by = "coiid", all.x = TRUE)
+h <- h[order(h$comp_id, decreasing = TRUE), ]
+
+idx <- names(h) %in% "coiid"
+comp <- h[!idx]
+depths(comp) <- comp_id ~  hzdept_r + hzdepb_r
+site(comp) <- s
+
+
+# set figure heights
+n_wtables <- length(unique(cosm$coiid))
+h_wtables <- (ceiling(n_wtables / 3) * 3) + 0.25
+
+idx <- with(s, !is.na(pmkind) | !is.na(landform))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_pm <- n_compname * ceiling(0.3 * length(unique(s$pmkind))) + 1.5
+
+idx <- with(s, !is.na(landform) | !is.na(geompos))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_lf <- n_compname * ceiling(0.3 * length(unique(s$landform))) + 1.5
+
+idx <- with(s, !is.na(hillslopeprof) | ! is.na(geompos))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_2d <- n_compname * ceiling(0.5 * length(unique(s$hillslopeprof))) + 1.5
+
+idx <- with(s, !is.na(hillslopeprof) | ! is.na(slopeshape))
+n_compname  <- ceiling(length(unique(paste(s$compname[idx], s$drainagecl[idx]))) / 3) + 0.2
+h_cplots_ss <- n_compname * ceiling(0.5 * length(unique(s$hillslopeprof))) + 1.5
+
+n_dplots <- length(unique(site(subsetProfiles(comp, h = "!is.na(hzdept_r)"))$coiid))
+h_dplots <- (ceiling(n_dplots / 3) * 3) + 0.25
+
+png_dplots <- function(file, width, height) Cairo(file, type = "png", width = width, height = height, units = "in", res=200, pointsize = 15)
+```
+
+
+## Component basics
+
+```{r component stuff}
+
+datatable(with(s, { data.frame(
+  dmudesc_short, compname, comppct_r, majcompflag, localphase, drainagecl, 
+  slope_l, slope_r, slope_h, taxpartsize, taxsubgrp
+  )}), 
+  options = list(pageLength = 10)
+  )
+```
+
+
+## Component Parent Material and Landform
+
+```{r pmkind}
+# parent material and landform
+datatable(with(s, { data.frame(dmudesc_short, compname, drainagecl, slope_r, pmgroupname, pmkind, geompos, landscape, landform, slopeshape, hillslopeprof)}),
+          options = list(pageLength = 10)
+          )
+```
+
+```{r sm_pmkind, fig.dim = c(8, h_cplots_pm), fig.ext = "png", dev = "png_dplots"}
+
+s <- merge(s, pm[c("dmuiid", "mustatus_new")], by = "dmuiid", all = TRUE)
+
+# landform vs 3-D morphometry
+s <- within(s, {
+  comp_sort = factor(paste0(compname, "\n", drainagecl))
+  comp_sort = factor(comp_sort, levels = unique(comp_sort[order(- as.numeric(compname2), - dmuiid)]))
+  })
+
+
+. <- subset(s, ! is.na(pmkind) | ! is.na(landform)) 
+.$comp_sort <- droplevels(.$comp_sort)
+ggplot(., aes(x = landform, y = pmkind, fill = mustatus_new)) + 
+  geom_tile(alpha = 0.5) + 
+  facet_wrap(~ comp_sort, ncol = 3) + 
+  scale_fill_manual(values = c("orange", "blue")) +
+  theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  ggtitle("Parent Material Kind vs Landform by Component")
+```
+
+```{r sm_3d, fig.dim = c(8, h_cplots_lf), fig.ext = "png", dev = "png_dplots"}
+# landform vs 3-D morphometry
+. <- subset(s, ! is.na(landform) | ! is.na(geompos)) 
+.$comp_sort <- droplevels(.$comp_sort)
+ggplot(., aes(x = geompos, y = landform, fill = mustatus_new)) + 
+  geom_tile(alpha = 0.5) + 
+  facet_wrap(~ comp_sort, ncol = 3) + 
+  scale_fill_manual(values = c("orange", "blue")) +
+  theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  ggtitle("Landform vs 3-D Morphometry by Component")
+```
+
+```{r sm_2d, fig.dim = c(8, h_cplots_2d), fig.ext = "png", dev = "png_dplots"}
+# 2-D vs 3-D morphometry
+. <- subset(s, !is.na(hillslopeprof) | ! is.na(geompos)) 
+.$comp_sort <- droplevels(.$comp_sort)
+ggplot(., aes(x = geompos, y = hillslopeprof, fill = mustatus_new)) + 
+  geom_tile(alpha = 0.5) + 
+  facet_wrap(~ comp_sort, ncol = 3) + 
+  scale_fill_manual(values = c("orange", "blue")) +
+  theme(legend.position="top", axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  ggtitle("2-D vs 3-D Morphometry by Component")
+```
+
+```{r sm_ss, fig.dim = c(8, h_cplots_ss), fig.ext = "png", dev = "png_dplots"}
+# 2-D vs slope shape
+. <- subset(s, !is.na(hillslopeprof) | ! is.na(slopeshape))
+.$comp_sort <- droplevels(.$comp_sort)
+ggplot(., aes(x = slopeshape, y = hillslopeprof, fill = mustatus_new)) + 
+  geom_tile(alpha = 0.5) + 
+  facet_wrap(~ comp_sort, ncol = 3) +
+  scale_fill_manual(values = c("orange", "blue")) +
+  theme(legend.position="top") +
+  ggtitle("Hillslope Position vs Slope Shape by Component")
+```
+
+
+## Component Soil Moisture Month
+
+```{r soil moisture, fig.dim = c(8, h_wtables), fig.ext = "png", dev = "png_dplots"}
+
+# component soil moisture month
+ggplot(cosm, aes(x = as.integer(month), y = soimoistdept_r, lty = soimoiststat, group = comppct_r)) +
+  geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
+                ymin = 0, ymax = max(cosm$depb_r),
+                fill = flodfreqcl)) +
+  geom_line(cex = 1) +
+  geom_point() +
+  geom_ribbon(aes(ymin = soimoistdept_l, ymax = soimoistdept_h), alpha = 0.2) +
+  ylim(max(cosm$depb_r), 0) +
+  xlab("month") + ylab("depth (cm)") +
+  scale_x_continuous(breaks = 1:12) + #, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
+  facet_wrap(~ comp_id, ncol = 3, scales = "free_x") +
+  ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
+  theme(legend.position="top")
+
+ggplot(cosm, aes(x = as.integer(month), y = soimoistdept_r, lty = soimoiststat, group = comppct_r)) +
+  geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
+                ymin = 0, ymax = max(cosm$depb_r),
+                fill = pondfreqcl)) +
+  geom_line(cex = 1) +
+  geom_point() +
+  geom_ribbon(aes(ymin = soimoistdept_l, ymax = soimoistdept_h), alpha = 0.2) +
+  ylim(max(cosm$depb_r), 0) +
+  xlab("month") + ylab("depth (cm)") +
+  scale_x_continuous(breaks = 1:12, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
+  facet_wrap(~ comp_id, ncol = 3) +
+  ggtitle("Water Table Levels from Component Soil Moisture Month Data") +
+  theme(legend.position="top")
+
+```
+
+
+# Horizon Data
+
+## Soil Profile Plots
+
+```{r horizon data, , fig.dim = c(8, 8.5), fig.ext = "png", dev = "png_dplots"}
+# profile plot
+
+comp2 <- subsetProfiles(comp, h = "!is.na(hzdept_r)")
+site(comp2)$comp_id2 <- paste(site(comp2)$comp_id, "\n", site(comp2)$taxgrtgroup)
+profile_idx <- pIndex(comp2, 7)
+
+# plot no more than 15 soil profiles on each row
+for (i in seq_along(unique(profile_idx))) {
+  plot(comp2[which(profile_idx == i)], 
+       name = 'hzname', 
+       label = 'comp_id2',
+       color = 'color', 
+       id.style = "top"
+       )
+  }
+
+#plot(comp, label = "comp_id", id.style = "bottom")
+
+# temp <- merge(s[c("coiid", "dmudesc")], h, by = "coiid", all.y = TRUE)
+# temp <- temp[with(temp, order(dmudesc, -comppct_r, compname)), ]
+
+vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h2o", "caco3")
+```
+
+
+## Horizon Depth Plots
+
+```{r, depth plots}
+
+comp <- subsetProfiles(comp, h = "!is.na(hzdept_r)")
+
+# convert the data for depth plot
+vars_slice = horizons(aqp::slice(comp, seq(0, 200, 2) ~ hzname + dep +
+                              claytotal_l + claytotal_r + claytotal_h +
+                              fragvoltot_l + fragvoltot_r + fragvoltot_h +
+                              om_l + om_r + om_h +
+                              dbthirdbar_l + dbthirdbar_r + dbthirdbar_h +
+                              ksat_l + ksat_r + ksat_h +
+                              awc_l + awc_r + awc_h +
+                              ph1to1h2o_l + ph1to1h2o_r + ph1to1h2o_h +
+                              caco3_l + caco3_r + caco3_h
+                            ))
+
+h3 <- merge(vars_slice, site(comp)[c("dmuiid", "comp_id", "coiid", "compname2", "majcompflag", "comppct_r", "localphase", "taxsubgrp", "taxpartsize", "hydgrp")], by = "comp_id", all.x = TRUE)
+
+vars <- c("coiid", "hzname")
+h4 <- {
+  split(h, h[vars], drop = TRUE) ->.;
+  lapply(., function(x) data.frame(
+    x[1, vars],
+    hzdep_m         = mean(c(x$hzdept_r, x$hzdepb_r)),
+    claytotal_min2  = min(c(x$claytotal_l, x$claytotal_r),   na.rm = TRUE),
+    fragvoltot_min2 = min(c(x$fragvoltot_l, x$fragvoltot_r), na.rm = TRUE),
+    om_min2         = min(c(x$om_l, x$om_r),                 na.rm = TRUE),
+    dbthirdbar_min2 = min(c(x$dbthirdbar_l, x$dbthirdbar_r), na.rm = TRUE),
+    ksat_min2       = min(c(x$ksat_l, x$ksat_r),             na.rm = TRUE),
+    awc_min2        = min(c(x$awc_l, x$awc_r),               na.rm = TRUE),
+    ph1to1h2o_min2  = min(c(x$ph1to1h2o_l, x$ph1to1h2o_r),   na.rm = TRUE),
+    caco3_min2      = min(c(x$caco3_l, x$caco3),             na.rm = TRUE)
+    )) ->.;
+    do.call("rbind", .) ->.;
+}
+h5 <- merge(h3, h4, by = c("coiid", "hzname"), all.x = TRUE)
+
+# depth plot of clay content by soil component
+gg_comp <- function(x, var) {
+  
+  x <- within(x, {
+  comp_id2 = factor(paste(comp_id, "\n",
+                          ifelse(var %in% c("om", "dbthirdbar", "ph1to1h2o", "caco3", "ksat"), 
+                                 as.character(taxsubgrp),
+                                 as.character(taxpartsize))
+                          ))
+  comp_id2 = factor(comp_id2, levels = unique(comp_id2[order(- as.numeric(compname2), - dmuiid)]))
+  })
+  
+  ggplot(x) +
+  geom_line(aes(y = r, x = hzdept_r)) +
+  geom_ribbon(aes(ymin = l, ymax = h, x = hzdept_r), alpha = 0.2) +
+  geom_text(aes(y = min2, x = hzdep_m, label = hzname), cex = 3) +
+  xlim(200, 0) + xlab("depth (cm)") +
+  ylim(min(c(x$l, x$r, x$h), na.rm = TRUE), max(c(x$l, x$r, x$h), na.rm = TRUE)) +
+  # scale_y_continuous(sec.axis = dup_axis()) +
+  facet_wrap(~ comp_id2, ncol = 3, scales = "free_x") +
+  coord_flip() +
+  ggtitle(var)
+}
+# 
+# l_comp <- function(x, var) {
+#   xyplot(data = x, hzdept_r ~ r | comp_id,
+#          lower = x$l, upper = x$h,
+#          type = c("l", "g"),
+#          panel=panel.depth_function, alpha = 0.75,
+#          layout = c(ncol = c(4, ceiling(n_coiid / 4))),
+#          layout.heights = list(strip = 10),
+#          as.table = TRUE,
+#          ylim = c(200, 0),
+#          main = var, ylab = "depth (cm)"
+#          )
+# }
+
+
+vars <- c("claytotal", "fragvoltot", "om", "dbthirdbar", "ksat", "awc", "ph1to1h2o", "caco3")
+gg_list <- lapply(vars, function(x) {
+  h_sub = h5[c("dmuiid", "comp_id", "coiid", "compname2", "majcompflag", "comppct_r", "localphase", "taxsubgrp", "taxpartsize", "hzname", "dep", "hzdept_r", "hzdepb_r", "hzdep_m",
+                 paste0(x, c("_l", "_r", "_h", "_min2")))]
+  names(h_sub) = gsub(paste0(x, "_"), "", names(h_sub))
+  
+  h_sub$var = x
+  # idx = apply(h_sub, 1, function(x) any(is.na(x["r"]))) # this screws up the plot scaling
+  # h_sub = h_sub[!idx, ]
+  gg_temp = gg_comp(h_sub, x)
+ 
+  if (x == "ksat") {
+    brks = c(0, 0.01, 0.1, 1, 10, 100, 1000)
+    gg_temp = gg_temp + 
+      scale_y_log10(breaks = brks, sec.axis = dup_axis()) + 
+      ylab("micrometers / second")
+    }
+  if (x %in% c("claytotal", "fragvoltot", "om", "caco3")) {
+    gg_temp = gg_temp + 
+      ylab("%")
+    }
+  if (x == "dbthirdbar") {
+    gg_temp = gg_temp + 
+      ylab("grams / cubic centimeter")
+    }
+  if (x == "awc") {
+    gg_temp = gg_temp + 
+      ylab("centimeters / centimeter")
+    }
+  
+  return(gg_temp)
+  })
+names(gg_list) <- vars
+```
+
+### Rock Fragments
+```{r, frags, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$fragvoltot)
+```
+
+### Clay Content
+```{r, clay, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$claytotal)
+```
+
+### Ksat
+```{r, ksat, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$ksat)
+```
+
+### Available Water Capacity
+```{r, awc, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$awc)
+```
+
+### Organic Matter
+```{r, om, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$om)
+```
+
+### Bulk Density
+```{r, db, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$dbthirdbar)
+```
+
+### pH
+```{r, ph, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$ph1to1h2o)
+```
+
+### CaCO3
+```{r, caco3, fig.dim = c(8, h_dplots), fig.ext = "png", dev = "png_dplots"}
+plot(gg_list$caco3)
+```
+

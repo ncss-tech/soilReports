@@ -1,0 +1,393 @@
+---
+title: "MUPOLYGON Report"
+author: "`r Sys.getenv('USERNAME')`"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+params:
+   projectname: !r as.character("EVAL - MLRA 111D - Fincastle silt loam, Southern Ohio Till Plain, 2 to 4 percent slopes")
+   geodatabase:  !r as.character("RTSD_MLRA_11-IND_FY18.gdb")
+   project_data: !r as.character("M:/geodata/project_data/")
+   mlrassoarea:  !r as.character("11-IND")
+---
+# Report Description
+
+This report summarizes the geographic setting of a list of musym within a shapefile. It is intented to be used to compare and contrast map units, and suggest possible Low, RV, and High values for soil components. 
+
+
+```{r LoadPackages, include=FALSE}
+options(stringsAsFactors = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+# report parameters
+source("config.R")
+
+# load packages
+suppressWarnings( {
+  library(plyr)
+  library(reshape2)
+  library(DT)
+  library(lattice)
+  library(latticeExtra)# library(ggplot2)
+  library(circular)
+  library(maps)
+  library(maptools)
+  library(gdalUtils)
+  library(sp)
+  library(sf)
+  library(raster)
+  library(soilDB)
+  library(soilReports)
+  })
+
+opar <- trellis.par.get()
+trellis.par.set(theme = ggplot2like())
+tpg <- trellis.par.get()
+tpg$axis.line <-  list(alpha = 1, col = "#000000", lty = rep(1, 7), lwd = rep(0.2, 7))
+tpg$strip.border <- list(alpha = 1, col = "#000000", lty = rep(1, 7), lwd = rep(0.2, 7))
+trellis.par.set(tpg)
+
+gdalUtils::gdal_setInstallation(search_path="C:/Program Files/QGIS Essen/bin", rescan = TRUE)
+```
+
+
+```{r map unit summary function}
+
+# report parameters
+attach(params)
+projectname   <- unlist(strsplit(params$projectname, ";"))
+mlrassoarea   <- gsub("-", "", mlrassoarea)
+samplePercent <- 15
+p             <- c(0, 0.25, 0.5, 0.75, 1)
+
+# project data
+project    <- get_projectmapunit_from_NASISWebReport(projectname, stringsAsFactors = TRUE)
+projectiid <- paste0(unique(project$projectiid), collapse = "_")
+  
+# folder paths
+office_folder <- paste0(project_data, mlrassoarea, "/")
+region_folder <- paste0(project_data, "11REGION/")
+
+# cache files
+sample_cache <- paste0(office_folder, "cache/", projectiid, "_", samplePercent, ".Rdata")
+gdb_dsn   <- paste0(office_folder, geodatabase)
+shp_dsn   <- paste0(office_folder, "cache/projectiid_", projectiid, ".shp")
+gdb_cache <- gsub(".gdb", "_cache.RData", gdb_dsn)
+shp_cache <- paste0(shp_dsn, ".RData")
+```
+
+```{r}
+## local functions
+if (!file.exists(sample_cache)){
+  
+  # extract shapefile via gdalUtils if the geodatabase is > 1.5GB
+  if (
+    # geodatabase is > 1.5GB
+    sum(file.size(list.files(gdb_dsn, full.names = TRUE))) / 1e+9 > 1.5 & 
+    # QGIS is installed
+    file.exists("C:/Program Files/QGIS Essen/bin") &
+    # shapefile of project doesn't already exist
+    !file.exists(shp_cache) &
+    # geodatabase cache doesn't exist
+    !file.exists(gdb_cache)
+    ){
+    # extract polygons from geodatabase
+    ogr_extract(office_folder, gdb_dsn, shp_dsn, project$lmapunitiid)
+    mupolygon <- read_sf(dsn = shp_dsn, layer = paste0("projectiid_", projectiid))
+    st_crs(mupolygon) <- "+init=epsg:5070"
+
+    sapolygon <- read_sf(dsn = gdb_dsn, layer = "SAPOLYGON")
+    st_crs(sapolygon) <- "+init=epsg:5070"
+
+    save(mupolygon, sapolygon, file = shp_cache)
+    }
+  
+  # shapefile cache
+  if (file.exists(shp_cache)) load(file = shp_cache)
+  
+  # geodatabase cache
+  if (
+    # shapefile cache exist?
+    !file.exists(shp_cache) &
+    # geodatabase cache exists?
+    !file.exists(gdb_cache) &
+    # geodatabase size
+    sum(file.size(list.files(gdb_dsn, full.names = TRUE))) / 1e+9 <= 1.5 
+    ) {
+    sapolygon <- read_sf(dsn = gdb_dsn, layer = "SAPOLYGON")
+    st_crs(sapolygon) <- "+init=epsg:5070"
+    
+    mupolygon <- read_sf(dsn = gdb_dsn, layer = "MUPOLYGON")
+    st_crs(mupolygon) <- "+init=epsg:5070"
+    
+    save(mupolygon, sapolygon, file = gdb_cache)
+    }
+  
+  # geodatabase cache
+  if (file.exists(gdb_cache)) load(file = gdb_cache)
+  
+  idx <- ! names(mupolygon) %in% c("Shape", "Geometry")
+  names(mupolygon)[idx] <- tolower(names(mupolygon)[idx])
+  idx2 <- grepl("shape_leng", names(mupolygon))
+  names(mupolygon)[idx2] <- "shape_leng"
+  
+  mupolygon <- mupolygon[mupolygon$mukey %in% project$lmapunitiid, ]
+  
+  mupolygon <- within(mupolygon, {
+    Acres = shape_area * 0.000247105
+    Circularity = shape_leng / (2 * sqrt(shape_area / pi) * pi)
+    })
+  
+  # Sample soil map unit
+  # n <- ceiling(sum(mupolygon$shape_area) / 900 * samplePercent / 100)
+  # 
+  # mupolygon$idx <- 1:nrow(mupolygon)
+  # mupolygon_sp <- by(mupolygon, mupolygon$idx, function(x) as(st_sample(x, 10), "Spatial"))
+  # mupolygon_sp <- do.call(rbind, mupolygon_sp)
+  # proj4string(mupolygon_sp) <- CRS("+init=epsg:5070")
+  # mupolygon_sf <- st_as_sf(mupolygon_sp)
+  
+  mupolygons <- within(mupolygon, {
+    idx    = 1:nrow(mupolygon)
+    acres  = shape_area * 0.000247
+    samp_n = ifelse(acres < 2, 1, round(acres / 2))
+    })
+  
+  mupolygon_sp <- {
+    split(mupolygons, mupolygons$idx) ->.;
+    lapply(., function(x) {
+      mu_sp = spsample(as(x, "Spatial"), x$samp_n, type = "random", iter = 10)
+      if ("y" %in% names(as.data.frame(mu_sp))) {
+        test = data.frame(as.data.frame(mu_sp), idx = x$idx[1])
+        coordinates(test) = ~ x + y
+        proj4string(test) = "+init=epsg:5070"
+        return(test)
+        }
+      })}
+  idx <- which(unlist(lapply(mupolygon_sp, function(x) !is.null(x))))
+  mupolygon_sp <- mupolygon_sp[idx]
+  mupolygon_sp <- do.call("rbind", mupolygon_sp)
+  mupolygon_sf <- st_as_sf(mupolygon_sp)
+
+  
+  geodata <- raster_extract(mupolygon_sp)
+  idx  <- st_intersects(mupolygon_sf, mupolygon)
+  mapunit.df <- mupolygon[unlist(lapply(idx, function(x) x[1])), ]
+
+  data <- cbind(data.frame(mapunit.df[c("areasymbol", "musym")]), geodata)
+  
+#  mlra <- readOGR(dsn = "M:/geodata/project_data/11REGION/mlra_a_r11.shp", layer = "mlra_a_r11", encoding = "ESRI Shapefile")
+#  mlra_i <- over(mupolygon_sp, mlra)
+#  mlra_acres <- ddply(mlra_i, .(MLRARSYM), summarize, mlra_percent = sum(length(OBJECTID)))
+#  mlra_acres <- transform(mlra_acres, mlra_percent = round(mlra_percent / sum(mlra_percent) * 100, 0))
+
+  data.l <- list(data = data, mupolygon = mupolygon, sapolygon = sapolygon)
+  save(data.l, file = sample_cache)
+} else load(file = sample_cache) #load sample_cache file
+
+
+attach(data.l)
+# mlra_acres <- data.l$mlra_acres
+
+data$ssa_musym <- with(data, paste(areasymbol, musym))
+data2 <- data
+data2$ssa_musym <- "*mlra_mapnit"
+data <- rbind(data2, data)
+```
+
+
+# Map Units
+```{r mapunits}
+datatable(project[!is.na(project$musym), c("projectname", "areasymbol", "musym", "muacres")])
+```
+
+
+# Variables
+
+```{r variables}
+a <- c("elev", "slope", "aspect", "valley", "wetness", "relief", "ppt", "temp", "ffp", "lulc")
+m <- c("elevation", "slope gradient", "slope aspect", "multiresolution valley bottom index", "topographic Wetness index", "height above channel", "annual precipitation", "annual air temperature", "frost free period", "land use and land cover")
+u <- c("meters", "percent", "degrees", "unitless", "unitless", "meters", "millimeters", "degrees Celsius", "days", "landcover class (e.g. Wood Wetlands)")
+s <- c("30-meter USGS National Elevation Dataset (NED)", "10-meter NED", "10-meter NED", "30-meter NED", "30-meter NED", "30-meter NED", "800-meter 30-year normals (1981-2010) from PRISM Climate Dataset", "800-meter 30-year normals (1981-2010) from PRISM Climate Dataset", "1000-meter 30-year normals (1961-1990) from USFS RMRS", "2011 National Land Cover Dataset (NLCD)")
+
+variables <- data.frame(Abbreviation = a, Measures = m, Unit = u, Source = s)
+
+knitr::kable(variables)
+```
+
+
+# Map of soil polygons
+
+```{r plot soil map units}
+st <- map("state", plot = FALSE)
+st_sp <- {
+  map2SpatialLines(st, proj4string = CRS("+init=epsg:4326")) ->.;
+  spTransform(., CRS("+init=epsg:5070"))
+  }
+plot(as(mupolygon, "Spatial"), axes = TRUE)
+plot(as(sapolygon, "Spatial"), add = TRUE)
+plot(st_sp,lwd=3, add = TRUE)
+
+```
+
+# Soil polygon metrics
+Five number summary (min, 25th, median, 75th, max)(percentiles) and contingency table (counts)(n) 
+Circularity is an estimate of SHAPE complexity (Hole and Campbell, 1975), computed as a ratio of mupolygon length / mupolygon circumference. The SHAPE complexity of a perfect circle would equal 1.
+
+```{r soil polygon metrics, results='asis', fig.width=8}
+pol <- data.frame(mupolygon)
+pol$ssa_musym <- as.character(paste(pol$areasymbol, pol$musym))
+pol2 <- pol
+pol2$ssa_musym <- "*mlra_mapnit"
+pol <- rbind(pol2, pol)
+
+# pol.lo1 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres", "Circularity"))
+vars <- c("Acres", "Circularity")
+pol.lo1 <- reshape(pol[c("ssa_musym", vars)], 
+                   direction = "long",
+                   timevar = "variable", times = vars,
+                   v.names = "value"   , varying = vars
+                   )
+# pol.lo2 <- melt(pol, id.vars="ssa_musym", measure.vars=c("Acres"))
+pol.lo2 <- subset(pol.lo1, variable == "Acres")
+
+# pol.5n1 <- ddply(pol.lo2, .(ssa_musym, variable), summarize, 
+#                  range = prettySummary(value, n = FALSE, signif = FALSE)
+#                  )
+vars <- c("ssa_musym", "variable")
+pol.5n1 <- {
+  by(pol.lo2, pol.lo2[vars], function(x) { data.frame(
+  x[1, vars],
+  range = prettySummary(x$value, n = FALSE, signif = FALSE)
+  )}) ->.; 
+  do.call("rbind", .) ->.;
+  }
+# pol.5n2 <- ddply(pol, .(ssa_musym), summarize, 
+#                  nArces = round(sum(Acres), 0), 
+#                  nPolygons = length(musym)
+#                  )
+vars <- "ssa_musym"
+pol.5n2 <- {
+  by(pol, pol[vars], function(x) { data.frame(
+  x[1, vars, drop = FALSE],
+  nAcres = round(sum(x$Acres, 0)),
+  nPolygons = length(x$musym)
+  )}) ->.;
+  do.call("rbind", .) ->.;
+  }
+# pol.5n <- join(pol.5n1, pol.5n2, by = "ssa_musym")
+pol.5n <- merge(pol.5n1, pol.5n2, by = "ssa_musym", all.x = TRUE)
+
+datatable(pol.5n, caption = "Summary of musym by areasymbol")
+
+# kable(mlra_acres, digits = 0, align = "c", caption = "Summary of Acres by MLRA")
+
+# pol.lo1$ssa_musym <- as.factor(pol.lo1$ssa_musym)
+pol.lo1$ssa_musym <- factor(pol.lo1$ssa_musym, 
+                            levels = rev(sort(unique(pol.lo1$ssa_musym)))
+                            )
+
+bwplot(ssa_musym ~ value | variable, 
+       data = pol.lo1, 
+       scales = list(x="free"), main = "Boxplots of polygon metrics", 
+       axis = axis.grid,
+       as.table = TRUE
+       )
+# ggplot(pol.lo1, aes(x = ssa_musym, y = value)) +
+#   geom_boxplot() +
+#   facet_wrap(~ variable, scales = "free_x") +
+#   coord_flip() +
+#   ggtitle("Boxplots of polygon metrics")
+```
+
+# Contingency tables (percent) 
+
+```{r percentage by musym, results='asis'}
+## Create descriptive and graphical summary of map unit
+datatable({
+  round(prop.table(xtabs(~ ssa_musym + slope_classes, data = data, drop.unused.levels = TRUE),
+                   margin = 1) * 100) ->.;
+  as.data.frame(.) ->.;
+  reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "slope_classes"
+          ) ->.;
+  names(.) <- gsub("Freq.", "", names(.))
+  . ->.;
+  }, caption="Slope classes"
+  )
+datatable({
+  round(prop.table(xtabs(~ ssa_musym + aspect_classes, data = data, drop.unused.levels = TRUE), 
+                   margin = 1) * 100) ->.;
+  as.data.frame(.) ->.;
+  reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "aspect_classes"
+          ) ->.;
+  names(.) <- gsub("Freq.", "", names(.))
+  . ->.;
+  }, caption = "Aspect classes"
+  )
+datatable({
+  round(prop.table(xtabs(~ ssa_musym + valley_classes, data = data, drop.unused.levels = TRUE),
+                   margin = 1) * 100) ->.;
+  as.data.frame(.) ->.;
+  reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "valley_classes"
+          ) ->.;
+  names(.) <- gsub("Freq.", "", names(.))
+  . ->.;
+  }, caption = "Upland vs. lowland"
+  )
+lulc_t <- {
+  xtabs(~ ssa_musym + lulc_classes, data = data, drop.unused.levels = TRUE) ->.;
+  addmargins(prop.table(., margin = 1)) * 100
+  }
+idx <- pIndex(lulc_t, 8)
+for (i in unique(idx)){
+  print(knitr::kable({
+    round(lulc_t[, c(idx == i)]) ->.;
+    as.data.frame(.) ->.;
+    reshape(., direction = "wide", idvar = "ssa_musym", v.names = c("Freq"), timevar = "lulc_classes"
+          ) ->.;
+    names(.) <- gsub("Freq.", "", names(.))
+    . ->.;
+    }, caption = "Landuse and Landcover"
+    ))
+  }
+```
+
+# Percentile breaks
+Five number summary (min, 25th, median, 75th, max)(percentiles) and number of random samples (n)
+
+```{r quantiles by musym, results="asis", warning=FALSE, fig.height=10, fig.width=8}
+data.lo <- melt(data, id.vars="ssa_musym", measure.vars = c("elev", "slope", "valley", "wetness", "relief", "ppt", "temp", "ffp"))
+
+data.5n <- ddply(data.lo, .(variable, ssa_musym), summarize,
+                 range = prettySummary(value, n = FALSE, signif = FALSE)
+                 )
+
+data.c <- dcast(data.5n, ssa_musym ~ variable, value.var = 'range')
+data.n <- ddply(data, .(ssa_musym), .drop=T, summarize, n = length(ssa_musym))
+
+aspect.lo <- melt(data, id.vars="ssa_musym", measure.vars = c("aspect"))
+aspect.lo$value <- circular(aspect.lo$value, template = "geographic", units="degrees", modulo="2pi")
+aspect.5n <- ddply(aspect.lo, .(variable, ssa_musym), summarize,
+                   range = prettySummary(value, n = FALSE, signif = FALSE)
+                   )
+aspect.c <- dcast(aspect.5n, ssa_musym ~ variable, value.var = 'range')
+
+datatable(cbind(data.c[c(1:6)], data.n["n"]))
+datatable(cbind(data.c[c(1, 7:9)], aspect.c["aspect"], data.n["n"]))
+
+data.lo$ssa_musym <- factor(data.lo$ssa_musym, 
+                            levels = rev(sort(unique(data.lo$ssa_musym)))
+                            )
+
+bwplot(ssa_musym ~ value | variable, 
+       data = data.lo, 
+       scales = list(x = "free"), main = "Boxplots of map unit properties",
+       axis = axis.grid,
+       as.table = TRUE, layout = c(2, 4)
+       )
+```
