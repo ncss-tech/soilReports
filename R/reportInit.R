@@ -23,6 +23,8 @@ reportInit <- function(reportName,
   if (is.null(reportName) || is.na(reportName) || reportName == "")
     stop('argument "reportName" is missing, with no default', call. = FALSE)
   
+  reportName <- .convert_region(reportName)
+  
   # get base directory where reports are stored within package
   base.dir <- system.file(paste0('reports/', reportName), package = 'soilReports')
   

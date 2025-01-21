@@ -2,7 +2,8 @@
 # extract the version number from a single report
 .getReportMetaData <- function(x) {
   env <- new.env()
-  setup_path <- paste0(dirname(x),"/setup.R")
+  dx <- .convert_region(dirname(x))
+  setup_path <- paste0(dx, "/setup.R")
   
   try(sys.source(setup_path, env), silent = TRUE)
   

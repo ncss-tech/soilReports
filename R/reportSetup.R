@@ -35,6 +35,8 @@
 #'
 reportSetup <- function(reportName, upgrade = TRUE) {
   
+  reportName <- .convert_region(reportName)
+  
   # get base directory where reports are stored within package
   base.dir <- system.file(paste0('reports/', reportName), package = 'soilReports')
   
