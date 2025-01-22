@@ -118,8 +118,8 @@ inputPanel(
     "thematic_field",
     label = "Select horizon data to plot: ",
     choices = c(
-      "clay",
-      "sand",
+      "claytotest",
+      "sandtotest",
       "phfield",
       "total_frags_pct",
       "moist_soil_color",
@@ -1077,9 +1077,9 @@ if(loaded)
     if (length(peds)) {
       x <- na.omit(data.frame(
         genhz = peds$genhz,
-        SAND = peds$sand,
-        SILT = peds$silt,
-        CLAY = peds$clay
+        SAND = peds$sandtotest,
+        SILT = peds$silttotest,
+        CLAY = peds$claytotest
       ))
       
       if (nrow(x)) {

@@ -90,7 +90,7 @@ co$.label <- factor(
 any(table(cp$peiid) > 1)
 
 # merge subset component pedons into SPC
-site(p) <- cp[, c('peiid', 'coiid', 'representative')]
+site(p) <- cp[, c('peiid', 'coiid', 'rvindicator')]
 
 # look-up associated component label
 site(p)$.comp_label <- co$.label[match(p$coiid, site(co)$coiid)]
@@ -100,7 +100,7 @@ site(p)$.comp_label <- co$.label[match(p$coiid, site(co)$coiid)]
 p$.pedon_label <- p$taxonname
 
 # flag RV copedon
-idx <- which(p$representative == 1)
+idx <- which(p$rvindicator == 1)
 p$.pedon_label[idx] <- paste0(p$.pedon_label[idx], '|R')
 
 # flag OSD copedon

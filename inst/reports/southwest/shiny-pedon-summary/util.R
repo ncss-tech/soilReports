@@ -407,9 +407,9 @@ summarize.component <- function(f.i) {
   gen.hz.classification.table <- table(h.i$genhz, h.i$hzname)
   
   # variables to summarize
-  vars <- c('clay', 'sand', 'phfield', 'gravel', 'paragravel', 'cobbles', 'paracobbles', 'stones', 'channers', 'total_frags_pct', 'albedo')
+  vars <- c('claytotest', 'sandtotest', 'phfield', 'gravel', 'paragravel', 'cobbles', 'paracobbles', 'stones', 'channers', 'total_frags_pct', 'albedo')
   # better names, used in final tables / figures
-  var.names <- c('HZ', 'clay', 'sand', 'pH', 'GR', 'PGR', 'CB', 'PCB', 'ST', 'CN', 'Total RF', 'Albedo')
+  var.names <- c('HZ', 'claytotest', 'sandtotest', 'pH', 'GR', 'PGR', 'CB', 'PCB', 'ST', 'CN', 'Total RF', 'Albedo')
   
   
   # wide -> long, inclide musym for plotting
