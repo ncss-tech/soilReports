@@ -47,7 +47,7 @@ library(RColorBrewer)
 
 # mapping libraries
 library(maps)
-library(maptools)
+# library(maptools)
 library(mapview)
 
 # custom ggplot2like latticeExtra theme
@@ -72,14 +72,14 @@ s <- site(f)
 # merge tables
 lh_names <- names(lh)
 h_vars <- c("labsampnum", "hzdept", "hzdepb", "fragvoltot", "total_frags_pct")
-lp_vars <- c("peiid", "labpeiid")
+lp_vars <- c("peiid", "ncsspedonlabdataiid")
 s_vars <- c("peiid", "earthcovkind1")
 
 lh <- merge(lh, h[h_vars], by = c("labsampnum", "hzdept", "hzdepb"), all.x = TRUE, sort = FALSE)
-lh <- merge(lh, lp[lp_vars], by = "labpeiid", all.x = TRUE, sort = FALSE)
+lh <- merge(lh, lp[lp_vars], by = "ncsspedonlabdataiid", all.x = TRUE, sort = FALSE)
 lh <- merge(lh, s[s_vars], by = "peiid", all.x = TRUE, sort = FALSE)
 
-lh <- lh[order(lh$labpeiid), c(lh_names, h_vars[-1:-3], s_vars[-1])]
+lh <- lh[order(lh$ncsspedonlabdataiid), c(lh_names, h_vars[-1:-3], s_vars[-1])]
 
 # transform variables
 lh <- within(lh, {
@@ -118,7 +118,7 @@ horizons(f) <- h
 
 
 # indexing info
-lh_i <- c('peiid', 'labpeiid', 'labsampnum', 'layerseqnum', 'hzdept', 'hzdepb', 'hzdepm', 'layertype', 'hzname', 'hznameoriginal', 'genhz', 'moist_prepstate', 'coverkind_1', 'recwlupdated', 'ncsslayerlabdataiid')
+lh_i <- c('peiid', 'ncsspedonlabdataiid', 'labsampnum', 'layerseqnum', 'hzdept', 'hzdepb', 'hzdepm', 'layertype', 'hzname', 'hznameoriginal', 'genhz', 'moist_prepstate', 'coverkind_1', 'recwlupdated', 'ncsslayerlabdataiid')
 
 # static soil properties
 lh_s <- c('texcl', 'stratextsflag', 'sandvc', 'sandco', 'sandmed', 'sandfine', 'sandvf', 'sandtot', 'siltco', 'siltfine', 'silttot', 'claycarb', 'clayfine', 'claytot', 'ompctest', 'fiberrubbedpct', 'fiberunrubbedpct', 'fragwt25', 'fragwt520', 'fragwt2075', 'fragwt275', 'wtpct0175', 'wtpctgt2ws')
@@ -141,8 +141,7 @@ dsp_nh <- ifelse(dsp_nh < 1, 1, dsp_nh)
 
 if (dim(s)[1] != 0) {
   pedon_locations <- s[complete.cases(s[c("longstddecimaldegrees", "latstddecimaldegrees")]), ]
-  coordinates(pedon_locations) <- ~ longstddecimaldegrees + latstddecimaldegrees
-  proj4string(pedon_locations) <- CRS("+init=epsg:4326")
+  pedon_locations <- sf::st_as_sf(pedon_locations, coords = c("longstddecimaldegrees", "latstddecimaldegrees"), crs = "OGC:CRS84")
   
   if(params$series != "Generic") {
     series_extent <- seriesExtent(params$series)
@@ -237,7 +236,7 @@ if (nrow(na.exclude(lp.lo)) > 6) {
          )
   }         
 
-lp.lo <- melt(lp, id.vars="labpeiid", measure.vars = c("psctopdepth", "pscbotdepth", "thickness"))
+lp.lo <- melt(lp, id.vars="ncsspedonlabdataiid", measure.vars = c("psctopdepth", "pscbotdepth", "thickness"))
 lp.5n <- ddply(lp.lo, .(variable), summarize, 
                range = prettySummary(value)
                )
