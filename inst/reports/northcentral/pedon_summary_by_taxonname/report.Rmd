@@ -129,8 +129,8 @@ srf <- within(srf, {
 ```{r map, echo=FALSE, results='asis'}
 
 if (dim(s)[1] != 0) {
-  pedon_locations <- s[complete.cases(s[c("x_std", "y_std")]), ]
-  coordinates(pedon_locations) <- ~ x_std + y_std
+  pedon_locations <- s[complete.cases(s[c("longstddecimaldegrees", "latstddecimaldegrees")]), ]
+  coordinates(pedon_locations) <- ~ longstddecimaldegrees + latstddecimaldegrees
   proj4string(pedon_locations) <- CRS("+init=epsg:4326")
   
   if(params$series != "Generic") {

@@ -22,8 +22,8 @@ if (!is.null(PEDON_CACHE) && file.exists(PEDON_CACHE)) {
   load(PEDON_CACHE)
 } else { 
   p <- soilDB::fetchNASIS(SS = SELECTED_SET)
-  p <- subset(p, !is.na(p$x_std))
-  coordinates(p) <- ~ x_std + y_std
+  p <- subset(p, !is.na(p$longstddecimaldegrees))
+  coordinates(p) <- ~ longstddecimaldegrees + latstddecimaldegrees
   if (!is.null(PEDON_CACHE)) {
     save(p, file = PEDON_CACHE)
   }

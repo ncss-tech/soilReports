@@ -12,8 +12,8 @@ compname <- 'Gopheridge'
 # f <- fetchNASIS() # fetchKSSL, fetchRACA whatever
 
 # make it spatial
-f <- f[which(!is.na(f$x_std)),]
-coordinates(f) <- ~ x_std + y_std
+f <- f[which(!is.na(f$longstddecimaldegrees)),]
+coordinates(f) <- ~ longstddecimaldegrees + latstddecimaldegrees
 proj4string(f) <- "+proj=longlat +datum=WGS84"
 
 # get SSURGO mapunit info at each point via SDA

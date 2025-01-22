@@ -131,11 +131,11 @@ if (!cache_data) {
 }
 
 # keep only pedons with non-NA coord
-good.idx <- which(!is.na(pedons_raw$x_std)) 
+good.idx <- which(!is.na(pedons_raw$longstddecimaldegrees)) 
 pedons <- pedons_raw[good.idx, ]           
 
 #initalize spatial object & set spatial reference
-initSpatial(pedons, crs = "OGC:CRS84") <- ~ x_std + y_std     
+initSpatial(pedons, crs = "OGC:CRS84") <- ~ longstddecimaldegrees + latstddecimaldegrees     
 
 pedons$musym <- rep("<missing>", length(pedons))
 

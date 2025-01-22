@@ -46,11 +46,11 @@ f <- fetchNASIS(rmHzErrors=FALSE, nullFragsAreZero=TRUE)
 
 
 #data transforms and extractions
-good.idx <- which(!is.na(f$x_std))  # may be too restrictive, assumes std lat long are populated in NASIS
+good.idx <- which(!is.na(f$longstddecimaldegrees))  # may be too restrictive, assumes std lat long are populated in NASIS
 f <- f[good.idx, ]            # keep only pedons with non-NA std coordinates 
 
 # init coordinates
-coordinates(f) <- ~ x_std + y_std
+coordinates(f) <- ~ longstddecimaldegrees + latstddecimaldegrees
 proj4string(f) <- '+proj=longlat +datum=NAD83'
 
 # transform from GCS to CRS of map unit linework

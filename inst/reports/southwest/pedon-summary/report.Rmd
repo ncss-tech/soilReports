@@ -67,8 +67,8 @@ f <- fetchNASIS(rmHzErrors = FALSE,
 # ## test with loafercreek
 # data(loafercreek)
 # f <- loafercreek
-# f$longstddecimaldegrees <- f$x_std
-# f$latstddecimaldegrees <- f$y_std
+# f$longstddecimaldegrees <- f$longstddecimaldegrees
+# f$latstddecimaldegrees <- f$latstddecimaldegrees
 
 # init coordinates
 initSpatial(f, "EPSG:4326") <- ~ longstddecimaldegrees + latstddecimaldegrees
