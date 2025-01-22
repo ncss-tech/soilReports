@@ -30,4 +30,4 @@
 .packages.to.get <- c("aqp","soilDB","knitr","plyr","reshape2","circular","lattice","latticeExtra","RColorBrewer","maps","sf","mapview","soilReports") 
 
 #github packages to get (via remotes::install_github)
-#.gh.packages.to.get <- c('')
+.gh.packages.to.get <- c('ncss-tech/aqp', 'ncss-tech/soilDB')
