@@ -79,7 +79,7 @@ prettySummary <- function(x, p = c(0, 0.25, 0.5, 0.75, 1), n = TRUE, signif = TR
     message("Replacing ", x, " with ", new)
     x <- new
   }
-  if (!dir.exists(x)) {
+  if (!dir.exists(file.path(find.package("soilReports"), "reports", x))) {
     stop("Could not find report: ", x, call. = FALSE)
   }
   x
