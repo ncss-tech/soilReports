@@ -7,7 +7,7 @@
 
 #basic report metadata
 .report.name <- 'lab_summary_by_taxonname'      
-.report.version <- '1.0'
+.report.version <- '1.1'
 .report.description <- 'summarize lab data from NASIS Lab Layer table'
 
 #report manifest

@@ -32,7 +32,7 @@
 )
 
 .report.name <- 'shiny-pedon-summary'
-.report.version <- '1.1'
+.report.version <- '1.2'
 .report.description <- 'Interactively subset and summarize NASIS pedon data from one or more map units'
 
 .paths.to.copy <- c(

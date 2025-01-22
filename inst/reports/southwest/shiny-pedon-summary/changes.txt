@@ -1,3 +1,4 @@
+2025-01-22: updated column names for soilDB 2.8.7
 2024-01-25: updates for aqp >=2.0; update to use sf/terra instead of rgdal/sp/raster -> version 1.1
 2022-02-03: fix shiny.Rmd code block formatting
 2021-02-05: fixes for new aqp; update for NM630 test set (geomorph) thanks to Aaron Miller

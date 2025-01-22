@@ -13,7 +13,7 @@
 .report.name <- 'spatial-pedons'
 
 # version of report
-.report.version <- '1.0'
+.report.version <- '1.1'
 
 # brief description for `soilReports::listReports()`
 .report.description <- 'Visualize NASIS pedons in interactive HTML report with overlays of SSURGO, STATSGO or custom polygons'

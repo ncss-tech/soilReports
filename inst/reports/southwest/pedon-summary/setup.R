@@ -10,7 +10,7 @@
 ## version number
 
 .report.name <- 'pedon-summary'
-.report.version <- '1.0'
+.report.version <- '1.1'
 .report.description <- 'Generate summaries from NASIS pedons and associated spatial data'
 
 .paths.to.copy <- c('report.Rmd', 'custom.R', 'config.R', 'genhz-rules.R', 'README.md', 'changes.txt')

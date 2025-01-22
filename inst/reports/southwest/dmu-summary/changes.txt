@@ -1,2 +1,4 @@
+2025-01-22 (0.5): updated column names for soilDB 2.8.7
+2024-11-14 (0.4): updated for soilReports format
 2021-03-22 (0.3): improved formatting, adding some component RV thematic sketches
 2021-03-01 (0.2): first version

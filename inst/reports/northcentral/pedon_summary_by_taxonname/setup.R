@@ -7,7 +7,7 @@
 
 #basic report metadata
 .report.name <- 'pedon_summary_by_taxonname'      
-.report.version <- 1.1
+.report.version <- '1.2'
 .report.description <- 'summarize field pedons from NASIS pedon table'
 
 #report manifest
