@@ -67,7 +67,7 @@ f$musym[which(is.na(f$musym))] <- 'NOSYM'
 
 
 if(subset.rule == 'pedon.id.list')
-  subset.idx <- which(f$pedon_id %in% pedon.id.list[[comp]]$f)
+  subset.idx <- which(f$upedonid %in% pedon.id.list[[comp]]$f)
 
 ## generate index to subset using regular expression
 if(subset.rule == 'pattern')
@@ -93,14 +93,14 @@ par(mar=c(0,0,3,3))
 new.order <- order(profileApply(f, estimateSoilDepth, p = 'Cr|R|Cd'))
 #new.order <- order(profileApply(f, max, v='clay'))
 #plot color
-plot(f, name='hzname', label= 'pedon_id', id.style='side', cex.depth.axis=1.25, cex.names=0.7, plot.order=new.order, max.depth=150)
+plot(f, name='hzname', label= 'upedonid', id.style='side', cex.depth.axis=1.25, cex.names=0.7, plot.order=new.order, max.depth=150)
 abline(h=c(50, 100, 150), lty=2, col='grey')
 #plot clay
-plot(f, name='hzname', label='pedon_id', id.style='side', color='clay', cex.depth.axis=1.25, cex.names=0.7, plot.order=new.order, max.depth=200)
+plot(f, name='hzname', label='upedonid', id.style='side', color='clay', cex.depth.axis=1.25, cex.names=0.7, plot.order=new.order, max.depth=200)
 #plot frags
 plot(f, name='hzname', label='taxsubgrp', id.style='side', color='total_frags_pct', cex.depth.axis=1.25, cex.names=0.7, plot.order=new.order, max.depth=150)
 #plot pH
-plot(f, name='hzname', label='pedon_id', id.style='side', color='phfield', cex.depth.axis=1.25, cex.names=0.7, plot.order=new.order, max.depth=150)
+plot(f, name='hzname', label='upedonid', id.style='side', color='phfield', cex.depth.axis=1.25, cex.names=0.7, plot.order=new.order, max.depth=150)
 
 #display horizon occurrences
 sort(table(f$hzname), decreasing=TRUE)
@@ -175,7 +175,7 @@ hz.names <- levels(f$genhz)
 f$genhz.soil_color <- cols[match(f$genhz, hz.names)]
 # plot generalized horizons via color and add a legend
 par(mar=c(4,0,0,0))
-plot(f, name='hzname', label='pedon_id', id.style='side',  cex.names=0.6, plot.order=new.order, axis.line.offset=-4, color='genhz.soil_color')
+plot(f, name='hzname', label='upedonid', id.style='side',  cex.names=0.6, plot.order=new.order, axis.line.offset=-4, color='genhz.soil_color')
 legend('bottomleft', legend=hz.names, pt.bg=c(cols), pch=22, bty='n', cex=1)
 
 
@@ -226,18 +226,18 @@ mdsplot <- xyplot(mds.2 ~ mds.1, groups=genhz, data=pedons.df,
 mdsplot +
   layer(panel.abline(h=0, v=0, col='grey', lty=3)) + 
   layer(panel.text(pedons.df$mds.1, pedons.df$mds.2, pedons.df$hzname, cex=0.85, font=2, pos=3)) +
-  layer(panel.text(pedons.df$mds.1, pedons.df$mds.2, pedons.df$pedon_id, cex=0.55, font=1, pos=1))
+  layer(panel.text(pedons.df$mds.1, pedons.df$mds.2, pedons.df$upedonid, cex=0.55, font=1, pos=1))
 
 # plot silhouette width metric, 1=good partitioning
 par(mar=c(0,0,3,0))
-plot(f, name='hzname', label='pedon_id', cex.names=0.75, axis.line.offset=-4, color='sil.width')
+plot(f, name='hzname', label='upedonid', cex.names=0.75, axis.line.offset=-4, color='sil.width')
 
 # index those horizons with silhouette widths less than 0
 check.idx <- which(pedons.df$sil.width < 0)
 # sort this index based on min sil.width
 check.idx.sorted <- check.idx[order(pedons.df$sil.width[check.idx])]
 # list those pedons/horizons that may need some further investigation
-pedons.df[check.idx.sorted, c('peiid', 'pedon_id', 'hzname', 'genhz', 'neighbor', 'sil.width', vars)]
+pedons.df[check.idx.sorted, c('peiid', 'upedonid', 'hzname', 'genhz', 'neighbor', 'sil.width', vars)]
 
 #evaluate horizon statistics--mean(std dev)
 hz.eval$stats
@@ -245,7 +245,7 @@ hz.eval$stats
 # add a column containing a color (red) that flags horizons with silhouette width less than 0
 f$sil.flag <- ifelse(f$sil.width < 0, 'red', 'white')
 par(mar=c(0,0,3,0))
-plot(f, name='hzname', label='pedon_id', cex.names=0.75, axis.line.offset=-4, color='sil.flag')
+plot(f, name='hzname', label='upedonid', cex.names=0.75, axis.line.offset=-4, color='sil.flag')
 
 
 ##### save GHL to NASIS #####
@@ -261,9 +261,9 @@ write.table(h, file=rules.file, row.names=FALSE, quote=FALSE, na='', col.names=F
 
 
 ### save list of pedons in csv file
-# either by pedon_id or by peiid
-write(paste(site(f)$pedon_id, collapse=", "),file="bellecanyon")
-#order(site(f)$pedon_id)
+# either by upedonid or by peiid
+write(paste(site(f)$upedonid, collapse=", "),file="bellecanyon")
+#order(site(f)$upedonid)
 
 ### calculate horizon thicknesses for each horizon
 #c(f$hzname,f$genhz,f$hzdept,f$hzdepb)

@@ -145,7 +145,7 @@ if (dim(s)[1] != 0) {
 
 ```{r format site data, results='asis', echo=FALSE}
 # Site information
-kable(subset(s, select = c("pedon_id", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "describer")), caption = "Summary of data in the selected set")
+kable(subset(s, select = c("upedonid", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "describer")), caption = "Summary of data in the selected set")
 ```
 
 
@@ -175,7 +175,7 @@ idx <- pIndex(pedons, 15)
 
 # plot 15 profiles at a time
 for (i in unique(idx)) {
-  plot(pedons[idx == i], name = 'hzname', color = 'genhz.soil_color', label = 'pedon_id')
+  plot(pedons[idx == i], name = 'hzname', color = 'genhz.soil_color', label = 'upedonid')
   title("Soil profile plots")
   if (length(hz.names) > 0)
     legend('bottomleft', legend = hz.names, pt.bg = cols, pch = 22, horiz = TRUE, pt.cex = 2, text.width = 1)

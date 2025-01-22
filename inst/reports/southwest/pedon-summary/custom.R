@@ -213,7 +213,7 @@ summarize.texture.class <- function(i) {
 # comp: the name of the current component
 summarize.component <- function(f.i) {
 
-  ## TODO: this is wasteful, as we only need 'pedon_id' from @site
+  ## TODO: this is wasteful, as we only need 'upedonid' from @site
 	# extract horizon+site as data.frame
 	h.i <- as(f.i, 'data.frame')
 	
@@ -234,10 +234,10 @@ summarize.component <- function(f.i) {
 	pedon.surface.frags.table <- summarise.pedon.surface.frags(site.i)
 	
   ## check for missing genhz labels by pedon
-	missing.all.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) all(is.na(i$genhz)))
-	missing.some.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) any(is.na(i$genhz)))
-  missing.genhz.IDs <- join(missing.all.genhz.IDs, missing.some.genhz.IDs, by='pedon_id')
-  names(missing.genhz.IDs) <- c('pedon_id', 'missing.all', 'missing.some')
+	missing.all.genhz.IDs <- ddply(h.i, 'upedonid', function(i) all(is.na(i$genhz)))
+	missing.some.genhz.IDs <- ddply(h.i, 'upedonid', function(i) any(is.na(i$genhz)))
+  missing.genhz.IDs <- join(missing.all.genhz.IDs, missing.some.genhz.IDs, by='upedonid')
+  names(missing.genhz.IDs) <- c('upedonid', 'missing.all', 'missing.some')
   # determine type of missing data
 	missing.genhz.IDs$missing.genhz <- apply(missing.genhz.IDs[, -1], 1, function(i) {
     if(any(i) & ! all(i))

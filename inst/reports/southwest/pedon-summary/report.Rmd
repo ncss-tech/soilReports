@@ -121,7 +121,7 @@ f$musym <- mu$MUSYM[sapply(st_intersects(f_sp, mu), function(x)
 
 SUBSET_RULE <- tolower(SUBSET_RULE)
 if (SUBSET_RULE == 'pedon.id.list') {
-  subset.idx <- which(f$pedon_id %in% pedon_set)
+  subset.idx <- which(f$upedonid %in% pedon_set)
 }
 
 ## generate index to subset using regular expression
@@ -155,8 +155,8 @@ if (TAXONNAME_PATTERN %in% names(gen.hz.rules)) {
 }
 
 ## update diagnostic feature slot
-# join pedon_id + additional information into diagnostic table: this is kind of wasteful
-f.diagnostic <- join(site(f)[, c('pedon_id', 'peiid', 'musym', 'taxonname')], 
+# join upedonid + additional information into diagnostic table: this is kind of wasteful
+f.diagnostic <- join(site(f)[, c('upedonid', 'peiid', 'musym', 'taxonname')], 
                      diagnostic_hz(f), by = 'peiid', type = 'left')
 
 # remove records where diag_kind is NA
@@ -244,9 +244,9 @@ Check to make sure that pedons used within this report have been correctly assig
 # join missing genhz data to site
 site(f) <- s$mgz
 site.i <- site(f)
-this.data <- site.i[order(site.i$musym, site.i$pedon_id), c(
+this.data <- site.i[order(site.i$musym, site.i$upedonid), c(
   'musym',
-  'pedon_id',
+  'upedonid',
   'taxonname',
   'taxonkind',
   'pedontype',
@@ -550,7 +550,7 @@ groupedProfilePlot(
   f,
   groups = 'musym',
   name = 'new.hz.name',
-  label = 'pedon_id',
+  label = 'upedonid',
   id.style = 'side',
   max.depth = max.depth.for.plotting,
   cex.names = 0.6,

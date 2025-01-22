@@ -41,7 +41,7 @@ f <- peds
 site(f) <- s$mgz
 site.i <- site(f)
 
-kable(site.i[order(site.i$musym, site.i$pedon_id), c('musym', 'pedon_id', 'taxonname', 'taxonkind', 'pedontype', 'bedrckdepth', 'taxpartsize', 'taxsubgrp', 'missing.genhz')], row.names = FALSE, align = 'c')
+kable(site.i[order(site.i$musym, site.i$upedonid), c('musym', 'upedonid', 'taxonname', 'taxonkind', 'pedontype', 'bedrckdepth', 'taxpartsize', 'taxsubgrp', 'missing.genhz')], row.names = FALSE, align = 'c')
 ```
 
 ## MUSYM: `r input$s.mu`; Component: `r input$component_name`; Modal: `r input$modal_pedon`
@@ -50,7 +50,7 @@ kable(site.i[order(site.i$musym, site.i$pedon_id), c('musym', 'pedon_id', 'taxon
 ```{r,fig.width=12, fig.height=8}
 #TODO: abstract these with "reactive" and "static" available as a toggle
 peds$taxonname <- factor(peds$taxonname)
-groupedProfilePlot(peds, groups = 'taxonname', label = 'pedon_id',
+groupedProfilePlot(peds, groups = 'taxonname', label = 'upedonid',
                    print.id = TRUE, id.style = 'side', cex.id = 1.2,
                    cex.names = 1,
                    depth.axis = list(cex = 1.25, line = -3.0),
@@ -63,7 +63,7 @@ groupedProfilePlot(peds, groups = 'taxonname', label = 'pedon_id',
 
 ```{r width=40, height=30}
 pedon_locations <- sf::st_as_sf(as(peds,'SpatialPointsDataFrame'))
-      slot(mapView(pedon_locations, height=2000, width=2000, label=pedon_locations$pedon_id, map.types=c("Stamen.TopOSMRelief",
+      slot(mapView(pedon_locations, height=2000, width=2000, label=pedon_locations$upedonid, map.types=c("Stamen.TopOSMRelief",
                                                 "Esri.WorldTopoMap",
                                                 "Esri.WorldImagery",
                                                 "OpenStreetMap.Mapnik")), 'map') 
@@ -83,7 +83,7 @@ if(!input$thematic_field %in% c("moist_soil_color","dry_soil_color")) {
               layout=c(1,1), scales=list(x=list(alternating=1)))
 
   if(!is.na(input$modal_pedon)) {
-    modalped <- horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),]) 
+    modalped <- horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),]) 
     #TODO: select modal pedon, need to query additional component data? or use dropdown box of available peds
     modalped$middepth <- modalped$hzdept + (modalped$hzdepb - modalped$hzdept)/2
     
@@ -105,7 +105,7 @@ if(!input$thematic_field %in% c("moist_soil_color","dry_soil_color")) {
 ### Generalized Grouped Profile Plot
 ```{r,fig.width=12, fig.height=8}
 peds$taxonname <- factor(peds$taxonname)
-groupedProfilePlot(peds, name = 'genhzraw', groups = 'taxonname', label = 'pedon_id',
+groupedProfilePlot(peds, name = 'genhzraw', groups = 'taxonname', label = 'upedonid',
                    print.id = TRUE, id.style = 'side', cex.id = 1.2,
                    cex.names = 1,  depth.axis = list(cex = 1.25, line = -3.0),
                    y.offset = 7, group.name.cex = 1,
@@ -126,7 +126,7 @@ df <- categorical.prop.table(peds$hillslopeprof)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$hillslopeprof))
 }
 ```
@@ -137,7 +137,7 @@ df <- categorical.prop.table(peds$geomposhill)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$geomposhill))
 }
 ```
@@ -148,7 +148,7 @@ df <- categorical.prop.table(peds$geomposmntn)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$geomposmntn))
 }
 ```
@@ -159,7 +159,7 @@ df <- categorical.prop.table(peds$geomposflats)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$geomposflats))
 }
 ```
@@ -170,7 +170,7 @@ df <- categorical.prop.table(peds$gis_geomorphons)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$gis_geomorphons))
 }
 ```
@@ -181,7 +181,7 @@ df <- categorical.prop.table(peds$drainagecl)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$drainagecl))
 }
 ```
@@ -197,7 +197,7 @@ df <- categorical.prop.table(shape)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$shapedown,modal$shapeacross))
 }
 ```
@@ -207,7 +207,7 @@ if(!is.na(input$modal_pedon)) {
 if(sum(!is.na(peds$aspect_field)) > 2)
   aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$aspect_field))
 }
 ```
@@ -220,7 +220,7 @@ df <-  categorical.prop.table(peds$ecositeid)
 kable(df)
 
 if(!is.na(input$modal_pedon)) {
-  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$pedon_id,sep=":")),] 
+  modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
   print(paste0("Modal pedon value: ",modal$ecositeid))
 }
 ```

@@ -105,7 +105,7 @@ if (loaded & !is.null(isolate(input))) {
       "modal_pedon",
       label = "Select modal pedon (peiid:upedonid): ",
       choices = paste(site(peds)$peiid,
-                      site(peds)$pedon_id,
+                      site(peds)$upedonid,
                       sep = ":")
     )
     # TODO: Is it possible to copedon rv
@@ -212,7 +212,7 @@ if (loaded)
         aqp::groupedProfilePlot(
           peds,
           groups = 'taxonname',
-          label = 'pedon_id',
+          label = 'upedonid',
           print.id = TRUE,
           id.style = 'side',
           cex.id = 1.2,
@@ -314,7 +314,7 @@ if (loaded)
             !is.na(input$modal_pedon)) {
           modalped <-
             horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                           site(peds)$pedon_id,
+                                                           site(peds)$upedonid,
                                                            sep =
                                                              ":")), ])
           
@@ -384,7 +384,7 @@ if (loaded)
         peds,
         name = 'genhzraw',
         groups = 'taxonname',
-        label = 'pedon_id',
+        label = 'upedonid',
         print.id = TRUE,
         id.style = 'side',
         cex.id = 1.2,
@@ -536,7 +536,7 @@ if (loaded)
     if (length(peds) &
         length(input$modal_pedon) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       print(paste0("Modal pedon value: ", modal$hillslopeprof))
     }
@@ -581,7 +581,7 @@ if (loaded)
     if (length(peds) &
         length(input$modal_pedon) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       print(paste0("Modal pedon value: ", modal$geomposhill))
     }
@@ -624,7 +624,7 @@ if (loaded)
     
     if (length(peds) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       print(paste0("Modal pedon value: ", modal$geomposmntn))
     }
@@ -665,7 +665,7 @@ if (loaded)
     
     if (length(peds) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       print(paste0("Modal pedon value: ", modal$geomposmntn))
     }
@@ -709,7 +709,7 @@ if (loaded)
     
     if (length(peds) &
         length(input$modal_pedon) & !is.na(input$modal_pedon)) {
-      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,                                                site(peds)$pedon_id, sep = ":")), ]
+      modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,                                                site(peds)$upedonid, sep = ":")), ]
       if ("gis_geomorphons" %in% siteNames(modal)) {
         print(paste0("Modal pedon value: ", modal$gis_geomorphons))
       } else {
@@ -754,7 +754,7 @@ if (loaded)
     if (length(peds) &
         length(input$modal_pedon) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       print(paste0("Modal pedon value: ", modal$drainagecl))
     }
@@ -816,7 +816,7 @@ if (loaded)
     if (length(peds) &
         length(input$modal_pedon) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       print(paste0("Modal pedon value: ",
                    modal$shapedown,
@@ -874,7 +874,7 @@ if (loaded)
     if (length(peds) &
         length(input$modal_pedon) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       print(paste0("Modal pedon value: ", modal$aspect_field))
     }
@@ -918,7 +918,7 @@ renderUI({
   if (length(peds) &
       length(input$modal_pedon) & !is.na(input$modal_pedon)) {
     modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                   site(peds)$pedon_id,
+                                                   site(peds)$upedonid,
                                                    sep = ":")), ]
     print(paste0("Modal pedon value: ", modal$ecositeid))
   }
@@ -1011,7 +1011,7 @@ if (loaded)
     if (length(peds) &
         length(input$modal_pedon) & !is.na(input$modal_pedon)) {
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                     site(peds)$pedon_id,
+                                                     site(peds)$upedonid,
                                                      sep = ":")), ]
       modal$hzagg <- paste0(modal$hzname, ":", modal$genhz)
       
@@ -1020,7 +1020,7 @@ if (loaded)
           modal,
           name = 'hzagg',
           groups = "taxonname",
-          label = 'pedon_id',
+          label = 'upedonid',
           print.id = TRUE,
           id.style = 'side',
           cex.id = 1.2,

@@ -77,7 +77,7 @@ x <- lapply(split(s2, s2$MUSYM), function(x) {
       x[, c(
         "AREASYMBOL",
         "MUSYM",
-        "pedon_id",
+        "upedonid",
         "describer",
         # "pedontype",
         "taxonkind",
@@ -92,13 +92,13 @@ x <- lapply(split(s2, s2$MUSYM), function(x) {
                     sf::st_crs(s2)[[1]]) 
       
     ), "\n\n\n")
-   psub <- p[which(p$pedon_id %in% x$pedon_id),]
+   psub <- p[which(p$upedonid %in% x$upedonid),]
    if (length(psub) == 1) { 
      aqp::groupedProfilePlot(
        psub,
        groups = "taxonname",
        group.name.offset = -17.5,
-       label = "pedon_id",
+       label = "upedonid",
        id.style = "side", 
        color = HORIZON_THEME,
        width = 0.1,
@@ -109,7 +109,7 @@ x <- lapply(split(s2, s2$MUSYM), function(x) {
        psub,
        groups = "taxonname",
        group.name.offset = -17.5,
-       label = "pedon_id",
+       label = "upedonid",
        id.style = "side",
        color = HORIZON_THEME
      )

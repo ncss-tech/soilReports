@@ -74,7 +74,7 @@ getPedonsByPattern <- function(input, s.pedons, musym,
     
     if(is.null(upid))
       upid <- ".*"
-    upidmatch <- grepl(pattern=upid, s.pedons$pedon_id)
+    upidmatch <- grepl(pattern=upid, s.pedons$upedonid)
     
     taxname <- as.character(s.pedons$taxonname)
     taxname[is.na(s.pedons$taxonname)]  <- ""
@@ -96,7 +96,7 @@ getPedonsByPattern <- function(input, s.pedons, musym,
       taxon_kind = ".*"
     taxkindmatch <- grepl(pattern=taxon_kind, s.pedons$taxonkind)
     
-    # idx.match <- rep(TRUE, length(s.pedons$pedon_id))
+    # idx.match <- rep(TRUE, length(s.pedons$upedonid))
     # # If there has been a list of pedons specified, 
     # #  use that in lieu of all other patterns
     # if(pedon_list != "." & pedon_list != "") { 
@@ -106,7 +106,7 @@ getPedonsByPattern <- function(input, s.pedons, musym,
     #   
     #   if(length(plist[[1]]) >= 1) {
     #     # length should always be 1 or more?
-    #     idx.match <- (s.pedons$pedon_id %in% plist[[1]]) 
+    #     idx.match <- (s.pedons$upedonid %in% plist[[1]]) 
     #     # should this allow for regex too? 
     #   }
     #} else {
@@ -124,7 +124,7 @@ getPedonsByPattern <- function(input, s.pedons, musym,
   }
 }
 
-diaghzplot2 <- function (f, v, grid.label = "pedon_id") 
+diaghzplot2 <- function (f, v, grid.label = "upedonid") 
 {
   id <- idname(f)
   s <- site(f)
@@ -360,7 +360,7 @@ summarize.texture.class <- function(i) {
 # f.i: subset of the SPC containing only pedons to aggregate
 # comp: the name of the current component
 summarize.component <- function(f.i) {
-  ## TODO: this is wasteful, as we only need 'pedon_id' from @site
+  ## TODO: this is wasteful, as we only need 'upedonid' from @site
   # extract horizon+site as data.frame
   h.i <- as(f.i, 'data.frame')
   
@@ -384,10 +384,10 @@ summarize.component <- function(f.i) {
   h.i$genhz[h.i$genhz == 'not-used'] <- NA
   
   # ## check for missing genhz labels by pedon
-  missing.all.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) all(is.na(i$genhz)))
-  missing.some.genhz.IDs <- ddply(h.i, 'pedon_id', function(i) any(is.na(i$genhz)))
-  missing.genhz.IDs <- join(missing.all.genhz.IDs, missing.some.genhz.IDs, by='pedon_id')
-  names(missing.genhz.IDs) <- c('pedon_id', 'missing.all', 'missing.some')
+  missing.all.genhz.IDs <- ddply(h.i, 'upedonid', function(i) all(is.na(i$genhz)))
+  missing.some.genhz.IDs <- ddply(h.i, 'upedonid', function(i) any(is.na(i$genhz)))
+  missing.genhz.IDs <- join(missing.all.genhz.IDs, missing.some.genhz.IDs, by='upedonid')
+  names(missing.genhz.IDs) <- c('upedonid', 'missing.all', 'missing.some')
   
   # determine type of missing data
   missing.genhz.IDs$missing.genhz <- apply(missing.genhz.IDs[, -1], 1, function(i) {
