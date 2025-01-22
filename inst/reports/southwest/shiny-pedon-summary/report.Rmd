@@ -204,11 +204,11 @@ if(!is.na(input$modal_pedon)) {
 
 ### Aspect
 ```{r,fig.width=8, fig.height=8}
-if(sum(!is.na(peds$aspect_field)) > 2)
-  aspect.plot(peds$aspect_field, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
+if(sum(!is.na(peds$aspect)) > 2)
+  aspect.plot(peds$aspect, q=p.low.rv.high, plot.title=input$pedon_pattern, pch=21, bg='RoyalBlue', col='black', arrow.col=c('grey', 'red', 'grey'))
 if(!is.na(input$modal_pedon)) {
   modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,site(peds)$upedonid,sep=":")),] 
-  print(paste0("Modal pedon value: ",modal$aspect_field))
+  print(paste0("Modal pedon value: ",modal$aspect))
 }
 ```
 

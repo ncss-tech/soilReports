@@ -843,7 +843,7 @@ if (loaded)
     # cannot make aspect plot with 3 or less profiles
     if (length(peds) & length(peds) > 2)
       aspect.plot(
-        peds$aspect_field,
+        peds$aspect,
         q = p.low.rv.high,
         plot.title = input$pedon_pattern,
         pch = 21,
@@ -876,7 +876,7 @@ if (loaded)
       modal <- peds[which(input$modal_pedon == paste(site(peds)$peiid,
                                                      site(peds)$upedonid,
                                                      sep = ":")), ]
-      print(paste0("Modal pedon value: ", modal$aspect_field))
+      print(paste0("Modal pedon value: ", modal$aspect))
     }
   })
 ```

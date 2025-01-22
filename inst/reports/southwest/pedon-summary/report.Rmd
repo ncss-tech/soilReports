@@ -726,7 +726,7 @@ knitr::opts_chunk$set(fig.width = 4.5)
 ```{r aspect-circular-hist, fig.height=5, echo=FALSE}
 par(mar = c(0, 0, 0, 0))
 aspect.plot(
-  f$aspect_field,
+  f$aspect,
   q = p.low.rv.high,
   plot.title = TAXONNAME_PATTERN,
   pch = 21,

@@ -332,9 +332,9 @@ morf.5n <- ddply(morf.lo, .(variable), summarize,
                 range = prettySummary(value)
                 )
 
-if (!all(is.na(s$aspect_field))) {
-  aspect <- subset(s, select = c("aspect_field"))
-  aspect.lo <- melt(aspect, measure.vars = "aspect_field")
+if (!all(is.na(s$aspect))) {
+  aspect <- subset(s, select = c("aspect"))
+  aspect.lo <- melt(aspect, measure.vars = "aspect")
   aspect.lo$value <- circular(aspect.lo$value, template="geographic", units="degrees", modulo="2pi")
   aspect.5n <- ddply(aspect.lo, .(variable), summarize,
                 range = prettySummary(value)
