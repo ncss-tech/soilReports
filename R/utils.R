@@ -71,15 +71,15 @@ prettySummary <- function(x, p = c(0, 0.25, 0.5, 0.75, 1), n = TRUE, signif = TR
 
 # tool to replace deprecated region names with new region names
 .convert_region <- function(x) {
-  if (grepl("^region[0-9]+.*$", x)) {
-    lut <- c(region2 = "southwest",
+  if (grepl("region[0-9]+.*$", x)) {
+    lut <- c(region2  = "southwest",
              region11 = "northcentral")
-    old <- gsub("^(region[0-9]+).*$", "\\1", x)
+    old <- gsub(".*(region[0-9]+).*$", "\\1", x)
     new <- gsub(paste0("^", old), lut[old], x)
     message("Replacing ", x, " with ", new)
     x <- new
   }
-  if (!dir.exists(file.path(find.package("soilReports"), "reports", x))) {
+  if (!dir.exists(file.path(find.package("soilReports"), "reports", x)) & !dir.exists(x)) {
     stop("Could not find report: ", x, call. = FALSE)
   }
   x
