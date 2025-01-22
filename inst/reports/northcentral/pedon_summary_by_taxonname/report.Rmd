@@ -145,7 +145,7 @@ if (dim(s)[1] != 0) {
 
 ```{r format site data, results='asis', echo=FALSE}
 # Site information
-kable(subset(s, select = c("upedonid", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "describer")), caption = "Summary of data in the selected set")
+kable(subset(s, select = c("upedonid", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "descname")), caption = "Summary of data in the selected set")
 ```
 
 

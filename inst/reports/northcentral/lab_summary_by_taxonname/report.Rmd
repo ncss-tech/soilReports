@@ -155,7 +155,7 @@ if (dim(s)[1] != 0) {
 ## Site Data
 
 ```{r site data}
-kable(s[, c("upedonid", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "describer")], cation = "Site Data")
+kable(s[, c("upedonid", "taxonname", "taxsubgrp", "taxpartsize", "pedontype", "descname")], cation = "Site Data")
 ```
 
 

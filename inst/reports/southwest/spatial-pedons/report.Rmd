@@ -78,7 +78,7 @@ x <- lapply(split(s2, s2$MUSYM), function(x) {
         "AREASYMBOL",
         "MUSYM",
         "upedonid",
-        "describer",
+        "descname",
         # "pedontype",
         "taxonkind",
         "taxonname",
