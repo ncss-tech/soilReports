@@ -61,8 +61,8 @@ remotes::install_github("ncss-tech/soilReports", dependencies = FALSE, upgrade_d
      + [Shiny Pedon Summary](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/southwest/shiny-pedon-summary)
      
   * Region 11
-     + [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/northeast/component_summary_by_project)
-     + [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/northeast/mupolygon_summary_by_project)
+     + [Component Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/northcentral/component_summary_by_project)
+     + [MUPOLYGON Summary by Project](https://github.com/ncss-tech/soilReports/tree/master/inst/reports/northcentral/mupolygon_summary_by_project)
 
 
 ## Example Output

@@ -73,7 +73,7 @@ prettySummary <- function(x, p = c(0, 0.25, 0.5, 0.75, 1), n = TRUE, signif = TR
 .convert_region <- function(x) {
   if (grepl("^region[0-9]+.*$", x)) {
     lut <- c(region2 = "southwest",
-             region11 = "northeast")
+             region11 = "northcentral")
     old <- gsub("^(region[0-9])+.*$", "\\1", x)
     new <- gsub(paste0("^", old), lut[old], x)
     message("Replacing ", x, " with ", new)

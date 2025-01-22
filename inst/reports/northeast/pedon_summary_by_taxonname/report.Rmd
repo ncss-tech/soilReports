@@ -11,7 +11,7 @@ output:
       smooth_scroll: no
 params:
    series: !r as.character("Miami")
-   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/northeast/pedon_summary_by_taxonname/genhz_rules/Generic_rules.R"))
+   genhz_rules: !r as.character(file.path(system.file(package = "soilReports"), "reports/northcentral/pedon_summary_by_taxonname/genhz_rules/Generic_rules.R"))
 ---
 
 ```{r setup, echo=FALSE, warning=FALSE}

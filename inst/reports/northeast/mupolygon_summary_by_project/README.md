@@ -45,14 +45,14 @@ library(rmarkdown)
 # run the report manually
 ## copy to your workspace2 folder
 
-copyReport(reportName = "northeast/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
+copyReport(reportName = "northcentral/mupolygon_summary_by_project", outputDir = "C:/workspace2/mupolygon_summary")
 
 ## Open the "report.Rmd" file from "C:/workspace2/mupolygon_summary" in RStudio, and hit the "Knit HTML" drop down arrow and select "Knit with Paramters..." menu item. Modify the parameters accordingly. 
 
 
 ## run the report via commandline
 reports = listReports()
-reports = subset(reports, name == "northeast/mupolygon_summary_by_project")
+reports = subset(reports, name == "northcentral/mupolygon_summary_by_project")
 render(input = "C:/workspace2/mupolygon_summary/report.Rmd", 
        output_dir = "C:/workspace2", 
        output_file = "C:/workspace2/mupolygon_summary.html", 
