@@ -170,7 +170,7 @@ observeEvent(
       phasename = input$phase_pattern
     )
     
-    my.env$peds$genhz <- factor(my.env$peds$genhz,
+    my.env$peds$genhz <- factor(my.env$peds[[GHL(res$pedons)]],
                                 levels = aqp::guessGenHzLevels(res$pedons)$levels)
     my.env$s <- summarize.component(my.env$peds)
     
@@ -367,8 +367,7 @@ if (loaded)
       input$taxon_kind,
       input$phase_pattern
     )
-    peds$genhz <-
-      factor(peds$genhz, levels = guessGenHzLevels(peds)$levels)
+    peds$genhz <- factor(peds$genhz, levels = guessGenHzLevels(peds)$levels)
     if (length(peds)) {
       # this plot function gets mad if hzname is a factor...
       # but taxonname must be a factor

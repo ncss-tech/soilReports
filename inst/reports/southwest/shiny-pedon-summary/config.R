@@ -90,18 +90,20 @@ if (!cache_data) {
     loafergopher <- aqp::combine(loafercreek, gopheridge)
     
     hzidname(loafergopher) <- 'phiid'
-    GHL(loafergopher) <- "genhz"
     
     loafergopher$musym <- rep('<missing>', length(loafergopher))  
     loafergopher$taxonname <- factor(loafergopher$taxonname)
     
     pedons_raw <- loafergopher
+    pedons_raw$genhz <- pedons_raw$dspcomplayerid
+    GHL(pedons_raw) <- "genhz"
   } else {
     pedons_raw <- fetchNASIS()
+    pedons_raw$genhz <- pedons_raw$dspcomplayerid
     GHL(pedons_raw) <- "genhz"
   }
   
-  if (use_regex_ghz | !("genhz" %in% horizonNames(pedons_raw))) {
+  if (use_regex_ghz || !("genhz" %in% horizonNames(pedons_raw))) {
     pedons_raw$genhz <- factor(
         aqp::generalize.hz(
           as.character(pedons_raw$hzname),
