@@ -8,7 +8,7 @@ input$upid_pattern = ''
 input$phase_pattern = ""
 input$taxon_kind = "any"
 input$pedon_list = ""
-input$thematic_field="clay"
+input$thematic_field="claytotest"
 #input$modal_pedon = "pedonrecordid:userpedonid" #note: this is dataset specific
 
 #s.comp <<- getMapunitComponents(input$s.mu)

@@ -125,7 +125,7 @@ inputPanel(
       "moist_soil_color",
       "dry_soil_color"
     ),
-    selected = "clay"
+    selected = "claytotest"
   )
 )
 
@@ -253,10 +253,10 @@ if (loaded)
       
       #  access leaflet map slot directly for renderLeaflet()
       #  TODO: subset columns
-      slot(mapview::mapview(pedon_locations), 'map')
+      # slot(mapview::mapview(pedon_locations), 'map')
       
       ## alternative: terra leaflet plot
-      # terra::plet(terra::vect(pedon_locations))
+      terra::plet(terra::vect(pedon_locations))
     }
   }
   )
@@ -282,69 +282,73 @@ if (loaded)
     
     if (length(peds) & length(input$thematic_field)) {
       if (!input$thematic_field %in% c("moist_soil_color", "dry_soil_color")) {
-        s <- aqp::slab(peds, fm = as.formula(sprintf(" ~ %s", input$thematic_field)))
-        # max depth is <1% contributing fraction
-        max.idx <- which(s$contributing_fraction <= 0.01)
-        if (!length(max.idx))
-          max.idx <- nrow(s)
-        s.sub <- s[1:max.idx[1], ]
-        s.sub <- s.sub[complete.cases(s.sub), ]
-        
-        a <- xyplot(
-          top ~ p.q50,
-          data = s.sub,
-          ylab = 'Depth',
-          xlab = paste0(
-            input$thematic_field,
-            '\nmedian bounded by 5th and 95th percentiles'
-          ),
-          lower = s$p.q5,
-          upper = s$p.q95,
-          ylim = c(max(s.sub$bottom, na.rm = TRUE), -5),
-          panel = aqp::panel.depth_function,
-          prepanel = aqp::prepanel.depth_function,
-          cf = s$contributing_fraction,
-          layout = c(1, 1),
-          scales = list(x = list(alternating = 1))
-        )
-        
-        b <- aqp::slab(peds[1, ], fm = as.formula(paste0(" ~ ", input$thematic_field)))
-        
-        if (length(input$modal_pedon) &
-            !is.na(input$modal_pedon)) {
-          modalped <-
-            horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,
-                                                           site(peds)$upedonid,
-                                                           sep =
-                                                             ":")), ])
-          
-          #TODO: select modal pedon from RV copedon
-          modalped$middepth <-
-            modalped$hzdept + (modalped$hzdepb - modalped$hzdept) / 2
-          
-          foo <- 1:(length(modalped$middepth) * 3)
-          modalpedplot <- data.frame(foo)
-          
-          modalpedplot$y <- 1:length(foo)
-          modalpedplot$y[which((foo %% 3) == 1)] <- modalped$hzdept
-          modalpedplot$y[which((foo %% 3) == 2)] <- modalped$middepth
-          modalpedplot$y[which((foo %% 3) == 0)] <- modalped$hzdepb
-          
-          modalpedplot$x <- rep(modalped[[input$thematic_field]], each = 3)
-          b <- xyplot(
-            y ~ x,
-            data = modalpedplot,
-            type = "l",
-            col = "RED",
-            lwd = 3,
-            ylim = c(250, -5),
-            layout = c(1, 1),
-            scales = list(x = list(alternating = 1)),
-            par.settings = list(superpose.line = list(lwd = 3))
-          )
-          (a + as.layer(b))
+        if(all(is.na(peds[[input$thematic_field]]))) {
+          stop(paste0("All '", input$thematic_field, "' values are NA"))
         } else {
-          a
+          s <- aqp::slab(peds, fm = as.formula(sprintf(" ~ %s", input$thematic_field)))
+          # max depth is <1% contributing fraction
+          max.idx <- which(s$contributing_fraction <= 0.01)
+          if (!length(max.idx))
+            max.idx <- nrow(s)
+          s.sub <- s[1:max.idx[1], ]
+          s.sub <- s.sub[complete.cases(s.sub), ]
+          
+          a <- xyplot(
+            top ~ p.q50,
+            data = s.sub,
+            ylab = 'Depth',
+            xlab = paste0(
+              input$thematic_field,
+              '\nmedian bounded by 5th and 95th percentiles'
+            ),
+            lower = s$p.q5,
+            upper = s$p.q95,
+            ylim = c(max(s.sub$bottom, na.rm = TRUE), -5),
+            panel = aqp::panel.depth_function,
+            prepanel = aqp::prepanel.depth_function,
+            cf = s$contributing_fraction,
+            layout = c(1, 1),
+            scales = list(x = list(alternating = 1))
+          )
+          
+          b <- aqp::slab(peds[1, ], fm = as.formula(paste0(" ~ ", input$thematic_field)))
+          
+          if (length(input$modal_pedon) &
+              !is.na(input$modal_pedon)) {
+            modalped <-
+              horizons(peds[which(input$modal_pedon == paste(site(peds)$peiid,
+                                                             site(peds)$upedonid,
+                                                             sep =
+                                                               ":")), ])
+            
+            #TODO: select modal pedon from RV copedon
+            modalped$middepth <-
+              modalped$hzdept + (modalped$hzdepb - modalped$hzdept) / 2
+            
+            foo <- 1:(length(modalped$middepth) * 3)
+            modalpedplot <- data.frame(foo)
+            
+            modalpedplot$y <- 1:length(foo)
+            modalpedplot$y[which((foo %% 3) == 1)] <- modalped$hzdept
+            modalpedplot$y[which((foo %% 3) == 2)] <- modalped$middepth
+            modalpedplot$y[which((foo %% 3) == 0)] <- modalped$hzdepb
+            
+            modalpedplot$x <- rep(modalped[[input$thematic_field]], each = 3)
+            b <- xyplot(
+              y ~ x,
+              data = modalpedplot,
+              type = "l",
+              col = "RED",
+              lwd = 3,
+              ylim = c(250, -5),
+              layout = c(1, 1),
+              scales = list(x = list(alternating = 1)),
+              par.settings = list(superpose.line = list(lwd = 3))
+            )
+            (a + as.layer(b))
+          } else {
+            a
+          }
         }
       } else {
         print("Color quantiles by depth coming soon")

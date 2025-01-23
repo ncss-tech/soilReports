@@ -174,6 +174,6 @@ input$pedon_list <- ".*"
 input$taxon_kind <- ".*"
 input$phase_pattern <- ".*"
 input$modal_pedon <- NA
-input$thematic_field <- "clay"
+input$thematic_field <- "claytotest"
 input$s.mu <- '.*' #all mapunits
 input$pedon_list <- "" #no pedon list specified (no initial filter)
