@@ -49,13 +49,13 @@ makeCategoricalOutput <- function(dat, mu.col, categorical.defs, do.spatial.summ
     dat$value <- factor(dat$value, levels = lvls, labels = lbls)
   }
   
-  cat(paste0("  \n### ", metadat$header,"  \n"))
+  cat(paste0("  \n### ", metadat$header, "  \n"))
   if (!is.null(metadat$description))  {
-    cat(paste0("  \n",metadat$description,"  \n"))
+    cat(paste0("  \n", metadat$description, "  \n"))
   }
   if (!is.null(metadat$usage))  {
     cat("  \n  **Suggested usage:**  \n")
-    cat(paste0("  \n",metadat$usage,"  \n  \n"))
+    cat(paste0("  \n", metadat$usage, "  \n  \n"))
   }
   
   
@@ -99,14 +99,15 @@ makeCategoricalOutput <- function(dat, mu.col, categorical.defs, do.spatial.summ
   names(x.sig) <- 'mapunit composition "signature" (most frequent classes that sum to 75% or more)'
   
   # get a signature for each polygon
-  spatial.summary <- ddply(
-    dat,
-    c(mu.col, 'pID'),
-    .fun = sweepProportions,
-    id.col = mu.col,
-    drop.unused.levels = FALSE,
-    single.id = TRUE
-  )
+  spatial.summary <- data.frame(data.table::data.table(dat)[, 
+                                                            sweepProportions(
+                                                              .SD,
+                                                              id.col = mu.col,
+                                                              drop.unused.levels = FALSE,
+                                                              single.id = TRUE
+                                                            ), by = c(mu.col, "pID"),
+                                                            .SDcols = c(mu.col, "value")])
+  
   
   ## most likely class
   most.likely.class.idx <- 1
@@ -298,10 +299,6 @@ mask.fun <- function(i) {
   return(res)
 }
 
-
-
-
-
 # set multi-row figure based on number of groups and fixed number of columns
 dynamicPar <- function(n, max.cols=3) {
   # simplest case, fewer than max number of allowed columns
@@ -376,19 +373,26 @@ subsetByPattern <- function(pattern) {
 # i: data.frame with '.id' and ' value' columns
 # drop.unused.levels: this affects all unused levels
 # single.id: FALSE when summarizing all MUSYM, TRUE when specific to single MUSYM
-sweepProportions <- function(i, id.col, drop.unused.levels=FALSE, single.id=FALSE) {
+sweepProportions <- function(i,
+                             id.col,
+                             drop.unused.levels = FALSE,
+                             single.id = FALSE) {
   # must drop missing .id factor levels when used with a single .id e.g. for spatial summaries
-  if(single.id)
+  if (single.id)
     i[[id.col]] <- factor(i[[id.col]])
   
   # tabulate and convert to proportions, retain all levels of ID
-  foo <- xtabs(as.formula(paste0("~ ", id.col, " + value")), data=i, drop.unused.levels=drop.unused.levels)
-  res <- sweep(foo, MARGIN = 1, STATS = rowSums(foo), FUN = '/')
+  foo <- xtabs(as.formula(paste0("~ ", id.col, " + value")),
+               data = i,
+               drop.unused.levels = drop.unused.levels)
+  res <- sweep(foo,
+               MARGIN = 1,
+               STATS = rowSums(foo),
+               FUN = '/')
   
   # 2017-12-11: 0-samples result in NA, convert those back to 0
-  if(any(is.na(res)))
+  if (any(is.na(res)))
     res[is.na(res)] <- 0
   
   return(res)
 }
-

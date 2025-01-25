@@ -10,7 +10,7 @@
 ## version number
 
 .report.name <- 'mu-comparison'
-.report.version <- '4.0.3'
+.report.version <- '4.1.0'
 .report.description <- 'compare stack of raster data, sampled from polygons associated with 1-8 map units'
 
 .paths.to.copy <-
@@ -43,9 +43,7 @@
     'rmarkdown',
     "MASS",
     "terra",
-    "exactextractr",
-    "plyr",
-    "reshape2",
+    "data.table",
     "latticeExtra",
     "cluster",
     "clhs",

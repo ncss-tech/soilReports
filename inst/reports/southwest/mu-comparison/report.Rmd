@@ -24,10 +24,10 @@ options(width = 100, stringsAsFactors = FALSE)
 ### SANITY CHECK #1 - make sure user has run reportSetup recently
 
 ### check if needed CRAN packages are installed
-packz <- c("MASS", "terra", "exactextractr", "plyr", "reshape2", "latticeExtra", "cluster", "clhs", "randomForest", "aqp", "sharpshootR", "RColorBrewer", "spdep")
+packz <- c("MASS", "terra", "data.table", "latticeExtra", "cluster", "clhs", "randomForest", "RColorBrewer", "spdep")
 newpackz <- packz[!(packz %in% installed.packages()[,"Package"])]
 
-loaded <- lapply(packz, FUN = require, character.only = TRUE, quietly = TRUE)
+loaded <- sapply(packz, FUN = require, character.only = TRUE, quietly = TRUE)
 if (sum(as.numeric(loaded)) != length(packz)) {
   stop("Failed to load one or more required packages! Be sure you have the latest version of the soilReports package from GitHub. Then run `soilReports::reportSetup('southwest/mu-comparison')` to install all required packages. Use reportUpdate() to ensure you have the latest version of report.", call. = FALSE)
   geterrmessage()
@@ -91,9 +91,6 @@ if (any(accessible.inputs == 0 )) {
               paste0(unreadable.files, collapse = ", ")))
 }
 ### -----
-
-# just in case, coerce mu.col to character
-# mu[[mu.col]] <- as.character(mu[[mu.col]])
 
 # TODO: this type of if(exists(obj)) needs to wrap all references to report parameters 
 if (exists('mu.set')) { 
@@ -196,24 +193,183 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
   
 } else {
   
-  # suppressing warnings: these have to do with conversion of CRS of points
-  # iterate over map units and sample rasters
-  # result is a list
-  # 
-  # .timer.start <- Sys.time()
-  # target.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list,
-  #                                                         pts.per.acre, progress = FALSE, 
-  #                                                         estimateEffectiveSampleSize = correct.sample.size))
-  # .timer.stop <- Sys.time()
-  # 
-  # .sampling.time <- format(difftime(.timer.stop, .timer.start, units = 'mins'), digits = 2)
-  # print(paste0("Completed sampling of raster stack for poly symbols (",
-  #              paste(mu.set, collapse = ","),") in ", .sampling.time, "."))
-  # 
   .timer.start <- Sys.time()
-  sampling.res <- suppressWarnings(sampleRasterStackByMU(mu, mu.set, mu.col, raster.list,
-                                                          pts.per.acre, progress = FALSE, 
-                                                          estimateEffectiveSampleSize = correct.sample.size))
+  
+  musub <- subset(mu, mu[[mu.col]][[1]] %in% mu.set)
+  
+  # determine sampling locations
+  loc <- do.call('rbind', lapply(mu.set, function(musym) {
+    musubsub <- subset(musub, musub[[mu.col]][[1]] %in% musym)
+    terra::spatSample(
+      musubsub,
+      size = pmax(5, sum(terra::expanse(musubsub) * 0.000247 * pts.per.acre)),
+      method = "regular"
+    )
+  }))
+  
+  # extract values from raster
+  .do_raster_samples <- function(raster.list, musub, loc){
+    step1 <- rapply(raster.list, how = "replace", function(path) {
+      r <- rast(path)
+      levels(r) <- NULL
+      if (!terra::same.crs(r, musub)) {
+        musub <- terra::project(musub, crs(r))
+      }
+      if (!terra::same.crs(r, loc)) {
+        loc2 <- terra::project(loc, crs(r))
+      } else {
+        loc2 <- loc
+      }
+      # smp <- data.table::rbindlist(
+      #   ## TODO: this approach is an issue if rasters have heterogeneous grid system
+      #   ##       would require an alternate approach for some parts of downstream 
+      #   ##       (i.e. multivariate summary)
+      #   # exactextractr::exact_extract(
+      #   #  r,
+      #   #  musub,
+      #   #  include_cols = c("pID", mu.col),
+      #   #  force_df = TRUE
+      #   # )
+      # )
+      smp <- cbind(as.data.frame(loc2)[c("pID", mu.col)], terra::extract(r, loc2))
+      colnames(smp)[colnames(smp) == names(r)] <- "value"
+      smp$sID <- seq(nrow(smp))
+      smp$ID <- NULL
+      smp
+    })
+    
+    # create long format samples
+    step2 <- data.table::rbindlist(lapply(names(raster.list), function(k) {
+      data.table::rbindlist(lapply(names(step1[[k]]), function(n) {
+        res <- step1[[k]][[n]]
+        res$variable <- n
+        res$variable.type <- k
+        res
+      }))
+    }))
+    
+    step2
+  }
+  
+  sampling.res <- list()
+  sampling.res$raster.samples <- .do_raster_samples(raster.list, musub, loc)
+  
+  .do_area_stats <- function(musub, samples) {
+    res <- aggregate(
+      terra::expanse(musub) * 0.000247,
+      by = list(musub[[mu.col]][[1]]),
+      FUN = function(x)
+        c(round(quantile(x, probs = c(
+          0, 0.05, 0.25, 0.5, 0.75, 0.95, 1
+        ))), round(sum(x)), length(x))
+    )
+    colnames(res[[2]]) <- c("Min", "Q5", "Q25", "Median", "Q75", "Q95", "Max", 
+"Total Area", "Polygons")
+    
+    res2 <- aggregate(samples$pID,
+                      by = list(samples[[mu.col]]),
+                      FUN = function(x) {
+                        c(length(x), sum(!x %in% musub$pID))
+                      })
+    colnames(res2[[2]]) <- c("Samples", "Polygons Not Sampled")
+    res3 <- type.convert(as.data.frame(cbind(res[[1]], res[[2]], res2[[2]])), as.is = TRUE)
+    res3$`Mean Sample Dens.` <- signif(res3$`Samples` / res3$`Total Area`, 3)
+    colnames(res3)[1] <- mu.col
+    res3[match(res3[[mu.col]], mu.set),]
+  }
+  
+  sampling.res$area.stats <- .do_area_stats(musub, sampling.res$raster.samples)
+  
+  sampling.res$unsampled.ids <- unique(sampling.res$raster.samples$pID[!sampling.res$raster.samples$pID %in% musub$pID])
+  
+  if (correct.sample.size) {
+    message("Estimating effective sample size...")
+    MIl <- lapply(
+      lapply(raster.list$continuous, terra::rast),
+      function (r,
+                mu.extent = NULL,
+                n = NULL,
+                k = NULL,
+                # do.correlogram = FALSE,
+                cor.order = 5,
+                crop.raster = TRUE)
+      {
+        if (!requireNamespace("terra"))
+          stop("please install the `terra` package")
+        if (!requireNamespace("spdep"))
+          stop("please install the `spdep` package")
+        if (is.null(mu.extent)) {
+          mu.extent <- terra::project(terra::as.polygons(terra::ext(r), crs = terra::crs(r)),
+                                      terra::crs(r))
+        }
+        if (crop.raster && !is.null(mu.extent)) {
+          mu.extent <- terra::project(terra::as.polygons(terra::ext(mu.extent), crs = terra::crs(mu.extent)),
+                                      terra::crs(r))
+          r <- terra::crop(r, mu.extent)
+        }
+        if (is.null(n)) {
+          n <- ifelse(terra::ncell(r) < 10000, terra::ncell(r), 10000)
+        }
+        if (is.null(k)) {
+          k <- 5
+        }
+        s <- suppressWarnings(terra::spatSample(
+          r,
+          size = n,
+          na.rm = TRUE,
+          as.points = TRUE
+        ))
+        s.n <- spdep::knearneigh(as(s, "Spatial"), k = k)
+        s.nb <- spdep::knn2nb(s.n)
+        s.listw <- spdep::nb2listw(s.nb)
+        # if (do.correlogram) {
+        #   s.sp <- spdep::sp.correlogram(s.nb, s[[1]][[1]], order = cor.order, method = "I")
+        # } else {
+        #   s.sp <- NULL
+        # }
+        res <- spdep::moran.test(as.numeric(s[[1]][[1]]), s.listw, rank = TRUE, randomisation = FALSE)
+        # if (do.correlogram)
+        #   return(list(I = res$estimate[1], correlogram = s.sp))
+        res$estimate[1]
+      }
+    )
+    MI <- do.call('rbind', lapply(names(MIl), function(x)
+      data.frame(Variable = x, Moran.I = MIl[[x]])))
+    rownames(MI) <- NULL
+  } else {
+    MI <- data.frame(Variable = names(raster.list$continuous),
+                     Moran.I = 0)
+  }
+  
+  .do_raster_summary <- function(raster.list, musub) {
+    e.mu <- terra::as.polygons(terra::ext(musub), crs = terra::crs(musub))
+    
+
+    
+    data.table::rbindlist(lapply(raster.list, function(x) {
+      data.frame(Variable = names(x),
+                 File = unlist(x),
+                 Resolution = sapply(x, function(y) terra::res(terra::rast(y))[1]),
+                 inMemory = FALSE,
+                 ContainsMU = rapply(x, f = function(r) {
+                   r <- terra::rast(r)
+                    e.r <- terra::as.polygons(terra::ext(r), crs = terra::crs(r))
+                    e.mu.r <- terra::project(e.mu, terra::crs(e.r))
+                    return(terra::relate(e.r, e.mu.r, "contains")[1])
+                 }))
+    }))
+  }
+  
+  sampling.res$raster.summary <- .do_raster_summary(raster.list, musub)
+  
+  sampling.res$mu.validity.check <- data.frame(
+    id = musub[[mu.col]],
+    Polygon.Validity = terra::is.valid(musub),
+    stringsAsFactors = FALSE
+  )
+  
+  sampling.res$Moran_I <- MI
+  
   .timer.stop <- Sys.time()
   
   .sampling.time <- format(difftime(.timer.stop, .timer.start, units = 'mins'), digits = 2)
@@ -257,6 +413,7 @@ cols <- makeNiceColors(length(mu.set))
 
 # TODO: Null out raster samples to save memory TOGGLE
 ## http://adv-r.had.co.nz/memory.html#memory
+
 # sampling.res$raster.samples <- NULL
 
 # TODO / DEBUGGING: report on invalid geometries that could be interfering with sampling
@@ -373,9 +530,9 @@ if (!exists('scaleDensityCurves'))
   scaleDensityCurves <- TRUE
 
 # compute densities and optionally re-scale to {0,1}
-density.plot.data <- ddply(d.continuous, c(mu.col, 'variable'), 
-                           scaled.density, 
-                           constantScaling = scaleDensityCurves)
+density.plot.data <- data.frame(data.table::data.table(d.continuous)[, 
+                                                                     scaled.density(.SD), 
+                                                                     by = c(mu.col, 'variable')])
 density.plot.data$.id <- density.plot.data[[mu.col]]
 
 xyplot(y ~ x | variable, 
@@ -401,7 +558,7 @@ Table of select [percentiles](https://en.wikipedia.org/wiki/Percentile), by vari
 
 ```{r, echo=FALSE, results='asis', eval=do.continuous}
 # summarize raster data for tabular output
-mu.stats <- ddply(d.continuous, c('variable', mu.col), f.summary, p = p.quantiles)
+mu.stats <- data.table::data.table(d.continuous)[, f.summary(.SD, p = p.quantiles), by = c('variable', mu.col)]
 
 # print medians
 dg <- c(0, rep(2, times = length(unique(mu.stats$variable))))
@@ -434,7 +591,6 @@ l <- lapply(seq_along(muv), function(i) {
 })
 ```
 
-
 ### Slope Aspect
 
 A graphical summary of slope aspect values using density and percentile estimation methods adapted to circular data. Spread and central tendency are depicted with a combination of (circular) kernel density estimate (dashed blue lines) and arrows. The 50th percentile value is shown with a red arrow and the 10th and 90th percentile values are shown with gray arrows. Arrow length is proportional to the strength of directionality. Use the figures and table below to determine "clockwise" / "counter clockwise" values for NASIS component records.
@@ -463,7 +619,8 @@ opts_chunk$set(fig.width = fig.geom[2] * 5) # cols
 # reset multi-figure plotting parameters
 dynamicPar(length(d.circ.list))
 
-res <- ldply(d.circ.list, function(i) {
+res <- do.call('rbind', lapply(names(d.circ.list), function(n) {
+  i <- d.circ.list[[n]]
   mu <- unique(i[[mu.col]])
   circ.stats <- sharpshootR::aspect.plot(
     i$value,
@@ -477,14 +634,16 @@ res <- ldply(d.circ.list, function(i) {
     p.bw = 90
   )
   qs <- as.numeric(circ.stats)
-  names(qs) <- c("Q10", "Q50", "Q90")
   us <- attr(circ.stats, "uniformity")
   us[1] <- signif(us[1], 3)
   if (us[2] < 1e-8) {
     us[2] <- "<1e-8"
   }
-  return(c(round(qs), us))
-})
+  res <- data.frame(t(c(round(qs), us)))
+  colnames(res) <- c("Q10", "Q50", "Q90")
+  res <- cbind(data.frame(V1=n),res)
+  return(res)
+}))
 
 # tabular summary
 kable(res, align = 'r', col.names = c(mu.col, names(res)[-1]))
@@ -524,7 +683,7 @@ This plot displays the similarity of the map units across the set of environment
 
 # cast to wide format
 d.mu.wide <- as.data.frame(data.table::dcast(data.table::setDT(d.continuous),
-                           as.formula(sprintf("sid + pID + %s ~ variable", mu.col)),
+                           as.formula(sprintf("sID + pID + %s ~ variable", mu.col)),
                            value.var = 'value'))
 
 # drop rows with NA
@@ -533,93 +692,100 @@ d.mu.wide <- na.omit(d.mu.wide)
 # locate "non-id" vars that have non-zero SD
 # these are safe for cLHs and distance calc
 # solution for https://github.com/ncss-tech/soilReports/issues/87
-d.mu.wide.vars <- findSafeVars(d.mu.wide, id = c(mu.col, 'sid', 'pID'))
+d.mu.wide.vars <- findSafeVars(d.mu.wide, id = c(mu.col, 'sID', 'pID'))
 
 # must have > 1 variables to perform multivariate summary
 if (length(d.mu.wide.vars) < 2) {
   multivariate.summary <- FALSE
 } else {
   multivariate.summary <- TRUE
+  ## TODO: what is a reasonable sample size?
   
-  ## DEB 2019-05-15: the following check for low SD variables is too strict
-  ##             keeping it around just in case, slated for removal
-  # https://github.com/ncss-tech/soilReports/issues/87
+  # only sub-sample if there are "a lot" of samples
+  if (nrow(d.mu.wide) > 1000) {
+    d.sub <- data.frame(data.table::data.table(d.mu.wide)[, cLHS_subset(.SD, 
+                                                             n = 50,
+                                                             non.id.vars = d.mu.wide.vars),
+                                                          by = mu.col], check.names = FALSE)
+  } else {
+    d.sub <- d.mu.wide
+  }
   
-  # # check SD of each column, by group
-  # sd.by.id <- ddply(d.mu.wide, mu.col, function(i) {sapply(i[, d.mu.wide.vars, drop=FALSE], sd, na.rm=TRUE)})
-  # sd.by.id$res <- apply(sd.by.id[, -1], 1, function(i) any(i < 1e-5))
-  # 
-  # # if the SD is low in any column from all MU then stop  
-  # if(all(sd.by.id$res)) {  
-  #   multivariate.summary <- FALSE
-  # } else {
-  #   # OK to run MV summaries
-  #   multivariate.summary <- TRUE
-  #   
-  #   ## TODO: this may be too strict, remove variables first
-  #   ## https://github.com/ncss-tech/soilReports/issues/87
-  #   # filter out low-variance MU
-  #   if(any(sd.by.id$res)) {
-  #     ids.to.keep <- sd.by.id[[mu.col]][which(!sd.by.id$res)]
-  #     d.mu.wide <- d.mu.wide[which(d.mu.wide[[mu.col]] %in% ids.to.keep), ]
-  #     
-  #     # reset mu.set accordingly
-  #     idx.to.keep <- which(! mu.set %in% setdiff(mu.set, ids.to.keep))
-  #     mu.set <- mu.set[idx.to.keep]
-  #   }
-    
-
-    
-    ## TODO: what is a reasonable sample size?
-    # only sub-sample if there are "a lot" of samples
-    if (nrow(d.mu.wide) > 1000) {
-      # sub-sample via LHS: this takes time
-      # first three columns are IDs
-      # n: this is the number of sub-samples / map unit
-      # non.id.vars: this is an index to non-ID columns
-      d.sub <- ddply(d.mu.wide, mu.col, cLHS_subset, n = 50, non.id.vars=d.mu.wide.vars)
-    } else {
-      d.sub <- d.mu.wide
-    }
-    
-    ## NOTE: data with very low variability will cause warnings
-    # eval numerical distance, removing 'sid' and '.id' columns
-    d.dist <- daisy(d.sub[, d.mu.wide.vars], stand = TRUE)
-    
-    ## map distance matrix to 2D space via principal coordinates
-    d.betadisper <- vegan::betadisper(d.dist, group = d.sub[[mu.col]], 
-                                      bias.adjust = TRUE, 
-                                      sqrt.dist = TRUE, type = 'median')
-    d.scores <- vegan::scores(d.betadisper)
-    
-    # contour density estimates
-    # add contours for fixed pct of data density using KDE
-    # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
-    s <- data.frame(x = d.scores$sites[, 1], y = d.scores$sites[, 2],
-                    .id = d.sub[[mu.col]])
-    colnames(s)[3] <- mu.col
-    s <- split(s, s[[mu.col]])
-    
-    # plot
-    par(mar = c(1,1,3,1))
-    plot(d.scores$sites, type = 'n', axes = FALSE)
-    abline(h = 0, v = 0, lty = 2, col = 'grey')
-    
-    # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level 
-    # add contours of prob density
-    res <- lapply(s, kdeContours, id = mu.col, prob = c(0.75), 
-                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 1, lty = 3)
-    res <- lapply(s, kdeContours, id = mu.col, prob = (0.5), 
-                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 1, lty = 2)
-    res <- lapply(s, kdeContours, id = mu.col, prob = c(0.25), 
-                  cols = cols, m = levels(d.sub[[mu.col]]), lwd = 2, lty = 1)
-    
-    points(d.scores$sites, cex = 0.45, col = cols[as.numeric(d.sub[[mu.col]])], pch = 16)
-    
-    # note special indexing for cases when low-var MU have been removed
-    vegan::ordilabel(d.betadisper, display = 'centroids', col = cols[match(mu.set, levels(d.sub[[mu.col]]))])
-    title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
-    box()
+  ## NOTE: data with very low variability will cause warnings
+  # eval numerical distance, removing 'sID' and '.id' columns
+  d.dist <- daisy(d.sub[d.mu.wide.vars], stand = TRUE)
+  
+  ## map distance matrix to 2D space via principal coordinates
+  d.betadisper <- vegan::betadisper(
+    d.dist,
+    group = d.sub[[mu.col]],
+    bias.adjust = TRUE,
+    sqrt.dist = TRUE,
+    type = 'median'
+  )
+  d.scores <- vegan::scores(d.betadisper)
+  
+  # contour density estimates
+  # add contours for fixed pct of data density using KDE
+  # other ideas: https://stat.ethz.ch/pipermail/r-help/2012-March/305425.html
+  s <- data.frame(x = d.scores$sites[, 1],
+                  y = d.scores$sites[, 2],
+                  .id = d.sub[[mu.col]])
+  colnames(s)[3] <- mu.col
+  s <- split(s, s[[mu.col]])
+  
+  # plot
+  par(mar = c(1, 1, 3, 1))
+  plot(d.scores$sites, type = 'n', axes = FALSE)
+  abline(
+    h = 0,
+    v = 0,
+    lty = 2,
+    col = 'grey'
+  )
+  
+  # NOTE: lines are not added if data are too densely spaced for evaluation of requested prob. level
+  # add contours of prob density
+  res <- lapply(
+    s,
+    kdeContours,
+    id = mu.col,
+    prob = c(0.75),
+    cols = cols,
+    m = levels(d.sub[[mu.col]]),
+    lwd = 1,
+    lty = 3
+  )
+  res <- lapply(
+    s,
+    kdeContours,
+    id = mu.col,
+    prob = (0.5),
+    cols = cols,
+    m = levels(d.sub[[mu.col]]),
+    lwd = 1,
+    lty = 2
+  )
+  res <- lapply(
+    s,
+    kdeContours,
+    id = mu.col,
+    prob = c(0.25),
+    cols = cols,
+    m = levels(d.sub[[mu.col]]),
+    lwd = 2,
+    lty = 1
+  )
+  
+  points(d.scores$sites,
+         cex = 0.45,
+         col = cols[as.numeric(d.sub[[mu.col]])],
+         pch = 16)
+  
+  # note special indexing for cases when low-var MU have been removed
+  vegan::ordilabel(d.betadisper, display = 'centroids', col = cols[match(mu.set, levels(d.sub[[mu.col]]))])
+  title('Ordination of Raster Samples (cLHS Subset) with 25%, 50%, 75% Density Contours')
+  box()
 }
 ```
 
@@ -674,44 +840,19 @@ if (length(levels(d.sub[[mu.col]])) >= 2) {
   # http://stats.stackexchange.com/questions/164569/interpreting-output-of-importance-of-a-random-forest-object-in-r/164585#164585
   varImpPlot(m, scale = TRUE, type = 1, main = 'Mean Decrease in Accuracy')
   # kable(importance(m, scale=FALSE, type=2), digits = 3)
-  
-  # ## this adds several seconds to processing time
-  # # predict using samples from each polygon, to get proportions of each MU
-  # d.mu.wide <- na.omit(d.mu.wide)
-  # d.mu.wide$.predMU <- as.character(predict(m, d.mu.wide))
-  # 
-  # ## TODO: add number of samples / sid
-  # # compute proportion of each class by sid
-  # pred.by.sid <- ddply(d.mu.wide, 'sid', .fun=function(i) {
-  #   # explicit setting of levels results in exact output each iteration
-  #   prop.table(table(factor(i$.predMU, levels=mu.set)))
-  # })
-  
-  ## TODO
-  # compute Shannon Entropy at each sid and fix names (useful?)
-  
-  ## TODO: join with output SHP via sid 
 } else {
   # print message about not enough map unit s
   print('This plot requires two or more map units.')
 }
-
-
-## re-make example tables below
-# kable(head(x[, c(1,2, 14:22)], 4), row.names = FALSE, digits = 2)
-# kable(head(x[, c(1,2, 23:34)], 4), row.names = FALSE, digits = 2)
-# kable(head(x[, c(1,2, 35)], 3), row.names = FALSE, digits = 2)
 ```
 
-
 ## Polygon Summaries
-
 
 ```{r, echo=FALSE, eval=do.continuous}
 # apply across raster values, to all polygons
 
 #calculates prop outside range for _all_ polys
-polygons.to.check <- ddply(d.continuous, c(mu.col, 'variable'), flagPolygons) #, p.crit = 0)
+polygons.to.check <- data.frame(data.table::data.table(d.continuous)[, flagPolygons(.SD), by = c(mu.col, 'variable')])
 
 poly.check.wide <- as.data.frame(data.table::dcast(data.table::setDT(polygons.to.check),
                                  pID ~ variable, value.var = 'prop.outside.range'))
@@ -733,11 +874,7 @@ if (nrow(polygons.to.check) > 0) {
   try(writeVector(mu.check, paste0(file.path('output', shp.qc.fname), ".shp"), overwrite = TRUE))
   try(write.csv(mu.check, paste0('output/', csv.qc.fname)))
 }
-
-## generates sample prop.outside.range table for documentation purposes
-#kable(head(mu.check[,c(1,2,14:20)],3), row.names = FALSE, digits = 2)
 ```
-
 
 ```{r echo=FALSE, eval=do.continuous}
 # save SHP with any un-sampled polygons
@@ -748,14 +885,17 @@ if (length(sampling.res$unsampled.ids) > 0) {
 }
 
 # compute summaries by polygon*variable
-poly.stats <- ddply(d.continuous, c('pID', 'variable'), f.summary, p = p.quantiles)
-
+poly.stats <- data.frame(data.table::data.table(d.continuous)[, f.summary(.SD, p = p.quantiles),
+                                                              by = c('pID', 'variable')])
+                                                              
 # convert to wide format, keeping median value
 poly.stats.wide <- as.data.frame(data.table::dcast(data.table::setDT(poly.stats), 
                                  pID ~ variable, value.var = 'Q50'))
 
 # compute summaries by variable
-mucol.stats <- ddply(d.continuous, c(mu.col, 'variable'), f.summary, p = p.quantiles)
+mucol.stats <- data.frame(data.table::data.table(d.continuous)[, 
+                                                               f.summary(.SD, p = p.quantiles),
+                                                               by = c(mu.col, 'variable')])
 mucol.stats.wide <- data.frame(.id = unique(d.continuous[[mu.col]]))
 names(mucol.stats.wide)[1] <- mu.col
 
