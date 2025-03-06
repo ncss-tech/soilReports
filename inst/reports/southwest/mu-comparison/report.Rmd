@@ -197,15 +197,26 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
   
   musub <- subset(mu, mu[[mu.col]][[1]] %in% mu.set)
   
-  # determine sampling locations
-  loc <- do.call('rbind', lapply(mu.set, function(musym) {
+  # # determine sampling locations
+  # loc <- do.call('rbind', lapply(mu.set, function(musym) {
+  #   musubsub <- subset(musub, musub[[mu.col]][[1]] %in% musym)
+  #   terra::spatSample(
+  #     musubsub,
+  #     size = pmax(5, sum(terra::expanse(musubsub) * 0.000247 * pts.per.acre)),
+  #     method = "regular"
+  #   )
+  # }))
+  
+  ## get around vector allocation issues with terra/PROJ errors
+  locint <- lapply(mu.set, function(musym) {
+    # print(musym)
     musubsub <- subset(musub, musub[[mu.col]][[1]] %in% musym)
-    terra::spatSample(
-      musubsub,
-      size = pmax(5, sum(terra::expanse(musubsub) * 0.000247 * pts.per.acre)),
-      method = "regular"
-    )
-  }))
+    sf_mu <- sf::st_as_sf(musubsub)
+    n_sample <- as.integer(pmax(5, sum(as.numeric(sf::st_area(sf_mu) * 0.000247 * pts.per.acre))))
+    sf_smp <- sf::st_sample(sf_mu, size = n_sample, type = "regular")
+    terra::vect(sf::st_intersection(sf_mu, sf_smp))
+  })
+  loc <- do.call('rbind', locint)
   
   # extract values from raster
   .do_raster_samples <- function(raster.list, musub, loc){
@@ -256,7 +267,7 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
   
   .do_area_stats <- function(musub, samples) {
     res <- aggregate(
-      terra::expanse(musub) * 0.000247,
+      as.numeric(sf::st_area(sf::st_as_sf(musub)) * 0.000247),
       by = list(musub[[mu.col]][[1]]),
       FUN = function(x)
         c(round(quantile(x, probs = c(
@@ -640,7 +651,7 @@ res <- do.call('rbind', lapply(names(d.circ.list), function(n) {
     us[2] <- "<1e-8"
   }
   res <- data.frame(t(c(round(qs), us)))
-  colnames(res) <- c("Q10", "Q50", "Q90")
+  colnames(res) <- c("Q10", "Q50", "Q90", "Rayleigh Uniformity", "p Value")
   res <- cbind(data.frame(V1=n),res)
   return(res)
 }))

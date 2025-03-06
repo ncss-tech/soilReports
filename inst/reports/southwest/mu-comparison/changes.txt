@@ -1,3 +1,4 @@
+2025-03-06 (4.1.1): use {sf} package for regular sampling, terra is throwing memory allocation errors related to PROJ/SSL access
 2025-02-27 (4.1.0): simplify sampling scheme, remove usage of plyr functions 
 2023-12-27 (4.0.3): fixes to run report with no continuous raster inputs
 2023-02-08 (4.0.2): better checks on missing/invalid CRS before sampling, fix missing report file message
