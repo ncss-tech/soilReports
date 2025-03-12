@@ -21,8 +21,10 @@ scaled.density <- function(d, constantScaling=TRUE) {
   # basic density estimate
   v <- na.omit(d$value)
   
-  if(length(v) <= 1){
+  if (length(v) == 1){
     res <- stats::density(v, kernel='gaussian', bw = 1)
+  } else if (length(v) == 0) {
+    res <- stats::density(c(0, 0), kernel="gaussian", bw = 1)
   } else {
     res <- stats::density(v, kernel='gaussian', adjust=1.5)
   }
