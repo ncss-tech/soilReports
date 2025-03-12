@@ -2,14 +2,15 @@ Package: soilReports
 Type: Package
 Title: R Markdown Reports and Convenience Functions for Soil Survey
 Description: R package container and convenience functions for soil data summary, comparison, and evaluation reports used mainly by NRCS staff.
-Version: 0.9.1
+Version: 0.9.2
 Author: USDA-NRCS Soil Survey Staff
-Maintainer: Dylan Beaudette <dylan.beaudette@usda.gov>
+Maintainer: Andrew Brown <andrew.g.brown@usda.gov>
 Depends: R (>= 3.5.0)
 License: GPL (>= 3)
 URL: https://github.com/ncss-tech/soilReports
 BugReports: https://github.com/ncss-tech/soilReports/issues
-Suggests: rmarkdown, knitr, testthat, scales, clhs, MASS, sharpshootR
 Imports: remotes
+Suggests: rmarkdown, knitr, testthat, scales, clhs, MASS, sharpshootR
+Remotes: ncss-tech/sharpshootR
 RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)
