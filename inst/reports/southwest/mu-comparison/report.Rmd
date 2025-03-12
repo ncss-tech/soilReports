@@ -354,20 +354,20 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
   
   .do_raster_summary <- function(raster.list, musub) {
     e.mu <- terra::as.polygons(terra::ext(musub), crs = terra::crs(musub))
-    
 
-    
     data.table::rbindlist(lapply(raster.list, function(x) {
-      data.frame(Variable = names(x),
-                 File = unlist(x),
-                 Resolution = sapply(x, function(y) terra::res(terra::rast(y))[1]),
-                 inMemory = FALSE,
-                 ContainsMU = rapply(x, f = function(r) {
-                   r <- terra::rast(r)
-                    e.r <- terra::as.polygons(terra::ext(r), crs = terra::crs(r))
-                    e.mu.r <- terra::project(e.mu, terra::crs(e.r))
-                    return(terra::relate(e.r, e.mu.r, "contains")[1])
-                 }))
+      if (length(x) > 0) {
+        data.frame(Variable = names(x),
+                   File = unlist(x),
+                   Resolution = sapply(x, function(y) terra::res(terra::rast(y))[1]),
+                   inMemory = FALSE,
+                   ContainsMU = rapply(x, f = function(r) {
+                     r <- terra::rast(r)
+                      e.r <- terra::as.polygons(terra::ext(r), crs = terra::crs(r))
+                      e.mu.r <- terra::project(e.mu, terra::crs(e.r))
+                      return(terra::relate(e.r, e.mu.r, "contains")[1])
+                   }))
+      }
     }))
   }
   
@@ -706,7 +706,7 @@ d.mu.wide <- na.omit(d.mu.wide)
 d.mu.wide.vars <- findSafeVars(d.mu.wide, id = c(mu.col, 'sID', 'pID'))
 
 # must have > 1 variables to perform multivariate summary
-if (length(d.mu.wide.vars) < 2) {
+if (length(d.mu.wide.vars) < 2 || nrow(d.mu.wide) == 0) {
   multivariate.summary <- FALSE
 } else {
   multivariate.summary <- TRUE

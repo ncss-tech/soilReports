@@ -267,6 +267,10 @@ abbreviateNames <- function(spdf) {
 # return DF with proportions outside range for each polygon (by pID)
 flagPolygons <- function(i, p.crit = NULL) {
   
+  if (all(is.na(i$value))) {
+    return(data.frame(pID = numeric(0), prop.outside.range = numeric(0)))
+  }
+  
   # convert to values -> quantiles
   e.i <- ecdf(i$value)
   q.i <- e.i(i$value)
