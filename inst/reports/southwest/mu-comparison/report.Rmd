@@ -452,13 +452,14 @@ fd <- data.frame(`MU Polygons` = mu.dsn, `File or Feature` = mu.layer)
 kable(fd, row.names = FALSE)
 ```
 
+```{r interactive-map-display, echo=FALSE, warning=FALSE, out.width="100%", ref.label=c("write-poly-stats","interactive-map")}
+```
 
 ### Raster Data Sources
 
 ```{r, echo=FALSE}
 kable(sampling.res$raster.summary, row.names = FALSE, digits = 3)
 ```
-
 
 ### Area Summaries
 
@@ -887,7 +888,7 @@ if (nrow(polygons.to.check) > 0) {
 }
 ```
 
-```{r echo=FALSE, eval=do.continuous}
+```{r write-poly-stats, warn=FALSE, echo=FALSE, eval=do.continuous}
 # save SHP with any un-sampled polygons
 if (length(sampling.res$unsampled.ids) > 0) {
   try(terra::writeVector(mu[sampling.res$unsampled.ids, ], 
@@ -948,6 +949,10 @@ try(terra::writeVector(mu, paste0(file.path('output', shp.stats.fname), ".shp"),
 # cat(warnings(), file = 'output/warning-log.txt')
 ```
 
+```{r interactive-map, echo=FALSE, eval=exists("interactive.map") && isTRUE(interactive.map)}
+mapview::mapview(sf::st_as_sf(mu), zcol = mu.col, layer.name = mu.col)
+```
+
 A variety of output files are created by this report (in `output` folder). The output file names can be adjusted in `config.R`. The quantiles for each continuous variable by mapunit symbol are written to a CSV file that looks like this (first 6 columns):
 
 ```{r, echo=FALSE, results='asis', eval=do.continuous}
@@ -976,7 +981,6 @@ There are several columns containing the proportions of each landform element (g
 -->
 
 In the case of un-sampled polygons (very small delineations or too low sampling density), an additional shapefile will be saved in the output folder with a prefix of "un-sampled-". This file contains those polygons that were not allocated any sampling points and thus not included in the report summaries.
-
 
 ### Polygon Quality Control
 
