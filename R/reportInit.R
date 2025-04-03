@@ -74,8 +74,7 @@ reportInit <- function(reportName,
     report.file <- paste0(outputDir,'/report.Rmd')
     shiny.file <- paste0(outputDir,'/shiny.Rmd')
     
-    print(paste0(rname," (v", rvers, ") report instance created in ",
-                 shQuote(outputDir),". [updateReport=", updateReport,"; overwrite=",overwrite,"]"))
+    message(paste0(rname," (v", rvers, ") report instance created in '", outputDir,"'. [updateReport=", updateReport,"; overwrite=",overwrite,"]"))
     
     defineInCodeChunk(report.file, metadat_vars, c(paste0("\'",rname,"\'"),
                                                   paste0("\'",rvers,"\'"),
