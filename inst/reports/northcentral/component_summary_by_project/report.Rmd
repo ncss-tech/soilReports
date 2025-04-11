@@ -85,7 +85,7 @@ s <- within(site(comp), {
   comp_id   = factor(comp_id, levels = unique(comp_id[order(- as.numeric(compname2), - dmuiid)]))
   })
   
-cosm <- get_cosoilmoist_from_NASISWebReport(projectname, stringsAsFactors = TRUE)
+cosm <- get_cosoilmoist_from_NASISWebReport(projectname, impute = F)
 idx <- with(cosm, {!is.na(cosm$soimoistdept_r) & cosm$soimoiststat == "wet"})
 if (any(idx) == TRUE) {cosm <- cosm[idx, ]}
 cosm <- within(cosm, {
@@ -219,12 +219,12 @@ ggplot(., aes(x = slopeshape, y = hillslopeprof, fill = mustatus_new)) +
 # component soil moisture month
 ggplot(cosm, aes(x = as.integer(month), y = soimoistdept_r, lty = soimoiststat, group = comppct_r)) +
   geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
-                ymin = 0, ymax = max(cosm$depb_r),
+                ymin = 0, ymax = max(cosm$soimoistdepb_r),
                 fill = flodfreqcl)) +
   geom_line(cex = 1) +
   geom_point() +
   geom_ribbon(aes(ymin = soimoistdept_l, ymax = soimoistdept_h), alpha = 0.2) +
-  ylim(max(cosm$depb_r), 0) +
+  ylim(max(cosm$soimoistdepb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
   scale_x_continuous(breaks = 1:12) + #, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
   facet_wrap(~ comp_id, ncol = 3, scales = "free_x") +
@@ -233,12 +233,12 @@ ggplot(cosm, aes(x = as.integer(month), y = soimoistdept_r, lty = soimoiststat, 
 
 ggplot(cosm, aes(x = as.integer(month), y = soimoistdept_r, lty = soimoiststat, group = comppct_r)) +
   geom_rect(aes(xmin = as.integer(month), xmax = as.integer(month) + 1,
-                ymin = 0, ymax = max(cosm$depb_r),
+                ymin = 0, ymax = max(cosm$soimoistdepb_r),
                 fill = pondfreqcl)) +
   geom_line(cex = 1) +
   geom_point() +
   geom_ribbon(aes(ymin = soimoistdept_l, ymax = soimoistdept_h), alpha = 0.2) +
-  ylim(max(cosm$depb_r), 0) +
+  ylim(max(cosm$soimoistdepb_r), 0) +
   xlab("month") + ylab("depth (cm)") +
   scale_x_continuous(breaks = 1:12, sec.axis = dup_axis()) + #, labels = month.abb, name="Month") +
   facet_wrap(~ comp_id, ncol = 3) +
