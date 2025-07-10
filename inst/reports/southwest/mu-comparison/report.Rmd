@@ -76,9 +76,9 @@ if (terra::crs(mu) == "") {
   stop("CRS of input polygon file is undefined.", call. = FALSE)
 }
 
-if (terra::is.lonlat(mu)) {
-  stop("CRS of input polygon file must be projected (meters), not geographic (longitude/latitude) for constant density sampling.", call. = FALSE)
-}
+# if (terra::is.lonlat(mu)) {
+#   stop("CRS of input polygon file must be projected (meters), not geographic (longitude/latitude) for constant density sampling.", call. = FALSE)
+# }
 
 ### SANITY CHECK #5 - make sure all raster/input file paths exist and are readable
 ###                   NB: this might not give correct results for parallel computation
