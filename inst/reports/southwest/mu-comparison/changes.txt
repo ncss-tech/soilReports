@@ -1,3 +1,4 @@
+2025-07-10 (4.1.4): remove requirement for projected CRS; check for empty geometries, give warning if present, and the omit them from sampling
 2025-04-03 (4.1.3): add `interactive.map` config option to display mapview map with polygons and calculated delineation-specific median values from input raster
 2025-03-12 (4.1.2): fix for no categorical or circular variables; handle all missing values better in multivariate summary and polygon flagging
 2025-03-06 (4.1.1): use {sf} package for regular sampling, terra is throwing memory allocation errors related to PROJ/SSL access

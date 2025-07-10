@@ -76,9 +76,18 @@ if (terra::crs(mu) == "") {
   stop("CRS of input polygon file is undefined.", call. = FALSE)
 }
 
+## this constraint is not necessary AB 2025/07/010
 # if (terra::is.lonlat(mu)) {
 #   stop("CRS of input polygon file must be projected (meters), not geographic (longitude/latitude) for constant density sampling.", call. = FALSE)
 # }
+
+mu$pID <- 1:nrow(mu)
+
+eg <- terra::emptyGeoms(mu)
+if (length(eg) > 0) {
+  warning("Empty geometries found in '", mu.dsn, "' / '", mu.layer, "' have been omitted. Use `terra::emptyGeoms()` to get the empty geometry indices.")
+  mu <- mu[-eg, ]
+}
 
 ### SANITY CHECK #5 - make sure all raster/input file paths exist and are readable
 ###                   NB: this might not give correct results for parallel computation
@@ -183,8 +192,6 @@ if (any(grepl(basename(outputfiles), pattern = '([/\\|<>:\\*?\"])'))) {
 }
 ### -----
 
-mu$pID <- 1:nrow(mu)
-
 if (cache.samples & file.exists('cached-samples.Rda')) {
   
   message('Using cached raster samples...')
@@ -214,7 +221,7 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
     sf_mu <- sf::st_as_sf(musubsub)
     n_sample <- as.integer(pmax(5, sum(as.numeric(sf::st_area(sf_mu) * 0.000247 * pts.per.acre))))
     sf_smp <- sf::st_sample(sf_mu, size = n_sample, type = "regular")
-    terra::vect(sf::st_intersection(sf_mu, sf_smp))
+    terra::vect(sf::st_intersection(sf_mu, sf::st_transform(sf_smp, sf::st_crs(sf_mu))))
   })
   loc <- do.call('rbind', locint)
   
