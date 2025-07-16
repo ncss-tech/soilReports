@@ -272,6 +272,9 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
   sampling.res <- list()
   sampling.res$raster.samples <- .do_raster_samples(raster.list, musub, loc)
   
+  n_rasters <- length(unique(sampling.res$raster.samples$variable))
+  
+  
   .do_area_stats <- function(musub, samples) {
     res <- aggregate(
       as.numeric(sf::st_area(sf::st_as_sf(musub)) * 0.000247),
@@ -287,7 +290,7 @@ if (cache.samples & file.exists('cached-samples.Rda')) {
     res2 <- aggregate(samples$pID,
                       by = list(samples[[mu.col]]),
                       FUN = function(x) {
-                        c(length(x), sum(!x %in% musub$pID))
+                        c(length(x) / n_rasters, sum(!x %in% musub$pID))
                       })
     colnames(res2[[2]]) <- c("Samples", "Polygons Not Sampled")
     res3 <- type.convert(as.data.frame(cbind(res[[1]], res[[2]], res2[[2]])), as.is = TRUE)
@@ -867,7 +870,7 @@ if (length(levels(d.sub[[mu.col]])) >= 2) {
 
 ## Polygon Summaries
 
-```{r, echo=FALSE, eval=do.continuous}
+```{r, echo=FALSE, warn=FALSE, eval=do.continuous}
 # apply across raster values, to all polygons
 
 #calculates prop outside range for _all_ polys
@@ -880,14 +883,14 @@ poly.check.wide <- as.data.frame(data.table::dcast(data.table::setDT(polygons.to
 poly.check.wide[is.na(poly.check.wide)] = 0 
 
 mu.check <- merge(mu, poly.check.wide, by = 'pID', all.x = TRUE)
-names(mu.check)[-1] <- abbreviateNames(mu.check)
+suppressWarnings({names(mu.check)[-1] <- abbreviateNames(mu.check)})
 
 # fix names for printing
 names(polygons.to.check)[1] <- mu.col
 ```
 
 
-```{r, echo=FALSE, eval=do.continuous}
+```{r, echo=FALSE, eval=do.continuous, warn = FALSE}
 #save a SHP file with prop.outside.range for each polygon and raster data source combination
 if (nrow(polygons.to.check) > 0) {
   try(writeVector(mu.check, paste0(file.path('output', shp.qc.fname), ".shp"), overwrite = TRUE))
@@ -956,7 +959,7 @@ try(terra::writeVector(mu, paste0(file.path('output', shp.stats.fname), ".shp"),
 # cat(warnings(), file = 'output/warning-log.txt')
 ```
 
-```{r interactive-map, echo=FALSE, eval=exists("interactive.map") && isTRUE(interactive.map)}
+```{r interactive-map, echo=FALSE, eval=exists("interactive.map") && isTRUE(interactive.map), include=FALSE}
 mapview::mapview(sf::st_as_sf(mu), zcol = mu.col, layer.name = mu.col)
 ```
 
