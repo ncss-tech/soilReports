@@ -886,7 +886,7 @@ mu.check <- merge(mu, poly.check.wide, by = 'pID', all.x = TRUE)
 suppressWarnings({names(mu.check)[-1] <- abbreviateNames(mu.check)})
 
 # fix names for printing
-names(polygons.to.check)[1] <- mu.col
+suppressWarnings({names(polygons.to.check)[1] <- mu.col})
 ```
 
 
