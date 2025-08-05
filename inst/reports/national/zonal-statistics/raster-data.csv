@@ -1,0 +1,8 @@
+"variable","path","digits"
+"Mean Annual Air Temperature (degrees C)","D:/Geodata/project_data/MUSum_PRISM/final_MAAT_800m.tif",1
+"Mean Annual Precipitation (mm)","D:/Geodata/project_data/MUSum_PRISM/final_MAP_mm_800m.tif",0
+"Effective Precipitation (mm)","D:/Geodata/project_data/MUSum_PRISM/effective_precipitation_800m.tif",0
+"Frost-Free Days","D:/Geodata/project_data/MUSum_PRISM/ffd_50_pct_800m.tif",0
+"Growing Degree Days (degrees C)","D:/Geodata/project_data/MUSum_PRISM/gdd_mean_800m.tif",0
+"Elevation (m)","D:/workspace/S26-SWFS-C5/raster/covariates/genelev_2_30m.tif",0
+"Slope Gradient (%)","D:/workspace/S26-SWFS-C5/raster/covariates/slope_2_30m.tif",1

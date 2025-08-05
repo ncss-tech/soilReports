@@ -1,0 +1,143 @@
+---
+title: "Zonal Statistics Report"
+output: html_document
+knit: (function(inputFile, encoding) {
+  source("config.R");
+  rmarkdown::render(
+    inputFile,
+    encoding = encoding,
+    output_file = OUTPUT_REPORT_NAME
+  )})
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(terra)
+library(exactextractr)
+
+source("config.R")
+
+if (!file.exists(RASTER_DATA_FILE)) {
+  stop("File '", RASTER_DATA_FILE, "' does not exist! This should be a table with three columns describing the (formatted) variable name, the data source name of the file, and the number of digits to display after the decimal point in aggregate results.")
+}
+```
+
+This report calculates user-specified [percentiles](https://en.wikipedia.org/wiki/Percentile) for raster data within polygons.
+
+Percentiles are an excellent way to describe range and central tendency for a dataset. Spatially-weighted percentiles, via the `exactextractr::exact_extract()` method, allow us to account for fractional overlap of polygons and individual raster cells.
+
+```{r calculate-statistics}
+# load and subset polygons
+mupolygon <- terra::vect(MU_DSN, MU_LAYER)
+mupolygon.sub <- mupolygon[which(mupolygon[[MU_COL]][[1]] %in% as.character(MU_SET)), ]
+mupolygon.sub$Acres <- terra::expanse(mupolygon.sub) / 4086.46
+
+raster.data <- read.csv(RASTER_DATA_FILE)
+
+if (!"path" %in% colnames(raster.data)) {
+  stop("File '", RASTER_DATA_FILE, "' must specify a column called 'path' containing the file path or GDAL data source specification for a raster source")
+}
+
+if (!"variable" %in% colnames(raster.data)) {
+  stop("File '", RASTER_DATA_FILE, "' must specify a column called 'variable' containing formatted names for each raster source")
+}
+
+if (!"digits" %in% colnames(raster.data)) {
+  stop("File '", RASTER_DATA_FILE, "' must specify a column called 'digits' containing the number of digits after the decimal place to use for rounding aggregate outputs")
+}
+
+# create spatrasters
+spatraster.list <- lapply(raster.data$path, terra::rast)
+
+# this aggregation is only needed if you want group statistics
+if (!BY_POLYGON) {
+  mupolygon.group <- terra::aggregate(mupolygon.sub, MU_COL, fun = "sum")
+} else {
+  mupolygon.group <- mupolygon.sub
+}
+
+# prepare sf object and final attributes
+mupolygon.sf <- sf::st_as_sf(mupolygon.group)
+mupolygon.attr <- as.data.frame(mupolygon.sf)[MU_COL]
+
+# name cleaning function (TODO: cover more edge cases)
+makeName <- function(x) {
+  gsub("[^a-z0-9 ]", "_", make.names(tolower(x), unique = TRUE))
+}
+
+# extract and apply aggregation function
+sampling.time <- system.time({
+  res <- lapply(seq_len(length(spatraster.list)), function(i) {
+    r <- spatraster.list[[i]]
+    ressub <- do.call(exactextractr::exact_extract, c(list(
+      x = r,
+      y = sf::st_transform(mupolygon.sf, terra::crs(r)),
+      fun = FUN,
+      progress = FALSE,
+      force_df = TRUE,
+      weights = 'area' # TODO: allow custom weight raster?
+    ), ARGS))
+    d <- raster.data[i, 'digits']
+    if (!is.na(d)) {
+      ressub <- round(ressub, d)
+    }
+    colnames(ressub) <- paste0(makeName(names(r)), "_", names(ressub))
+    cbind(mupolygon.attr, ressub)
+  })
+})
+names(res) <- raster.data$variable
+
+mupolygon.attr$`Polygon Count` <- aggregate(seq_len(nrow(mupolygon.sub)), by = list(mupolygon.sub[[MU_COL]][[1]]), length)$x
+mupolygon.attr$`Total Acres` <- round(mupolygon.group$sum_Acres)
+
+poly_acres <- aggregate(mupolygon.sub$Acres, by = list(mupolygon.sub[[MU_COL]][[1]]), 
+          function(x) setNames(round(quantile(x)), paste0("Q", c(0, 25, 50, 75, 100))))
+colnames(poly_acres)[[1]] <- MU_COL
+colnames(poly_acres[[2]]) <- paste("Acres", colnames(poly_acres[[2]]))
+poly_summary <- cbind(mupolygon.attr, poly_acres[[2]])
+```
+
+## Input Data Summary
+
+Input polygon boundary groups from '`r MU_DSN`' '`r MU_LAYER`' are as follows:
+
+```{r polygon-table}
+knitr::kable(poly_summary, caption = "Polygon Area Summary")
+```
+
+Rasters were summarized from the following data sources:
+
+```{r raster-table}
+knitr::kable(raster.data, caption = "Raster Data Sources")
+```
+
+Completed raster extraction from `r sum(poly_summary[["Polygon Count"]])` polygons grouped by by "`r MU_COL`" in `r structure(sampling.time[3], class = "difftime", units = "secs")` seconds.
+
+## Results
+
+```{r display-html-tables, results='asis'}
+for (n in names(res))
+  print(knitr::kable(res[[n]], caption = paste("Zonal Statistics of", n, "by", MU_COL)))
+```
+
+```{r write-wide-output, results='hide'}
+# create wide format output
+.merge <- \(x, y) merge(x, y, by = c("MUSYM", "Acres"))
+res2 <- Reduce(merge, res)
+
+## too wide for html format
+# knitr::kable(res2, caption = paste("Zonal Statistics by", MU_COL))
+
+dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
+outfile <- normalizePath(file.path(OUTPUT_DIR, paste0(OUTPUT_BASENAME)),
+                         winslash = "/",
+                         mustWork = FALSE)
+foo <- write.csv(res2, paste0(outfile, ".csv"), row.names = FALSE)
+vct <- terra::writeVector(cbind(mupolygon.group, res2), paste0(outfile, ".gpkg"))
+```
+
+Wide-format output written to file:
+
+  - `r paste0(outfile, ".csv")`
+  - `r paste0(outfile, ".gpkg")`
